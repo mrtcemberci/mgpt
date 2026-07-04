@@ -17,6 +17,10 @@ public:
     std::vector<int> load_and_encode(const std::string& filepath);
     std::vector<int> encode(const std::string& text);
     std::string decode(const std::vector<int>& encoded_data);
+
+    // Getters for neural network / bigram model initialization
+    size_t get_vocab_size() const;
+    const std::vector<char>& get_vocab() const;
 };
 
 #endif //DATALOADER_H

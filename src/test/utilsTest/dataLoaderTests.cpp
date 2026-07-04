@@ -79,6 +79,16 @@ void test_nonexistent_file() {
     std::cout << "Test 5 (Non-existent File) passed! ✅\n";
 }
 
+// Test 6: Testing get_vocab_size() for neural network / bigram model initialization
+void test_vocab_size_getter() {
+    DataLoader loader;
+    loader.encode("hello world!"); // 9 unique characters: ' ', '!', 'd', 'e', 'h', 'l', 'o', 'r', 'w'
+    assert(loader.get_vocab_size() == 9 && "Vocab size should equal exact number of unique characters (9)");
+    assert(loader.get_vocab().size() == 9 && "get_vocab vector size should also be 9");
+
+    std::cout << "Test 6 (Vocab Size Getter for Bigram Model) passed! ✅\n";
+}
+
 int main() {
     std::cout << "--- Starting DataLoader Tests ---\n";
     test_empty_file();
@@ -86,6 +96,7 @@ int main() {
     test_repeated_chars();
     test_multiple_chars_sorted_vocab();
     test_nonexistent_file();
-    std::cout << "--- All 5 Tests Passed Successfully! --- 🎉\n";
+    test_vocab_size_getter();
+    std::cout << "--- All 6 Tests Passed Successfully! --- 🎉\n";
     return 0;
 }

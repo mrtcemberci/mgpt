@@ -63,3 +63,11 @@ std::string DataLoader::decode(const std::vector<int>& encoded_data) {
 
     return decoded_data;
 }
+
+size_t DataLoader::get_vocab_size() const {
+    return vocab.size();
+}
+
+const std::vector<char>& DataLoader::get_vocab() const {
+    return vocab;
+}
