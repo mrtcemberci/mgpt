@@ -14,6 +14,7 @@ public:
     int out_channels;
     Tensor weights;
     Tensor biases;
+private:
     Tensor cached_input;
 
 public:
