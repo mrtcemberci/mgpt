@@ -26,6 +26,7 @@ public:
     Tensor reshape(const std::vector<int>& new_shape) const; // Views data under new dimensions
 
     Tensor operator+(const Tensor& other) const;
+    Tensor operator-(const Tensor& other) const;
     Tensor operator*(const Tensor& other) const;
 
     // Unary element-wise mapping and scalar broadcasting

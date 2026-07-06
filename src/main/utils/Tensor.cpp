@@ -67,6 +67,10 @@ Tensor Tensor::operator+(const Tensor& other) const {
     return applyOperation(other, [](float a, float b) { return a + b; });
 }
 
+Tensor Tensor::operator-(const Tensor& other) const {
+    return applyOperation(other, [](float a, float b) { return a - b; });
+}
+
 Tensor Tensor::operator*(const Tensor& other) const {
     return applyOperation(other, [](float a, float b) { return a * b; });
 }
