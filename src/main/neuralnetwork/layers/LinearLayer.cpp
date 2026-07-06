@@ -1,11 +1,12 @@
 
 #include "LinearLayer.h"
 #include <iostream>
+#include <cmath>
 
 LinearLayer::LinearLayer(int in_channels, int out_channels)
     : in_channels(in_channels),
       out_channels(out_channels),
-      weights({in_channels, out_channels}, 0.01f), // Initialized with small weights
+      weights(Tensor::randn({in_channels, out_channels}, 0.0f, std::sqrt(2.0f / (float)in_channels))), // Kaiming normal random init
       biases({1, out_channels}, 0.0f) {            // Initialized with 0 bias
 }
 

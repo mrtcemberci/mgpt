@@ -3,7 +3,7 @@
 EmbeddingLayer::EmbeddingLayer(int table_size, int embed_dim)
     : table_size(table_size),
       embed_dim(embed_dim),
-      lookup_table({table_size, embed_dim}, 0.01f) {
+      lookup_table(Tensor::randn({table_size, embed_dim}, 0.0f, 0.02f)) {
 }
 
 // FORWARD PASS: Look up row index for each integer element in input

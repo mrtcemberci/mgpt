@@ -16,7 +16,9 @@ public:
 
     Tensor() = default; // Default no-argument constructor
     Tensor(const std::vector<int>& dims, float init_val = 0.0f);
+    static Tensor randn(const std::vector<int>& dims, float mean, float stddev);
 
+    void randomize(float mean, float stddev);      // Fill tensor data from N(mean, stddev^2)
     void zero_grad();                              // Sets all elements in grad to 0.0f
     size_t size() const;                           // Returns total number of elements (product of shape)
     size_t offset(const std::vector<int>& indices) const; // Converts multi-dimensional indices to 1D flat index
@@ -32,6 +34,7 @@ public:
     // Unary element-wise mapping and scalar broadcasting
     Tensor map(const std::function<float(float)>& func) const;
     Tensor operator+(float scalar) const;
+    Tensor operator-(float scalar) const;
     Tensor operator*(float scalar) const;
 };
 
