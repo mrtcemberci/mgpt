@@ -24,42 +24,10 @@ Tensor SingleHeadAttentionLayer::forward(const Tensor& input) {
     cached_scores = cached_Q.matmul(cached_K.transpose(1, 2)) * scale; // Shape {B, T, T}
 
     // 3. Apply Causal Lower-Triangular Mask (set future positions where col > row to -1e15)
-    int B = cached_scores.shape[0];
-    int T = cached_scores.shape[1];
-    for (int b = 0; b < B; ++b) {
-        for (int t = 0; t < T; ++t) {
-            for (int t_prime = t + 1; t_prime < T; ++t_prime) {
-                cached_scores.data[b * (T * T) + t * T + t_prime] = -1e15f;
-            }
-        }
-    }
+    cached_scores.causal_mask();
 
     // 4. Stable Softmax along the last dimension (T)
-    cached_probs = Tensor(cached_scores.shape, 0.0f);
-    for (int b = 0; b < B; ++b) {
-        for (int t = 0; t < T; ++t) {
-            const float* score_ptr = cached_scores.data.data() + (b * (T * T) + t * T);
-            float* prob_ptr = cached_probs.data.data() + (b * (T * T) + t * T);
-
-            // Subtract max for numerical stability
-            float max_val = score_ptr[0];
-            for (int k = 1; k < T; ++k) {
-                if (score_ptr[k] > max_val) max_val = score_ptr[k];
-            }
-
-            float sum_exp = 0.0f;
-            for (int k = 0; k < T; ++k) {
-                float e = std::exp(score_ptr[k] - max_val);
-                prob_ptr[k] = e;
-                sum_exp += e;
-            }
-
-            float inv_sum = 1.0f / (sum_exp + 1e-15f);
-            for (int k = 0; k < T; ++k) {
-                prob_ptr[k] *= inv_sum;
-            }
-        }
-    }
+    cached_probs = cached_scores.softmax(-1);
 
     // 5. Weighted combination of Values & Output Projection
     Tensor context = cached_probs.matmul(cached_V); // {B, T, T} * {B, T, C} -> {B, T, C}
@@ -78,25 +46,7 @@ Tensor SingleHeadAttentionLayer::backward(const Tensor& dout) {
     Tensor dP = d_context.matmul(cached_V.transpose(1, 2));     // {B, T, C} * {B, C, T} -> {B, T, T}
 
     // 3. Backprop through Softmax along rows of P
-    int B = cached_probs.shape[0];
-    int T = cached_probs.shape[1];
-    Tensor dS(cached_scores.shape, 0.0f);
-
-    for (int b = 0; b < B; ++b) {
-        for (int t = 0; t < T; ++t) {
-            const float* p_ptr = cached_probs.data.data() + (b * (T * T) + t * T);
-            const float* dp_ptr = dP.data.data() + (b * (T * T) + t * T);
-            float* ds_ptr = dS.data.data() + (b * (T * T) + t * T);
-
-            float sum_dot = 0.0f;
-            for (int k = 0; k < T; ++k) {
-                sum_dot += dp_ptr[k] * p_ptr[k];
-            }
-            for (int k = 0; k < T; ++k) {
-                ds_ptr[k] = p_ptr[k] * (dp_ptr[k] - sum_dot);
-            }
-        }
-    }
+    Tensor dS = cached_probs.softmax_backward(dP);
 
     // 4. Scale dS by 1 / sqrt(C) and backprop through S = Q * K^T
     float scale = 1.0f / std::sqrt((float)channels);

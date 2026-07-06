@@ -12,9 +12,7 @@ public:
 
     void step(std::vector<Tensor*>& parameters) override {
         for (Tensor* param : parameters) {
-            for (size_t i = 0; i < param->data.size(); ++i) {
-                param->data[i] -= lr * param->grad[i];
-            }
+            param->sgd_step(lr);
         }
     }
 };

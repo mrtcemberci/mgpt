@@ -36,6 +36,33 @@ public:
     Tensor operator+(float scalar) const;
     Tensor operator-(float scalar) const;
     Tensor operator*(float scalar) const;
+
+    // Pattern Family 1: Parameter Updates & Gradient Accumulation
+    void add_grad(const Tensor& dgrad);
+    Tensor sum_rows() const;
+    void sgd_step(float lr);
+    void adamw_step(std::vector<float>& m, std::vector<float>& v, float lr, float beta1, float beta2, float eps, float weight_decay, int t);
+
+    // Pattern Family 2: Normalization & Statistics
+    Tensor layer_norm(int channels, const Tensor& scale, const Tensor& shift, float eps, Tensor& out_mean, Tensor& out_var, Tensor& out_x_hat) const;
+    Tensor layer_norm_backward(const Tensor& dout, const Tensor& x_hat, Tensor& scale, Tensor& shift, const Tensor& mean, const Tensor& var, float eps) const;
+
+    // Pattern Family 3: Probability Distributions (Softmax & Cross-Entropy)
+    Tensor softmax(int dim = -1) const;
+    Tensor softmax_backward(const Tensor& dout) const;
+    float cross_entropy_loss(const std::vector<int>& targets, Tensor& out_probs) const;
+    Tensor cross_entropy_backward(const std::vector<int>& targets) const;
+
+    // Pattern Family 4: Causal Attention Masking
+    void causal_mask();
+
+    // Pattern Family 5: Table Lookups & Indexing
+    Tensor embedding_lookup(const Tensor& input_ids) const;
+    void embedding_backward(const Tensor& dout, const Tensor& input_ids);
+
+    // Pattern Family 6: Hardware-Accelerated Activations
+    Tensor gelu() const;
+    Tensor gelu_backward(const Tensor& dout) const;
 };
 
 

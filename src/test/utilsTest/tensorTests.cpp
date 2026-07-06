@@ -312,6 +312,159 @@ void test_map_and_scalar() {
     std::cout << "  -> All 5 Map & Scalar tests passed! ✅\n";
 }
 
+// ============================================================================
+// 8. PARAMETER UPDATE & GRADIENT ACCUMULATION TESTS
+// ============================================================================
+void test_parameter_update_helpers() {
+    std::cout << "Running Test Group 8: Parameter Update & Gradient Helpers..." << std::endl;
+
+    // Test add_grad
+    Tensor p({2, 2}, 1.0f);
+    p.grad = {0.1f, 0.2f, 0.3f, 0.4f};
+    Tensor dp({2, 2}, 0.0f);
+    dp.data = {1.0f, 1.0f, 1.0f, 1.0f};
+    p.add_grad(dp);
+    assert(is_close(p.grad[0], 1.1f) && is_close(p.grad[3], 1.4f));
+
+    // Test sum_rows
+    Tensor mat({2, 3}, 0.0f);
+    mat.data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
+    Tensor summed = mat.sum_rows();
+    assert(summed.shape.size() == 2 && summed.shape[0] == 1 && summed.shape[1] == 3);
+    assert(is_close(summed.data[0], 5.0f));
+    assert(is_close(summed.data[1], 7.0f));
+    assert(is_close(summed.data[2], 9.0f));
+
+    // Test sgd_step
+    p.sgd_step(0.1f); // p.data was 1.0, grad is {1.1, 1.2, 1.3, 1.4}
+    assert(is_close(p.data[0], 1.0f - 0.1f * 1.1f));
+
+    // Test adamw_step
+    Tensor w({1}, 10.0f);
+    w.grad = {2.0f};
+    std::vector<float> m = {0.0f};
+    std::vector<float> v = {0.0f};
+    w.adamw_step(m, v, 0.1f, 0.9f, 0.999f, 1e-8f, 0.01f, 1);
+    assert(w.data[0] < 10.0f); // weight should decrease
+
+    std::cout << "  -> All Parameter Update tests passed! ✅\n";
+}
+
+// ============================================================================
+// 9. NORMALIZATION & STATISTICS TESTS
+// ============================================================================
+void test_normalization_helpers() {
+    std::cout << "Running Test Group 9: Normalization Helpers..." << std::endl;
+
+    Tensor x({1, 4}, 0.0f);
+    x.data = { -2.0f, 0.0f, 2.0f, 4.0f };
+    Tensor scale({4}, 1.0f);
+    Tensor shift({4}, 0.0f);
+    Tensor mean, var, x_hat;
+
+    Tensor y = x.layer_norm(4, scale, shift, 1e-5f, mean, var, x_hat);
+    assert(is_close(mean.data[0], 1.0f));
+    assert(var.data[0] > 0.0f);
+    assert(is_close(y.data[0] + y.data[1] + y.data[2] + y.data[3], 0.0f, 1e-4f));
+
+    Tensor dout({1, 4}, 1.0f);
+    scale.zero_grad();
+    shift.zero_grad();
+    Tensor dx = x.layer_norm_backward(dout, x_hat, scale, shift, mean, var, 1e-5f);
+    assert(dx.shape == x.shape && dx.size() == 4);
+    assert(is_close(shift.grad[0], 1.0f)); // 1 token * dout=1.0
+
+    std::cout << "  -> All Normalization tests passed! ✅\n";
+}
+
+// ============================================================================
+// 10. PROBABILITY DISTRIBUTIONS (SOFTMAX & CROSS ENTROPY) TESTS
+// ============================================================================
+void test_probability_helpers() {
+    std::cout << "Running Test Group 10: Probability Distribution Helpers..." << std::endl;
+
+    Tensor logits({1, 3}, 0.0f);
+    logits.data = { 1.0f, 2.0f, 3.0f };
+    Tensor probs = logits.softmax(-1);
+    float sum_p = probs.data[0] + probs.data[1] + probs.data[2];
+    assert(is_close(sum_p, 1.0f));
+    assert(probs.data[2] > probs.data[1] && probs.data[1] > probs.data[0]);
+
+    Tensor dout({1, 3}, 1.0f);
+    Tensor ds = probs.softmax_backward(dout);
+    assert(ds.size() == 3);
+
+    std::vector<int> targets = { 2 };
+    Tensor out_p;
+    float loss = logits.cross_entropy_loss(targets, out_p);
+    assert(loss > 0.0f);
+
+    Tensor dl = out_p.cross_entropy_backward(targets);
+    assert(dl.data[2] < 0.0f); // target class grad should be negative
+
+    std::cout << "  -> All Probability tests passed! ✅\n";
+}
+
+// ============================================================================
+// 11. CAUSAL ATTENTION MASKING TESTS
+// ============================================================================
+void test_causal_masking() {
+    std::cout << "Running Test Group 11: Causal Attention Masking..." << std::endl;
+
+    Tensor scores({1, 3, 3}, 0.0f);
+    scores.causal_mask();
+    assert(is_close(scores.data[0], 0.0f)); // (0,0) unchanged
+    assert(scores.data[1] == -1e15f);       // (0,1) masked
+    assert(scores.data[2] == -1e15f);       // (0,2) masked
+    assert(is_close(scores.data[4], 0.0f)); // (1,1) unchanged
+    assert(scores.data[5] == -1e15f);       // (1,2) masked
+    assert(is_close(scores.data[8], 0.0f)); // (2,2) unchanged
+
+    std::cout << "  -> All Causal Masking tests passed! ✅\n";
+}
+
+// ============================================================================
+// 12. TABLE LOOKUPS & INDEXING TESTS
+// ============================================================================
+void test_embedding_helpers() {
+    std::cout << "Running Test Group 12: Embedding Helpers..." << std::endl;
+
+    Tensor table({10, 4}, 0.5f);
+    table.data[1 * 4 + 0] = 99.0f; // row 1, col 0
+    Tensor input_ids({1, 2}, 0.0f);
+    input_ids.data = {1.0f, 0.0f};
+
+    Tensor out = table.embedding_lookup(input_ids);
+    assert(out.shape.size() == 3 && out.shape[0] == 1 && out.shape[1] == 2 && out.shape[2] == 4);
+    assert(is_close(out.data[0], 99.0f));
+
+    Tensor dout({1, 2, 4}, 1.0f);
+    table.zero_grad();
+    table.embedding_backward(dout, input_ids);
+    assert(is_close(table.grad[1 * 4 + 0], 1.0f));
+
+    std::cout << "  -> All Embedding Lookup tests passed! ✅\n";
+}
+
+// ============================================================================
+// 13. ACTIVATION HELPERS TESTS
+// ============================================================================
+void test_activation_helpers() {
+    std::cout << "Running Test Group 13: Activation Helpers..." << std::endl;
+
+    Tensor x({2}, 0.0f);
+    x.data = {0.0f, 1.0f};
+    Tensor y = x.gelu();
+    assert(is_close(y.data[0], 0.0f));
+    assert(y.data[1] > 0.8f); // gelu(1.0) ≈ 0.8413
+
+    Tensor dout({2}, 1.0f);
+    Tensor dx = x.gelu_backward(dout);
+    assert(dx.size() == 2 && dx.data[0] > 0.0f);
+
+    std::cout << "  -> All Activation tests passed! ✅\n";
+}
+
 int main() {
     std::cout << "============================================================\n";
     std::cout << "       STARTING INDUSTRY COMPLIANT TENSOR ENGINE TESTS       \n";
@@ -324,9 +477,15 @@ int main() {
     test_transpose();
     test_matmul();
     test_map_and_scalar();
+    test_parameter_update_helpers();
+    test_normalization_helpers();
+    test_probability_helpers();
+    test_causal_masking();
+    test_embedding_helpers();
+    test_activation_helpers();
 
     std::cout << "\n============================================================\n";
-    std::cout << " 🎉 ALL 35 TENSOR ENGINE TESTS PASSED SUCCESSFULLY! (100%) 🎉\n";
+    std::cout << " 🎉 ALL TENSOR ENGINE ABSTRACTION TESTS PASSED! (100%) 🎉\n";
     std::cout << "============================================================\n";
     return 0;
 }

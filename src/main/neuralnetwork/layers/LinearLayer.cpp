@@ -22,23 +22,14 @@ Tensor LinearLayer::forward(const Tensor& input) {
 
 // BACKWARD PASS: Compute dW, db, and return dX
 Tensor LinearLayer::backward(const Tensor& dout) {
-
     int total_rows = (int)(dout.size() / out_channels);
-
-    for (int i = 0; i < total_rows; ++i) {
-        for (int j = 0; j < out_channels; ++j) {
-            biases.grad[j] += dout.data[i * out_channels + j];
-        }
-    }
+    biases.add_grad(dout.sum_rows());
 
     Tensor X_2d = cached_input.reshape({total_rows, in_channels});
     Tensor dout_2d = dout.reshape({total_rows, out_channels});
 
     Tensor dW = X_2d.transpose(0, 1).matmul(dout_2d);
-
-    for (size_t i = 0; i < weights.grad.size(); ++i) {
-        weights.grad[i] += dW.data[i];
-    }
+    weights.add_grad(dW);
 
     Tensor W_T = weights.transpose(0, 1);
     Tensor dX = dout.matmul(W_T);
