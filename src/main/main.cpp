@@ -1,17 +1,315 @@
 #include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <random>
+#include <iomanip>
+#include <chrono>
+#include <cmath>
 #include "utils/Tokenizer.h"
+#include "neuralnetwork/GPT.h"
+#include "neuralnetwork/optimisers/AdamWOptimiser.h"
 
-// TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-int main() {
-    // TIP Press <shortcut actionId="RenameElement"/> when your caret is at the <b>lang</b> variable name to see how CLion can help you rename it.
-    auto lang = "C++";
-    std::cout << "Hello and welcome to " << lang << "!\n";
+void get_batch(const std::vector<int>& data, int batch_size, int max_seq_len, 
+               Tensor& x_batch, Tensor& y_batch, std::mt19937& rng) {
+    std::uniform_int_distribution<int> dist(0, (int)data.size() - max_seq_len - 1);
+    
+    for (int b = 0; b < batch_size; ++b) {
+        int idx = dist(rng);
+        for (int t = 0; t < max_seq_len; ++t) {
+            x_batch.data[b * max_seq_len + t] = (float)data[idx + t];
+            y_batch.data[b * max_seq_len + t] = (float)data[idx + t + 1];
+        }
+    }
+}
 
-    for (int i = 1; i <= 5; i++) {
-        // TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-        std::cout << "i = " << i << std::endl;
+// Evaluate average loss on validation dataset without backprop
+float evaluate_loss(GPT& model, const std::vector<int>& val_data, 
+                    int eval_steps, int batch_size, int max_seq_len, std::mt19937& rng) {
+    Tensor x_batch({batch_size, max_seq_len}, 0.0f);
+    Tensor y_batch({batch_size, max_seq_len}, 0.0f);
+    float total_loss = 0.0f;
+
+    for (int step = 0; step < eval_steps; ++step) {
+        get_batch(val_data, batch_size, max_seq_len, x_batch, y_batch, rng);
+        Tensor logits = model.forward(x_batch);
+        float step_loss = model.loss_layer.forward_loss(logits, y_batch);
+        total_loss += step_loss;
+    }
+    return total_loss / (float)eval_steps;
+}
+
+//  Autoregressive text generation sample from trained model
+std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& prompt, 
+                          int max_new_tokens, std::mt19937& rng) {
+    std::vector<int> tokens = tokenizer.encode(prompt);
+    
+    for (int step = 0; step < max_new_tokens; ++step) {
+        // Crop context to max_seq_len if needed
+        int start_idx = 0;
+        if ((int)tokens.size() > model.config.max_seq_len) {
+            start_idx = (int)tokens.size() - model.config.max_seq_len;
+        }
+        int seq_len = (int)tokens.size() - start_idx;
+
+        Tensor input_ids({1, seq_len}, 0.0f);
+        for (int t = 0; t < seq_len; ++t) {
+            input_ids.data[t] = (float)tokens[start_idx + t];
+        }
+
+        // Forward pass
+        Tensor logits = model.forward(input_ids);
+
+        // Get softmax probabilities for the last time step
+        int last_t_offset = (seq_len - 1) * model.config.vocab_size;
+        
+        // Find max logit for stable softmax
+        float max_logit = -1e15f;
+        for (int v = 0; v < model.config.vocab_size; ++v) {
+            if (logits.data[last_t_offset + v] > max_logit) {
+                max_logit = logits.data[last_t_offset + v];
+            }
+        }
+
+        // Compute softmax probabilities
+        std::vector<float> probs(model.config.vocab_size);
+        float sum_exp = 0.0f;
+        for (int v = 0; v < model.config.vocab_size; ++v) {
+            probs[v] = std::exp(logits.data[last_t_offset + v] - max_logit);
+            sum_exp += probs[v];
+        }
+        for (int v = 0; v < model.config.vocab_size; ++v) {
+            probs[v] /= sum_exp;
+        }
+
+        // Sample next token ID from probability distribution
+        std::discrete_distribution<int> dist(probs.begin(), probs.end());
+        int next_token = dist(rng);
+        tokens.push_back(next_token);
     }
 
+    return tokenizer.decode(tokens);
+}
+
+
+int main(int argc, char* argv[]) {
+    std::cout << "============================================================\n";
+    std::cout << "      🚀 MGPT: CHARACTER-LEVEL GPT TRAINING ENGINE 🚀       \n";
+    std::cout << "============================================================\n\n";
+
+    bool mode_train = true;  // default to train if neither -t nor -i specified
+    bool mode_infer_only = false;
+    std::string weights_path = "shakespeare_gpt.bin";
+    std::string data_path = "input.txt";
+    std::string prompt = "To be or not to be";
+    int max_tokens = 500;
+    int max_steps = 1000;
+    int num_layers = 4;
+    int embed_dim = 128;
+
+    auto strip_quotes = [](std::string& s) {
+        if (s.length() >= 2 && ((s.front() == '"' && s.back() == '"') || (s.front() == '\'' && s.back() == '\''))) {
+            s = s.substr(1, s.length() - 2);
+        }
+    };
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "-h" || arg == "--help") {
+            std::cout << "Usage: mgpt [options]\n"
+                      << "Options:\n"
+                      << "  -t, --train               Run in training mode (default)\n"
+                      << "  -i, --infer               Run in inference/generation mode (load weights without training)\n"
+                      << "  -f, --file <path>         Path to model weights file (.bin) (default: shakespeare_gpt.bin)\n"
+                      << "  -d, --data <path>         Path to training dataset (default: input.txt)\n"
+                      << "  -p, --prompt <str>        Text generation prompt (default: \"To be or not to be\")\n"
+                      << "  -n, --tokens <int>        Number of characters to generate (default: 500)\n"
+                      << "  -s, --steps <int>         Number of training steps (default: 1000)\n"
+                      << "  -l, --layers <int>        Number of Transformer blocks (default: 4)\n"
+                      << "  -c, --channels <int>      Embedding channel dimension (default: 128)\n"
+                      << "  -h, --help                Show this help message and exit\n\n"
+                      << "Examples:\n"
+                      << "  mgpt -t -f=\"my_model.bin\" -s=2000 -l=6\n"
+                      << "  mgpt -i -f=\"my_model.bin\" -p=\"O Romeo, Romeo!\" -n=1000\n";
+            return 0;
+        }
+        if (arg == "-t" || arg == "--train") { mode_train = true; mode_infer_only = false; continue; }
+        if (arg == "-i" || arg == "--infer") { mode_infer_only = true; mode_train = false; continue; }
+        
+        if (arg == "-f" || arg == "--file") { if (i + 1 < argc) weights_path = argv[++i]; continue; }
+        if (arg.find("-f=") == 0) { weights_path = arg.substr(3); continue; }
+        if (arg.find("--file=") == 0) { weights_path = arg.substr(7); continue; }
+
+        if (arg == "-d" || arg == "--data") { if (i + 1 < argc) data_path = argv[++i]; continue; }
+        if (arg.find("-d=") == 0) { data_path = arg.substr(3); continue; }
+        if (arg.find("--data=") == 0) { data_path = arg.substr(7); continue; }
+
+        if (arg == "-p" || arg == "--prompt") { if (i + 1 < argc) prompt = argv[++i]; continue; }
+        if (arg.find("-p=") == 0) { prompt = arg.substr(3); continue; }
+        if (arg.find("--prompt=") == 0) { prompt = arg.substr(9); continue; }
+
+        if (arg == "-n" || arg == "--tokens") { if (i + 1 < argc) max_tokens = std::stoi(argv[++i]); continue; }
+        if (arg.find("-n=") == 0) { max_tokens = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--tokens=") == 0) { max_tokens = std::stoi(arg.substr(9)); continue; }
+
+        if (arg == "-s" || arg == "--steps") { if (i + 1 < argc) max_steps = std::stoi(argv[++i]); continue; }
+        if (arg.find("-s=") == 0) { max_steps = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--steps=") == 0) { max_steps = std::stoi(arg.substr(8)); continue; }
+
+        if (arg == "-l" || arg == "--layers") { if (i + 1 < argc) num_layers = std::stoi(argv[++i]); continue; }
+        if (arg.find("-l=") == 0) { num_layers = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--layers=") == 0) { num_layers = std::stoi(arg.substr(9)); continue; }
+
+        if (arg == "-c" || arg == "--channels") { if (i + 1 < argc) embed_dim = std::stoi(argv[++i]); continue; }
+        if (arg.find("-c=") == 0) { embed_dim = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--channels=") == 0) { embed_dim = std::stoi(arg.substr(11)); continue; }
+    }
+
+    strip_quotes(weights_path);
+    strip_quotes(data_path);
+    strip_quotes(prompt);
+
+    // Locate dataset
+    std::ifstream test_file(data_path);
+    if (!test_file.is_open()) {
+        if (data_path == "input.txt") {
+            data_path = "../input.txt";
+            test_file.open(data_path);
+        }
+        if (!test_file.is_open()) {
+            std::cerr << "Error: Could not find dataset at " << data_path << "!\n";
+            return -1;
+        }
+    }
+    test_file.close();
+    std::cout << "[1/6] Using dataset at: " << data_path << "\n";
+
+    // Tokenize and Build Vocabulary Dynamically
+    Tokenizer tokenizer;
+    tokenizer.build_vocab_from_file(data_path);
+    int vocab_size = (int)tokenizer.get_vocab_size();
+    std::cout << "[2/6] Dynamic Vocabulary Built! Vocab Size = " << vocab_size << " characters.\n";
+
+    std::vector<int> full_data = tokenizer.load_and_encode(data_path);
+    std::cout << "      Total Dataset Tokens: " << full_data.size() << "\n";
+
+    // Train / Validation Split
+    std::vector<int> train_data, val_data;
+    if (mode_train) {
+        size_t split_idx = (size_t)(full_data.size() * 0.9);
+        train_data.assign(full_data.begin(), full_data.begin() + split_idx);
+        val_data.assign(full_data.begin() + split_idx, full_data.end());
+        std::cout << "[3/6] Industry Standard Train/Val Split (90/10):\n"
+                  << "      -> Training Tokens:   " << train_data.size() << "\n"
+                  << "      -> Validation Tokens: " << val_data.size() << "\n\n";
+    } else {
+        std::cout << "[3/6] Inference Mode Selected (Skipping Train/Val Split)\n\n";
+    }
+
+    // Configure & Instantiate GPT Model Architecture
+    GPTConfig config;
+    config.vocab_size = vocab_size;
+    config.max_seq_len = 64;
+    config.embed_dim = embed_dim;
+    config.num_layers = num_layers;
+
+    GPT model(config);
+
+    size_t total_params = 0;
+    for (Tensor* param : model.get_parameters()) {
+        total_params += param->size();
+    }
+    std::cout << "[4/6] Instantiated GPT Model Architecture:\n"
+              << "      -> Vocab Size:   " << config.vocab_size << "\n"
+              << "      -> Max Seq Len:  " << config.max_seq_len << "\n"
+              << "      -> Embed Dim:    " << config.embed_dim << "\n"
+              << "      -> Num Layers:   " << config.num_layers << "\n"
+              << "      -> Total Params: " << total_params << " float32 parameters (~" 
+              << (total_params * sizeof(float)) / 1024 << " KB)\n\n";
+
+    // Training or Inference Execution
+    std::mt19937 rng(42); // Seeded for reproducibility
+
+    if (mode_infer_only) {
+        std::cout << "[5/6] Loading Trained Model Weights from " << weights_path << "...\n";
+        model.load_weights_bin(weights_path);
+    } else {
+        float learning_rate = 1e-3f;
+        int batch_size = 16;
+        int print_interval = std::max(1, max_steps / 10);
+        int eval_interval = print_interval;
+        int eval_steps = 10;
+
+        std::unique_ptr<Optimiser> optimizer = std::make_unique<AdamWOptimizer>(learning_rate);
+
+        Tensor x_batch({batch_size, config.max_seq_len}, 0.0f);
+        Tensor y_batch({batch_size, config.max_seq_len}, 0.0f);
+
+        std::cout << "[5/6] Starting Training Loop (AdamW, LR=" << learning_rate 
+                  << ", Batch=" << batch_size << ", Steps=" << max_steps << ")...\n";
+        std::cout << "------------------------------------------------------------\n";
+        std::cout << "Step       Progress & Timings                      Train Loss   Val Loss\n";
+        std::cout << "------------------------------------------------------------\n";
+
+        auto start_time = std::chrono::high_resolution_clock::now();
+
+        for (int step = 1; step <= max_steps; ++step) {
+            auto step_start = std::chrono::high_resolution_clock::now();
+
+            get_batch(train_data, batch_size, config.max_seq_len, x_batch, y_batch, rng);
+
+            for (Tensor* param : model.get_parameters()) {
+                param->zero_grad();
+            }
+
+            auto t0 = std::chrono::high_resolution_clock::now();
+            Tensor logits = model.forward(x_batch);
+            auto t1 = std::chrono::high_resolution_clock::now();
+            double fwd_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+
+            float train_loss = model.compute_loss(logits, y_batch);
+            auto t2 = std::chrono::high_resolution_clock::now();
+            double bwd_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
+
+            auto params = model.get_parameters();
+            optimizer->step(params);
+            auto t3 = std::chrono::high_resolution_clock::now();
+            double opt_ms = std::chrono::duration<double, std::milli>(t3 - t2).count();
+
+            auto step_end = std::chrono::high_resolution_clock::now();
+            double step_ms = std::chrono::duration<double, std::milli>(step_end - step_start).count();
+
+            if (step % print_interval == 0 || step == 1 || step == max_steps) {
+                float val_loss = 0.0f;
+                if (step % eval_interval == 0 || step == max_steps) {
+                    val_loss = evaluate_loss(model, val_data, eval_steps, batch_size, config.max_seq_len, rng);
+                }
+
+                int percent = (int)((step * 100.0) / max_steps);
+                std::cout << "[" << std::setw(3) << step << "/" << max_steps << " (" << std::setw(3) << percent << "%)] "
+                          << "Fwd:" << (int)fwd_ms << "ms Loss:" << (int)bwd_ms << "ms Opt:" << (int)opt_ms << "ms "
+                          << "| Step:" << (int)step_ms << "ms | Loss: " 
+                          << std::fixed << std::setprecision(4) << train_loss;
+                if (val_loss > 0.0f) {
+                    std::cout << " | Val: " << val_loss;
+                }
+                std::cout << "\n" << std::flush;
+            }
+        }
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        double total_sec = std::chrono::duration<double>(end_time - start_time).count();
+        std::cout << "------------------------------------------------------------\n";
+        std::cout << "✅ Training Complete! Total Duration: " << std::fixed << std::setprecision(2) << total_sec << " seconds.\n\n";
+
+        std::cout << "[6/6] Exporting Trained Model to " << weights_path << "...\n";
+        model.save_weights_bin(weights_path);
+    }
+
+    std::cout << "\n--- 📜 Text Generation Sample (Prompt: \"" << prompt << "\") ---\n";
+    std::string generated = generate_text(model, tokenizer, prompt, max_tokens, rng);
+    std::cout << generated << "\n";
+    std::cout << "------------------------------------------------------------\n\n";
+
     return 0;
-    // TIP See CLion help at <a href="https://www.jetbrains.com/help/clion/">jetbrains.com/help/clion/</a>. Also, you can try interactive lessons for CLion by selecting 'Help | Learn IDE Features' from the main menu.
 }
