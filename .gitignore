@@ -1,3 +1,21 @@
+# IDE / Editor
 .idea/
+.vs/
+
+# Build directories & compilation artifacts
+cmake-build-*/
+build/
+out/
+*.exe
+*.obj
+*.dll
+*.lib
+*.pdb
+*.exp
+*.ilk
+*.test
+
+# Model weights & datasets
+instructions.md
 *.txt
-*.md
+*.bin
