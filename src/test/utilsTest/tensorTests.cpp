@@ -268,6 +268,50 @@ void test_matmul() {
     std::cout << "  -> All 5 Matmul tests passed! ✅\n";
 }
 
+// ============================================================================
+// 7. MAP & SCALAR BROADCASTING TESTS (map, scalar arithmetic, bias broadcasting)
+// ============================================================================
+void test_map_and_scalar() {
+    std::cout << "Running Test Group 7: Map & Scalar Broadcasting..." << std::endl;
+
+    // Test 7.1: Unary mapping with custom function (e.g. squaring x -> x^2)
+    Tensor t1({5}, 3.0f);
+    Tensor sq1 = t1.map([](float x) { return x * x; });
+    for (float val : sq1.data) assert(is_close(val, 9.0f));
+
+    // Test 7.2: Scalar addition (t + 5.0f)
+    Tensor t2({3, 3}, 10.0f);
+    Tensor add2 = t2 + 5.0f;
+    for (float val : add2.data) assert(is_close(val, 15.0f));
+
+    // Test 7.3: Scalar multiplication (t * 0.5f)
+    Tensor t3({2, 2, 2}, 8.0f);
+    Tensor mult3 = t3 * 0.5f;
+    for (float val : mult3.data) assert(is_close(val, 4.0f));
+
+    // Test 7.4: Scalar tensor broadcasting in binary arithmetic (t + scalar_tensor)
+    Tensor scalar_t({1}, 100.0f);
+    Tensor add4 = t3 + scalar_t;
+    for (float val : add4.data) assert(is_close(val, 108.0f));
+
+    // Test 7.5: 1D bias broadcasting across 3D batched/time tensor ({2, 3, 4} + {4})
+    Tensor batch3d({2, 3, 4}, 1.0f);
+    Tensor bias({4}, 0.0f);
+    bias.data = {10.0f, 20.0f, 30.0f, 40.0f};
+    Tensor out3d = batch3d + bias;
+    assert(out3d.shape == batch3d.shape && out3d.size() == 24);
+    for (int b = 0; b < 2; ++b) {
+        for (int t = 0; t < 3; ++t) {
+            assert(is_close(out3d.data[out3d.offset({b, t, 0})], 11.0f));
+            assert(is_close(out3d.data[out3d.offset({b, t, 1})], 21.0f));
+            assert(is_close(out3d.data[out3d.offset({b, t, 2})], 31.0f));
+            assert(is_close(out3d.data[out3d.offset({b, t, 3})], 41.0f));
+        }
+    }
+
+    std::cout << "  -> All 5 Map & Scalar tests passed! ✅\n";
+}
+
 int main() {
     std::cout << "============================================================\n";
     std::cout << "       STARTING INDUSTRY COMPLIANT TENSOR ENGINE TESTS       \n";
@@ -279,9 +323,11 @@ int main() {
     test_reshape();
     test_transpose();
     test_matmul();
+    test_map_and_scalar();
 
     std::cout << "\n============================================================\n";
-    std::cout << " 🎉 ALL 30 TENSOR ENGINE TESTS PASSED SUCCESSFULLY! (100%) 🎉\n";
+    std::cout << " 🎉 ALL 35 TENSOR ENGINE TESTS PASSED SUCCESSFULLY! (100%) 🎉\n";
     std::cout << "============================================================\n";
     return 0;
 }
+

@@ -34,6 +34,22 @@ size_t Tensor::offset(const std::vector<int>& indices) const {
 
 Tensor Tensor::applyOperation(const Tensor &other, const std::function<float(float, float)>& operation) const {
     if (other.shape != shape) {
+        if (!shape.empty() && other.size() == shape.back()) {
+            Tensor result = Tensor(shape, 0.0f);
+            int C = shape.back();
+            int total_rows = (int)(data.size() / C);
+            for (int i = 0; i < total_rows; ++i) {
+                for (int j = 0; j < C; ++j) {
+                    result.data[i * C + j] = operation(data[i * C + j], other.data[j]);
+                }
+            }
+            return result;
+        }
+        // Check if `other` is a single-element scalar tensor
+        if (other.size() == 1) {
+            float val = other.data[0];
+            return map([&](float a) { return operation(a, val); });
+        }
         std::cerr << "Tensor::applyOperation: shape mismatch" << std::endl;
         exit(-1);
     }
@@ -53,6 +69,22 @@ Tensor Tensor::operator+(const Tensor& other) const {
 
 Tensor Tensor::operator*(const Tensor& other) const {
     return applyOperation(other, [](float a, float b) { return a * b; });
+}
+
+Tensor Tensor::map(const std::function<float(float)>& func) const {
+    Tensor result(shape, 0.0f);
+    for (size_t i = 0; i < data.size(); ++i) {
+        result.data[i] = func(data[i]);
+    }
+    return result;
+}
+
+Tensor Tensor::operator+(float scalar) const {
+    return map([scalar](float a) { return a + scalar; });
+}
+
+Tensor Tensor::operator*(float scalar) const {
+    return map([scalar](float a) { return a * scalar; });
 }
 
 Tensor Tensor::reshape(const std::vector<int>& new_shape) const {
@@ -125,7 +157,7 @@ Tensor Tensor::matmul(const Tensor& other) const {
 
     if (other.shape.size() == 2) {
         std::vector<int> out_shape = shape;
-        out_shape.back() = N; // Replace last dimension K with N
+        out_shape.back() = N;
         Tensor result(out_shape, 0.0f);
 
         int total_rows = (int)(data.size() / K);

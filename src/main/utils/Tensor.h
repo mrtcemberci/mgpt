@@ -14,6 +14,7 @@ public:
     std::vector<float> grad;  // Accumulated calculus gradients (same size as data)
     std::vector<int> shape;   // Dimensionality, e.g., {8, 256, 384} for {B, T, C}
 
+    Tensor() = default; // Default no-argument constructor
     Tensor(const std::vector<int>& dims, float init_val = 0.0f);
 
     void zero_grad();                              // Sets all elements in grad to 0.0f
@@ -26,6 +27,11 @@ public:
 
     Tensor operator+(const Tensor& other) const;
     Tensor operator*(const Tensor& other) const;
+
+    // Unary element-wise mapping and scalar broadcasting
+    Tensor map(const std::function<float(float)>& func) const;
+    Tensor operator+(float scalar) const;
+    Tensor operator*(float scalar) const;
 };
 
 
