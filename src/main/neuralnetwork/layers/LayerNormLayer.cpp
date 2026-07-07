@@ -8,18 +8,30 @@ LayerNormLayer::LayerNormLayer(int channels, float eps)
 }
 
 // FORWARD PASS: Normalize across channel dimension C, apply gamma scale and beta shift
-Tensor LayerNormLayer::forward(const Tensor& input) {
+void LayerNormLayer::forward_into(const Tensor& input, Tensor& output) {
     if (input.shape.empty() || input.shape.back() != channels) {
-        std::cerr << "LayerNormLayer::forward: input channel dimension mismatch!" << std::endl;
+        std::cerr << "LayerNormLayer::forward_into: input channel dimension mismatch!" << std::endl;
         exit(-1);
     }
     cached_input = input;
-    return input.layer_norm(channels, scale, shift, eps, cached_mean, cached_var, cached_x_hat);
+    input.layer_norm_into(channels, scale, shift, eps, cached_mean, cached_var, cached_x_hat, output);
+    cached_output = output;
+}
+
+Tensor LayerNormLayer::forward(const Tensor& input) {
+    forward_into(input, cached_output);
+    return cached_output;
 }
 
 // BACKWARD PASS: Compute dGamma, dBeta across all tokens, return dX
+void LayerNormLayer::backward_into(const Tensor& dout, Tensor& din) {
+    cached_input.layer_norm_backward_into(dout, cached_x_hat, scale, shift, cached_var, eps, din);
+    cached_dX = din;
+}
+
 Tensor LayerNormLayer::backward(const Tensor& dout) {
-    return cached_input.layer_norm_backward(dout, cached_x_hat, scale, shift, cached_mean, cached_var, eps);
+    backward_into(dout, cached_dX);
+    return cached_dX;
 }
 
 std::vector<Tensor*> LayerNormLayer::get_parameters() {

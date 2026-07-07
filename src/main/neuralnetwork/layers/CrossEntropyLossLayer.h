@@ -10,6 +10,9 @@ class CrossEntropyLossLayer : public Layer {
 private:
     Tensor cached_probs;               // Softmax probabilities P of shape {B, T, V}
     std::vector<int> cached_targets;   // Target integer class IDs Y of size B * T
+    Tensor cached_targets_tensor;
+    bool using_tensor_targets = false;
+    Tensor cached_dX;
 
 public:
     CrossEntropyLossLayer() = default;
@@ -20,6 +23,7 @@ public:
 
     // computes numerically stable Softmax probabilities P from logits L
     Tensor forward(const Tensor& input) override;
+    void forward_into(const Tensor& input, Tensor& output) override;
 
     // compute Softmax probabilities and evaluate average Cross-Entropy loss in one call
     float forward_loss(const Tensor& logits, const std::vector<int>& targets);
@@ -27,6 +31,7 @@ public:
 
     // computes dL = (P - 1) / (B * T) at target indices
     Tensor backward(const Tensor& dout) override;
+    void backward_into(const Tensor& dout, Tensor& din) override;
 
     // No learnable weights or biases in CrossEntropyLossLayer
     std::vector<Tensor*> get_parameters() override { return {}; }

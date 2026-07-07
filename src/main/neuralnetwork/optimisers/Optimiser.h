@@ -12,6 +12,8 @@ public:
 
     // Execute one optimization step across all model parameters
     virtual void step(std::vector<Tensor*>& parameters) = 0;
+    virtual void set_lr(float new_lr) = 0;
+    virtual float get_lr() const = 0;
 };
 
 

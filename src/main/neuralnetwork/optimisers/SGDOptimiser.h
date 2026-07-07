@@ -15,6 +15,9 @@ public:
             param->sgd_step(lr);
         }
     }
+
+    void set_lr(float new_lr) override { lr = new_lr; }
+    float get_lr() const override { return lr; }
 };
 
 #endif //SGDOPTIMISER_H

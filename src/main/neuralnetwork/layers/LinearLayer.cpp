@@ -11,30 +11,45 @@ LinearLayer::LinearLayer(int in_channels, int out_channels)
 }
 
 // FORWARD PASS: Y = X * W + b
-Tensor LinearLayer::forward(const Tensor& input) {
-
+void LinearLayer::forward_into(const Tensor& input, Tensor& output) {
     cached_input = input;
+    input.matmul_into(weights, output);
+    output.add_broadcast_in_place(biases);
+    cached_output = output;
+}
 
-    Tensor output = input.matmul(weights);
-
-    return output + biases;
+Tensor LinearLayer::forward(const Tensor& input) {
+    forward_into(input, cached_output);
+    return cached_output;
 }
 
 // BACKWARD PASS: Compute dW, db, and return dX
-Tensor LinearLayer::backward(const Tensor& dout) {
+void LinearLayer::backward_into(const Tensor& dout, Tensor& din) {
     int total_rows = (int)(dout.size() / out_channels);
-    biases.add_grad(dout.sum_rows());
+    dout.sum_rows_into(cached_sum_rows);
+    biases.add_grad(cached_sum_rows);
 
-    Tensor X_2d = cached_input.reshape({total_rows, in_channels});
-    Tensor dout_2d = dout.reshape({total_rows, out_channels});
+    std::vector<int> orig_in_shape = cached_input.shape;
+    std::vector<int> orig_dout_shape = dout.shape;
+    cached_input.shape = {total_rows, in_channels};
+    const_cast<Tensor&>(dout).shape = {total_rows, out_channels};
 
-    Tensor dW = X_2d.transpose(0, 1).matmul(dout_2d);
-    weights.add_grad(dW);
+    cached_input.transpose_into(0, 1, cached_input_T);
+    cached_input_T.matmul_into(dout, cached_dW);
+    weights.add_grad(cached_dW);
 
-    Tensor W_T = weights.transpose(0, 1);
-    Tensor dX = dout.matmul(W_T);
+    weights.transpose_into(0, 1, cached_W_T);
+    dout.matmul_into(cached_W_T, din);
 
-    return dX;
+    cached_input.shape = orig_in_shape;
+    const_cast<Tensor&>(dout).shape = orig_dout_shape;
+    din.shape = orig_in_shape;
+    cached_dX = din;
+}
+
+Tensor LinearLayer::backward(const Tensor& dout) {
+    backward_into(dout, cached_dX);
+    return cached_dX;
 }
 
 std::vector<Tensor*> LinearLayer::get_parameters() {

@@ -3,7 +3,7 @@
 
 #include "Layer.h"
 #include "LayerNormLayer.h"
-#include "SingleHeadAttentionLayer.h"
+#include "MultiHeadAttentionLayer.h"
 #include "LinearLayer.h"
 #include "GELULayer.h"
 #include <vector>
@@ -12,7 +12,7 @@ class TransformerBlock : public Layer {
 public: // Public for optimizer updates and inspection
     int channels;
     LayerNormLayer ln1;               // Pre-attention layer normalization
-    SingleHeadAttentionLayer attn;    // Causal self-attention
+    MultiHeadAttentionLayer attn;     // Causal multi-head self-attention
     LayerNormLayer ln2;               // Pre-MLP layer normalization
     LinearLayer mlp_fc1;              // Feed-forward expansion: channels -> 4 * channels
     GELULayer act;                    // GELU activation function
@@ -26,12 +26,24 @@ private: // Private cached states for backpropagation
     Tensor cached_ln2_out;
     Tensor cached_fc1_out;
     Tensor cached_act_out;
+    Tensor cached_fc2_out;
+    Tensor cached_d_fc2;
+    Tensor cached_d_act;
+    Tensor cached_d_fc1;
+    Tensor cached_d_ln2;
+    Tensor cached_d_x1;
+    Tensor cached_d_attn;
+    Tensor cached_d_ln1;
+    Tensor cached_dX;
 
 public:
-    explicit TransformerBlock(int channels);
+    Tensor cached_out;
+    explicit TransformerBlock(int channels, int num_heads = 6);
 
     Tensor forward(const Tensor& input) override;
+    void forward_into(const Tensor& input, Tensor& output) override;
     Tensor backward(const Tensor& dout) override;
+    void backward_into(const Tensor& dout, Tensor& din) override;
     std::vector<Tensor*> get_parameters() override;
 };
 

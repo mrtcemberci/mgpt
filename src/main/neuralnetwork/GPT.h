@@ -18,6 +18,7 @@ struct GPTConfig {
     int max_seq_len = 256; // Context window size T = 256 (allows attending across lines and dialogue turns)
     int embed_dim = 384;   // Channel dimension C = 384 (high representational capacity for character grammar)
     int num_layers = 6;    // 6 sequential Transformer blocks (hierarchical feature learning)
+    int num_heads = 6;     // 6 parallel attention heads (each head size = 384 / 6 = 64)
 };
 
 class GPT : public Layer {
@@ -34,9 +35,16 @@ private: // Private cached states for backpropagation
     Tensor cached_input_ids;
     Tensor cached_tok_emb;
     Tensor cached_pos_emb;
+    Tensor cached_pos_ids;
     Tensor cached_x0;
     Tensor cached_ln_f_out;
     Tensor cached_logits;
+    Tensor cached_d_ln_f;
+    Tensor cached_d_curr;
+    std::vector<Tensor> cached_d_blocks;
+    Tensor cached_d_logits;
+    Tensor cached_dX;
+    Tensor cached_dummy_din;
 
 public:
     explicit GPT(const GPTConfig& config);
@@ -44,10 +52,12 @@ public:
     // Forward pass: Takes integer token IDs tensor of shape {Batch, Time}
     // Returns unnormalized vocabulary logits of shape {Batch, Time, VocabSize}
     Tensor forward(const Tensor& input_ids) override;
+    void forward_into(const Tensor& input_ids, Tensor& output) override;
 
     // Evaluates loss against target IDs {Batch, Time} and initiates backprop
     float compute_loss(const Tensor& logits, const Tensor& target_ids);
     Tensor backward(const Tensor& d_logits) override;
+    void backward_into(const Tensor& d_logits, Tensor& din) override;
 
     std::vector<Tensor*> get_parameters() override;
 

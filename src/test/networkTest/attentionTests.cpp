@@ -1,4 +1,5 @@
 #include "SingleHeadAttentionLayer.h"
+#include "MultiHeadAttentionLayer.h"
 #include "Tensor.h"
 #include <iostream>
 #include <cmath>
@@ -117,6 +118,49 @@ void test_attention_gradcheck() {
     std::cout << " Passed! ✅\n";
 }
 
+// ============================================================================
+// 3. MULTI-HEAD ATTENTION FORWARD & GRADCHECK
+// ============================================================================
+void test_mhsa() {
+    std::cout << "Running Test 3: MultiHeadAttentionLayer Forward & Gradcheck..." << std::endl;
+    int B = 2, T = 3, C = 4, num_heads = 2;
+    MultiHeadAttentionLayer attn(C, num_heads);
+
+    Tensor X({B, T, C}, 0.0f);
+    for (size_t i = 0; i < X.size(); ++i) X.data[i] = (float)std::sin(i * 0.7f);
+
+    Tensor Target({B, T, C}, 0.0f);
+    for (size_t i = 0; i < Target.size(); ++i) Target.data[i] = (float)std::cos(i * 0.5f);
+
+    for (Tensor* p : attn.get_parameters()) {
+        for (size_t i = 0; i < p->size(); ++i) {
+            p->data[i] = (float)std::sin(i * 0.3f + 0.1f) * 0.1f;
+        }
+    }
+
+    Tensor Y = attn.forward(X);
+    assert(Y.shape == X.shape);
+    std::cout << "  -> MHSA forward output shape verified! ✅\n";
+
+    Tensor dY = compute_mse_grad(Y, Target);
+    Tensor dX_analytic = attn.backward(dY);
+
+    float eps = 1e-3f;
+    std::cout << "  Checking MHSA input dX gradients...";
+    for (size_t i = 0; i < X.size(); ++i) {
+        float orig = X.data[i];
+        X.data[i] = orig + eps;
+        float loss_plus = compute_mse_loss(attn.forward(X), Target);
+        X.data[i] = orig - eps;
+        float loss_minus = compute_mse_loss(attn.forward(X), Target);
+        X.data[i] = orig;
+
+        float num_grad = (loss_plus - loss_minus) / (2.0f * eps);
+        assert(check_grad_close(dX_analytic.data[i], num_grad));
+    }
+    std::cout << " Passed! ✅\n";
+}
+
 int main() {
     std::cout << "============================================================\n";
     std::cout << "      STARTING ATTENTION LAYER VERIFICATION SUITE         \n";
@@ -124,6 +168,7 @@ int main() {
 
     test_attention_forward();
     test_attention_gradcheck();
+    test_mhsa();
 
     std::cout << "\n============================================================\n";
     std::cout << " 🚀 ATTENTION VERIFICATION COMPLETE! ALL TESTS PASSED! 🚀  \n";

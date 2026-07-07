@@ -11,8 +11,8 @@ class AdamWOptimizer : public Optimiser {
 private:
     float lr, beta1, beta2, eps, weight_decay;
     int t; // Step counter
-    std::unordered_map<Tensor*, std::vector<float>> m_cache;
-    std::unordered_map<Tensor*, std::vector<float>> v_cache;
+    std::unordered_map<Tensor*, Tensor> m_cache;
+    std::unordered_map<Tensor*, Tensor> v_cache;
 public:
     AdamWOptimizer(float learning_rate = 3e-4f, float b1 = 0.9f, float b2 = 0.999f,
                    float epsilon = 1e-8f, float decay = 0.01f)
@@ -23,14 +23,17 @@ public:
         for (Tensor* param : parameters) {
             // Initialize caches if first time seeing this parameter
             if (!m_cache.contains(param)) {
-                m_cache[param] = std::vector<float>(param->data.size(), 0.0f);
-                v_cache[param] = std::vector<float>(param->data.size(), 0.0f);
+                m_cache[param] = Tensor(param->shape, 0.0f, param->device);
+                v_cache[param] = Tensor(param->shape, 0.0f, param->device);
             }
-            std::vector<float>& m = m_cache[param];
-            std::vector<float>& v = v_cache[param];
+            Tensor& m = m_cache[param];
+            Tensor& v = v_cache[param];
             param->adamw_step(m, v, lr, beta1, beta2, eps, weight_decay, t);
         }
     }
+
+    void set_lr(float new_lr) override { lr = new_lr; }
+    float get_lr() const override { return lr; }
 };
 
 

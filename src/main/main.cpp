@@ -9,30 +9,54 @@
 #include "utils/Tokenizer.h"
 #include "neuralnetwork/GPT.h"
 #include "neuralnetwork/optimisers/AdamWOptimiser.h"
+#include "utils/cuda_ops.h"
 
 void get_batch(const std::vector<int>& data, int batch_size, int max_seq_len, 
-               Tensor& x_batch, Tensor& y_batch, std::mt19937& rng) {
+               Tensor& x_batch, Tensor& y_batch, std::mt19937& rng, const int* d_data = nullptr) {
     std::uniform_int_distribution<int> dist(0, (int)data.size() - max_seq_len - 1);
     
+    if (x_batch.device == Device::CUDA && d_data) {
+        std::vector<int> start_indices(batch_size);
+        for (int b = 0; b < batch_size; ++b) {
+            start_indices[b] = dist(rng);
+        }
+        static int* d_start_indices = nullptr;
+        static int d_start_indices_size = 0;
+        if (batch_size > d_start_indices_size) {
+            if (d_start_indices) cuda_ops::free_int_memory(d_start_indices);
+            cuda_ops::allocate_int_memory(&d_start_indices, batch_size);
+            d_start_indices_size = batch_size;
+        }
+        cuda_ops::copy_int_host_to_device(d_start_indices, start_indices.data(), batch_size);
+        cuda_ops::get_batch_gpu(d_data, (int)data.size(), batch_size, max_seq_len, d_start_indices, x_batch.get_data_ptr(), y_batch.get_data_ptr());
+        return;
+    }
+
+    std::vector<float> x_tmp(batch_size * max_seq_len);
+    std::vector<float> y_tmp(batch_size * max_seq_len);
+
     for (int b = 0; b < batch_size; ++b) {
         int idx = dist(rng);
         for (int t = 0; t < max_seq_len; ++t) {
-            x_batch.data[b * max_seq_len + t] = (float)data[idx + t];
-            y_batch.data[b * max_seq_len + t] = (float)data[idx + t + 1];
+            x_tmp[b * max_seq_len + t] = (float)data[idx + t];
+            y_tmp[b * max_seq_len + t] = (float)data[idx + t + 1];
         }
     }
+    x_batch.copy_from_host(x_tmp.data());
+    y_batch.copy_from_host(y_tmp.data());
 }
 
 // Evaluate average loss on validation dataset without backprop
 float evaluate_loss(GPT& model, const std::vector<int>& val_data, 
-                    int eval_steps, int batch_size, int max_seq_len, std::mt19937& rng) {
-    Tensor x_batch({batch_size, max_seq_len}, 0.0f);
-    Tensor y_batch({batch_size, max_seq_len}, 0.0f);
+                    int eval_steps, int batch_size, int max_seq_len, std::mt19937& rng, Device dev, const int* d_val_data = nullptr) {
+    Tensor x_batch({batch_size, max_seq_len}, 0.0f, dev);
+    Tensor y_batch({batch_size, max_seq_len}, 0.0f, dev);
+    Tensor logits({batch_size, max_seq_len, model.config.vocab_size}, 0.0f, dev);
     float total_loss = 0.0f;
 
     for (int step = 0; step < eval_steps; ++step) {
-        get_batch(val_data, batch_size, max_seq_len, x_batch, y_batch, rng);
-        Tensor logits = model.forward(x_batch);
+        get_batch(val_data, batch_size, max_seq_len, x_batch, y_batch, rng, d_val_data);
+        model.forward_into(x_batch, logits);
         float step_loss = model.loss_layer.forward_loss(logits, y_batch);
         total_loss += step_loss;
     }
@@ -52,13 +76,18 @@ std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& p
         }
         int seq_len = (int)tokens.size() - start_idx;
 
-        Tensor input_ids({1, seq_len}, 0.0f);
+        Tensor input_ids({1, seq_len}, 0.0f, model.tok_emb.lookup_table.device);
+        std::vector<float> tmp_ids(seq_len);
         for (int t = 0; t < seq_len; ++t) {
-            input_ids.data[t] = (float)tokens[start_idx + t];
+            tmp_ids[t] = (float)tokens[start_idx + t];
         }
+        input_ids.copy_from_host(tmp_ids.data());
 
         // Forward pass
         Tensor logits = model.forward(input_ids);
+
+        std::vector<float> logits_host(logits.size());
+        logits.copy_to_host(logits_host.data());
 
         // Get softmax probabilities for the last time step
         int last_t_offset = (seq_len - 1) * model.config.vocab_size;
@@ -66,8 +95,8 @@ std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& p
         // Find max logit for stable softmax
         float max_logit = -1e15f;
         for (int v = 0; v < model.config.vocab_size; ++v) {
-            if (logits.data[last_t_offset + v] > max_logit) {
-                max_logit = logits.data[last_t_offset + v];
+            if (logits_host[last_t_offset + v] > max_logit) {
+                max_logit = logits_host[last_t_offset + v];
             }
         }
 
@@ -75,7 +104,7 @@ std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& p
         std::vector<float> probs(model.config.vocab_size);
         float sum_exp = 0.0f;
         for (int v = 0; v < model.config.vocab_size; ++v) {
-            probs[v] = std::exp(logits.data[last_t_offset + v] - max_logit);
+            probs[v] = std::exp(logits_host[last_t_offset + v] - max_logit);
             sum_exp += probs[v];
         }
         for (int v = 0; v < model.config.vocab_size; ++v) {
@@ -99,6 +128,7 @@ int main(int argc, char* argv[]) {
 
     bool mode_train = true;  // default to train if neither -t nor -i specified
     bool mode_infer_only = false;
+    bool use_gpu = false;
     std::string weights_path = "shakespeare_gpt.bin";
     std::string data_path = "input.txt";
     std::string prompt = "To be or not to be";
@@ -106,6 +136,8 @@ int main(int argc, char* argv[]) {
     int max_steps = 1000;
     int num_layers = 4;
     int embed_dim = 128;
+    int batch_size = 16;
+    int max_seq_len = 64;
 
     auto strip_quotes = [](std::string& s) {
         if (s.length() >= 2 && ((s.front() == '"' && s.back() == '"') || (s.front() == '\'' && s.back() == '\''))) {
@@ -120,6 +152,7 @@ int main(int argc, char* argv[]) {
                       << "Options:\n"
                       << "  -t, --train               Run in training mode (default)\n"
                       << "  -i, --infer               Run in inference/generation mode (load weights without training)\n"
+                      << "  -g, --gpu                 Run training and inference using CUDA GPU engine\n"
                       << "  -f, --file <path>         Path to model weights file (.bin) (default: shakespeare_gpt.bin)\n"
                       << "  -d, --data <path>         Path to training dataset (default: input.txt)\n"
                       << "  -p, --prompt <str>        Text generation prompt (default: \"To be or not to be\")\n"
@@ -127,14 +160,17 @@ int main(int argc, char* argv[]) {
                       << "  -s, --steps <int>         Number of training steps (default: 1000)\n"
                       << "  -l, --layers <int>        Number of Transformer blocks (default: 4)\n"
                       << "  -c, --channels <int>      Embedding channel dimension (default: 128)\n"
+                      << "  -b, --batch <int>         Training batch size (default: 16)\n"
+                      << "  -w, --window <int>        Context window / sequence length (default: 64)\n"
                       << "  -h, --help                Show this help message and exit\n\n"
                       << "Examples:\n"
-                      << "  mgpt -t -f=\"my_model.bin\" -s=2000 -l=6\n"
-                      << "  mgpt -i -f=\"my_model.bin\" -p=\"O Romeo, Romeo!\" -n=1000\n";
+                      << "  mgpt -t -g -f=\"my_model.bin\" -s=2000 -l=6 -b=64 -w=128\n"
+                      << "  mgpt -i -g -f=\"my_model.bin\" -p=\"O Romeo, Romeo!\" -n=1000\n";
             return 0;
         }
         if (arg == "-t" || arg == "--train") { mode_train = true; mode_infer_only = false; continue; }
         if (arg == "-i" || arg == "--infer") { mode_infer_only = true; mode_train = false; continue; }
+        if (arg == "-g" || arg == "--gpu") { use_gpu = true; continue; }
         
         if (arg == "-f" || arg == "--file") { if (i + 1 < argc) weights_path = argv[++i]; continue; }
         if (arg.find("-f=") == 0) { weights_path = arg.substr(3); continue; }
@@ -163,6 +199,14 @@ int main(int argc, char* argv[]) {
         if (arg == "-c" || arg == "--channels") { if (i + 1 < argc) embed_dim = std::stoi(argv[++i]); continue; }
         if (arg.find("-c=") == 0) { embed_dim = std::stoi(arg.substr(3)); continue; }
         if (arg.find("--channels=") == 0) { embed_dim = std::stoi(arg.substr(11)); continue; }
+
+        if (arg == "-b" || arg == "--batch") { if (i + 1 < argc) batch_size = std::stoi(argv[++i]); continue; }
+        if (arg.find("-b=") == 0) { batch_size = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--batch=") == 0) { batch_size = std::stoi(arg.substr(8)); continue; }
+
+        if (arg == "-w" || arg == "--window") { if (i + 1 < argc) max_seq_len = std::stoi(argv[++i]); continue; }
+        if (arg.find("-w=") == 0) { max_seq_len = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--window=") == 0) { max_seq_len = std::stoi(arg.substr(9)); continue; }
     }
 
     strip_quotes(weights_path);
@@ -209,7 +253,7 @@ int main(int argc, char* argv[]) {
     // Configure & Instantiate GPT Model Architecture
     GPTConfig config;
     config.vocab_size = vocab_size;
-    config.max_seq_len = 64;
+    config.max_seq_len = max_seq_len;
     config.embed_dim = embed_dim;
     config.num_layers = num_layers;
 
@@ -230,20 +274,43 @@ int main(int argc, char* argv[]) {
     // Training or Inference Execution
     std::mt19937 rng(42); // Seeded for reproducibility
 
+    Device target_dev = use_gpu ? Device::CUDA : Device::CPU;
+    if (use_gpu) {
+#ifndef USE_CUDA
+        std::cerr << "Error: --gpu flag specified, but MGPT was compiled without CUDA support (-DUSE_CUDA=OFF)!\n";
+        std::cerr << "Please rebuild with CMake option -DUSE_CUDA=ON.\n";
+        return -1;
+#endif
+        std::cout << "[4.5/6] Migrating GPT Model and Engine to CUDA GPU...\n";
+        model.to(target_dev);
+    }
+
     if (mode_infer_only) {
         std::cout << "[5/6] Loading Trained Model Weights from " << weights_path << "...\n";
         model.load_weights_bin(weights_path);
+        if (use_gpu) model.to(target_dev);
     } else {
         float learning_rate = 1e-3f;
-        int batch_size = 16;
-        int print_interval = std::max(1, max_steps / 10);
-        int eval_interval = print_interval;
+        int eval_interval = std::max(10, max_steps / 10);
+        int print_interval = 10;
         int eval_steps = 10;
 
         std::unique_ptr<Optimiser> optimizer = std::make_unique<AdamWOptimizer>(learning_rate);
 
-        Tensor x_batch({batch_size, config.max_seq_len}, 0.0f);
-        Tensor y_batch({batch_size, config.max_seq_len}, 0.0f);
+        int* d_train_data = nullptr;
+        int* d_val_data = nullptr;
+        if (target_dev == Device::CUDA) {
+            std::cout << "[4.8/6] Uploading Train and Validation Datasets to GPU Memory...\n";
+            cuda_ops::allocate_int_memory(&d_train_data, train_data.size());
+            cuda_ops::copy_int_host_to_device(d_train_data, train_data.data(), train_data.size());
+            cuda_ops::allocate_int_memory(&d_val_data, val_data.size());
+            cuda_ops::copy_int_host_to_device(d_val_data, val_data.data(), val_data.size());
+        }
+
+        Tensor x_batch({batch_size, config.max_seq_len}, 0.0f, target_dev);
+        Tensor y_batch({batch_size, config.max_seq_len}, 0.0f, target_dev);
+        Tensor logits({batch_size, config.max_seq_len, config.vocab_size}, 0.0f, target_dev);
+        std::vector<Tensor*> params = model.get_parameters();
 
         std::cout << "[5/6] Starting Training Loop (AdamW, LR=" << learning_rate 
                   << ", Batch=" << batch_size << ", Steps=" << max_steps << ")...\n";
@@ -251,19 +318,32 @@ int main(int argc, char* argv[]) {
         std::cout << "Step       Progress & Timings                      Train Loss   Val Loss\n";
         std::cout << "------------------------------------------------------------\n";
 
+        auto calculate_lr = [](int step, int max_steps, float max_lr, float min_lr) -> float {
+            float PI = 3.14159265358979323846f;
+            float warmup_steps = max_steps * 0.05f;
+            if (step < warmup_steps) {
+                return max_lr * (step / warmup_steps);
+            }
+            float decay_ratio = (step - warmup_steps) / (max_steps - warmup_steps);
+            return min_lr + 0.5f * (max_lr - min_lr) * (1.0f + std::cos(PI * decay_ratio));
+        };
+
         auto start_time = std::chrono::high_resolution_clock::now();
 
         for (int step = 1; step <= max_steps; ++step) {
+            float current_lr = calculate_lr(step, max_steps, learning_rate, learning_rate * 0.1f);
+            optimizer->set_lr(current_lr);
+
             auto step_start = std::chrono::high_resolution_clock::now();
 
-            get_batch(train_data, batch_size, config.max_seq_len, x_batch, y_batch, rng);
+            get_batch(train_data, batch_size, config.max_seq_len, x_batch, y_batch, rng, d_train_data);
 
-            for (Tensor* param : model.get_parameters()) {
+            for (Tensor* param : params) {
                 param->zero_grad();
             }
 
             auto t0 = std::chrono::high_resolution_clock::now();
-            Tensor logits = model.forward(x_batch);
+            model.forward_into(x_batch, logits);
             auto t1 = std::chrono::high_resolution_clock::now();
             double fwd_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
 
@@ -271,7 +351,6 @@ int main(int argc, char* argv[]) {
             auto t2 = std::chrono::high_resolution_clock::now();
             double bwd_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
 
-            auto params = model.get_parameters();
             optimizer->step(params);
             auto t3 = std::chrono::high_resolution_clock::now();
             double opt_ms = std::chrono::duration<double, std::milli>(t3 - t2).count();
@@ -282,11 +361,12 @@ int main(int argc, char* argv[]) {
             if (step % print_interval == 0 || step == 1 || step == max_steps) {
                 float val_loss = 0.0f;
                 if (step % eval_interval == 0 || step == max_steps) {
-                    val_loss = evaluate_loss(model, val_data, eval_steps, batch_size, config.max_seq_len, rng);
+                    val_loss = evaluate_loss(model, val_data, eval_steps, batch_size, config.max_seq_len, rng, target_dev, d_val_data);
                 }
 
                 int percent = (int)((step * 100.0) / max_steps);
                 std::cout << "[" << std::setw(3) << step << "/" << max_steps << " (" << std::setw(3) << percent << "%)] "
+                          << "LR:" << std::scientific << std::setprecision(2) << current_lr << " "
                           << "Fwd:" << (int)fwd_ms << "ms Loss:" << (int)bwd_ms << "ms Opt:" << (int)opt_ms << "ms "
                           << "| Step:" << (int)step_ms << "ms | Loss: " 
                           << std::fixed << std::setprecision(4) << train_loss;
@@ -301,6 +381,9 @@ int main(int argc, char* argv[]) {
         double total_sec = std::chrono::duration<double>(end_time - start_time).count();
         std::cout << "------------------------------------------------------------\n";
         std::cout << "✅ Training Complete! Total Duration: " << std::fixed << std::setprecision(2) << total_sec << " seconds.\n\n";
+
+        if (d_train_data) cuda_ops::free_int_memory(d_train_data);
+        if (d_val_data) cuda_ops::free_int_memory(d_val_data);
 
         std::cout << "[6/6] Exporting Trained Model to " << weights_path << "...\n";
         model.save_weights_bin(weights_path);

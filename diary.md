@@ -69,7 +69,103 @@ As you can see, most of the time spent is at the loss step.
 
 I started by refactoring all existing code that makes use of any tensor internals into methods on the tensor class. This makes it easier to port to CUDA, as now I only need to change one file.
 
-**Update**: Completed 100% of the Tensor engine abstraction! Every neural network layer (Linear, GELU, LayerNorm, Embedding, Attention, CrossEntropyLoss) and optimizer (SGD, AdamW) has been refactored to use encapsulated Tensor math methods. All 8 CTest suites pass with 100% success rate.
+This is the results when ran on GPU with different layers and embed dimensions.
+
+Instantiated GPT Model Architecture:
+-> Vocab Size:   65
+-> Max Seq Len:  64
+-> Embed Dim:    384
+-> Num Layers:   6
+-> Total Params: 10722113 float32 parameters (~41883 KB)
+
+[4.5/6] Migrating GPT Model and Engine to CUDA GPU...
+[5/6] Starting Training Loop (AdamW, LR=0.001, Batch=16, Steps=5000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[  1/5000 (  0%)] Fwd:48ms Loss:105ms Opt:6ms | Step:161ms | Loss: 4.4899
+[500/5000 ( 10%)] Fwd:57ms Loss:85ms Opt:0ms | Step:144ms | Loss: 2.5224 | Val: 2.4750
+[1000/5000 ( 20%)] Fwd:59ms Loss:90ms Opt:0ms | Step:151ms | Loss: 2.4706 | Val: 2.4193
+[1500/5000 ( 30%)] Fwd:58ms Loss:96ms Opt:0ms | Step:156ms | Loss: 2.3663 | Val: 2.3882
+[2000/5000 ( 40%)] Fwd:98ms Loss:143ms Opt:0ms | Step:243ms | Loss: 2.3150 | Val: 2.3453
+[2500/5000 ( 50%)] Fwd:59ms Loss:87ms Opt:0ms | Step:147ms | Loss: 2.2698 | Val: 2.3091
+[3000/5000 ( 60%)] Fwd:74ms Loss:86ms Opt:0ms | Step:162ms | Loss: 2.3076 | Val: 2.2422
+[3500/5000 ( 70%)] Fwd:57ms Loss:84ms Opt:0ms | Step:142ms | Loss: 2.2016 | Val: 2.2344
+[4000/5000 ( 80%)] Fwd:57ms Loss:86ms Opt:0ms | Step:144ms | Loss: 2.2142 | Val: 2.2382
+[4500/5000 ( 90%)] Fwd:58ms Loss:85ms Opt:0ms | Step:144ms | Loss: 2.1809 | Val: 2.1985
+[5000/5000 (100%)] Fwd:58ms Loss:85ms Opt:0ms | Step:144ms | Loss: 2.2075 | Val: 2.2133
+------------------------------------------------------------
+Γ£à Training Complete! Total Duration: 800.47 seconds.
+
+[6/6] Exporting Trained Model to shakespeare_gpt.bin...
+Successfully saved GPT model weights (102 parameter tensors) to shakespeare_gpt.bin!
+
+--- ≡ƒô£ Text Generation Sample (Prompt: "ROMEO:") ---
+ROMEO:
+Dowe facon?
+
+TRI&HARE CTLIEFCWI:
+Youo?
+
+PONCUEM:
+We on bet; and ringesteer andetry for oum my your
+Mesoor nof Cof ungre,
+Ris geie, but whe him.
+
+TAJucke.
+
+On Theen nogr in but down cealy', bon'd is, lteave wat.
+
+UShe?
+
+LUSCIULO:F
+IITF heXCAn:
+Meactins way, our wis
+Andy we henos I shous you thap fore a thome,
+This pan gareren Is icess, oold sbue wigon hins be lom the fach bith eore
+
+Unaxes oquan, jer aple seyges magrin whe thatche sord upies,
+Yemize:
+Frrowin:
+Shistaing wary! yoweng tri;
+Dints ther to thouth sous thate tmar grangss you wiven my en, gray,
+But I nothe thy he mor.
+
+BRPRIO:
+Thaghthi't to and bier nethat that rous.
+Dutry bey roy.
+
+Yous of OF my dowfoNGh
+MIO:
+qUe gin foull and at do and stuen to prirstes:
+Rinstreetst; teaun,
+I 'Fr heon,
+What his for sund.
+
+Mill to dot it his iw mn, conguevies, word heatit.
+
+ANKthl dohe wakn your wis bre:
+Tho sthlow!
+VoNut Ang.
+DUK:
+I this a housh haJone pance,
+I way my dat our batel cran buir'ss ainds
+Wacks enow she but
+are meves.
+
+LUCK:
+foll
+
+
+It still sucks, I believe because the architecture is not advanced enough to hone in on the advanced concepts. 
+We are missing Multi-head Attention, and Cosine learning rate decay.
+
+I added both, new problem, training takes way too long, like so long to the point I have not been able to test these new features.
+My assumption is the GPU is too fast for the CPU
+
+Suggestion: Get batches in the training loop, i should allocate one giant tensor for this and let it stay on the GPU.
+Suggestion: cudaMalloc is thrasing, everytime i do a pass on code it can call cudamalloc, why not preallocate on class construction,
+and re use the same tensor. 
 
 # TODO:
 

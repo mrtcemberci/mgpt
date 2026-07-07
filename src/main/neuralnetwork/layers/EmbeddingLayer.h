@@ -13,12 +13,15 @@ public: // Made public for optimizer updates and testing
 
 private:
     Tensor cached_input;
+    Tensor cached_output;
 
 public:
     EmbeddingLayer(int table_size, int embed_dim);
 
     Tensor forward(const Tensor& input) override;
+    void forward_into(const Tensor& input, Tensor& output) override;
     Tensor backward(const Tensor& dout) override;
+    void backward_into(const Tensor& dout, Tensor& din) override;
     std::vector<Tensor*> get_parameters() override;
 };
 

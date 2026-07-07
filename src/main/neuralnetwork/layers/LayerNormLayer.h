@@ -19,11 +19,15 @@ private:
     Tensor cached_mean;
     Tensor cached_var;
     Tensor cached_x_hat;
+    Tensor cached_output;
+    Tensor cached_dX;
 
 public:
     explicit LayerNormLayer(int channels, float eps = 1e-5f);
     Tensor forward(const Tensor& input) override;
+    void forward_into(const Tensor& input, Tensor& output) override;
     Tensor backward(const Tensor& dout) override;
+    void backward_into(const Tensor& dout, Tensor& din) override;
     std::vector<Tensor*> get_parameters() override;
 };
 

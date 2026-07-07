@@ -4,19 +4,40 @@
 #include <vector>
 
 
+enum class Device {
+    CPU,
+    CUDA
+};
+
 class Tensor {
 private:
     Tensor applyOperation(const Tensor& other, const std::function<float(float, float)>& operation) const;
     void matmul2d_raw(const float* A, const float* B, float* C, int M, int K, int N) const;
 public:
-
-    std::vector<float> data;  // Parameter values or activation values
-    std::vector<float> grad;  // Accumulated calculus gradients (same size as data)
+    Device device = Device::CPU;
+    std::vector<float> data;  // Parameter values or activation values (CPU)
+    std::vector<float> grad;  // Accumulated calculus gradients (CPU)
+    float* cuda_data = nullptr; // GPU memory pointer when device == Device::CUDA
+    float* cuda_grad = nullptr; // GPU grad pointer when device == Device::CUDA
     std::vector<int> shape;   // Dimensionality, e.g., {8, 256, 384} for {B, T, C}
 
     Tensor() = default; // Default no-argument constructor
-    Tensor(const std::vector<int>& dims, float init_val = 0.0f);
-    static Tensor randn(const std::vector<int>& dims, float mean, float stddev);
+    ~Tensor();
+    Tensor(const Tensor& other);
+    Tensor(Tensor&& other) noexcept;
+    Tensor& operator=(const Tensor& other);
+    Tensor& operator=(Tensor&& other) noexcept;
+
+    Tensor(const std::vector<int>& dims, float init_val = 0.0f, Device dev = Device::CPU);
+    static Tensor randn(const std::vector<int>& dims, float mean, float stddev, Device dev = Device::CPU);
+
+    Tensor& to(Device target_device);
+    float* get_data_ptr();
+    const float* get_data_ptr() const;
+    float* get_grad_ptr();
+    const float* get_grad_ptr() const;
+    void copy_from_host(const float* src);
+    void copy_to_host(float* dst) const;
 
     void randomize(float mean, float stddev);      // Fill tensor data from N(mean, stddev^2)
     void zero_grad();                              // Sets all elements in grad to 0.0f
@@ -41,10 +62,11 @@ public:
     void add_grad(const Tensor& dgrad);
     Tensor sum_rows() const;
     void sgd_step(float lr);
-    void adamw_step(std::vector<float>& m, std::vector<float>& v, float lr, float beta1, float beta2, float eps, float weight_decay, int t);
+    void adamw_step(Tensor& m, Tensor& v, float lr, float beta1, float beta2, float eps, float weight_decay, int t);
 
     // Pattern Family 2: Normalization & Statistics
     Tensor layer_norm(int channels, const Tensor& scale, const Tensor& shift, float eps, Tensor& out_mean, Tensor& out_var, Tensor& out_x_hat) const;
+    void layer_norm_into(int channels, const Tensor& scale, const Tensor& shift, float eps, Tensor& out_mean, Tensor& out_var, Tensor& out_x_hat, Tensor& output) const;
     Tensor layer_norm_backward(const Tensor& dout, const Tensor& x_hat, Tensor& scale, Tensor& shift, const Tensor& mean, const Tensor& var, float eps) const;
 
     // Pattern Family 3: Probability Distributions (Softmax & Cross-Entropy)
@@ -62,7 +84,34 @@ public:
 
     // Pattern Family 6: Hardware-Accelerated Activations
     Tensor gelu() const;
+    void gelu_into(Tensor& result) const;
     Tensor gelu_backward(const Tensor& dout) const;
+
+    // Pattern Family 7: Multi-Head Attention Helpers (Channel Concat / Split)
+    static Tensor concat_channels(const std::vector<Tensor>& head_tensors);
+    static std::vector<Tensor> split_channels(const Tensor& tensor, int num_heads);
+    static std::vector<Tensor> slice_qkv(const Tensor& qkv, int channels);
+    static Tensor concat_qkv_grad(const Tensor& dq, const Tensor& dk, const Tensor& dv);
+
+    // Workspace pre-allocation and zero-overhead execution helpers
+    void matmul_into(const Tensor& other, Tensor& result) const;
+    void transpose_into(int dim1, int dim2, Tensor& result) const;
+    void softmax_into(int dim, Tensor& result) const;
+    void add_broadcast_in_place(const Tensor& other);
+    void mul_scalar_in_place(float scalar);
+    static void slice_qkv_into(const Tensor& qkv, int channels, std::vector<Tensor>& results);
+    static void split_channels_into(const Tensor& tensor, int num_heads, std::vector<Tensor>& results);
+    static void concat_channels_into(const std::vector<Tensor>& head_tensors, Tensor& result);
+    static void add_into(const Tensor& A, const Tensor& B, Tensor& result);
+    void sum_rows_into(Tensor& result) const;
+    void reshape_into(const std::vector<int>& new_shape, Tensor& result) const;
+    void softmax_backward_into(const Tensor& dout, Tensor& dx) const;
+    void layer_norm_backward_into(const Tensor& dout, const Tensor& x_hat, Tensor& scale, Tensor& shift, const Tensor& var, float eps, Tensor& dx) const;
+    void gelu_backward_into(const Tensor& dout, Tensor& d_gelu_workspace, Tensor& result) const;
+    static void concat_qkv_grad_into(const Tensor& dq, const Tensor& dk, const Tensor& dv, Tensor& result);
+    void embedding_lookup_into(const Tensor& input_ids, Tensor& output) const;
+    float cross_entropy_loss_into(const Tensor& targets, Tensor& out_probs) const;
+    void cross_entropy_backward_into(const Tensor& targets, Tensor& result) const;
 };
 
 

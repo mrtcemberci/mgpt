@@ -342,8 +342,8 @@ void test_parameter_update_helpers() {
     // Test adamw_step
     Tensor w({1}, 10.0f);
     w.grad = {2.0f};
-    std::vector<float> m = {0.0f};
-    std::vector<float> v = {0.0f};
+    Tensor m({1}, 0.0f);
+    Tensor v({1}, 0.0f);
     w.adamw_step(m, v, 0.1f, 0.9f, 0.999f, 1e-8f, 0.01f, 1);
     assert(w.data[0] < 10.0f); // weight should decrease
 

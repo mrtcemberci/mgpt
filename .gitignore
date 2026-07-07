@@ -18,4 +18,6 @@ out/
 # Model weights & datasets
 instructions.md
 *.txt
+!input.txt
 *.bin
+build_msvc/
