@@ -244,9 +244,17 @@ namespace cuda_ops {
         float alpha = 1.0f;
         float beta = 0.0f;
         if (batch_size == 1) {
-            cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, M, K, &alpha, B, N, A, K, &beta, C, N);
+            cublasGemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, M, K, &alpha,
+                         B, CUDA_R_32F, N,
+                         A, CUDA_R_32F, K, &beta,
+                         C, CUDA_R_32F, N,
+                         CUBLAS_COMPUTE_32F_FAST_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
         } else {
-            cublasSgemmStridedBatched(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, M, K, &alpha, B, N, (long long)(K * N), A, K, (long long)(M * K), &beta, C, N, (long long)(M * N), batch_size);
+            cublasGemmStridedBatchedEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, M, K, &alpha,
+                                       B, CUDA_R_32F, N, (long long)(K * N),
+                                       A, CUDA_R_32F, K, (long long)(M * K), &beta,
+                                       C, CUDA_R_32F, N, (long long)(M * N), batch_size,
+                                       CUBLAS_COMPUTE_32F_FAST_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
         }
     }
 
@@ -904,11 +912,16 @@ namespace cuda_ops {
         CHECK_CUDA(cudaGetLastError());
     }
 
+    void synchronize() {
+        CHECK_CUDA(cudaDeviceSynchronize());
+    }
+
 } // namespace cuda_ops
 
 #else // !USE_CUDA
 
 namespace cuda_ops {
+    void synchronize() {}
     void allocate_memory(float**, size_t) {}
     void free_memory(float*) {}
     void copy_host_to_device(float*, const float*, size_t) {}

@@ -67,6 +67,7 @@ namespace cuda_ops {
     void allocate_int_memory(int** ptr, size_t size);
     void free_int_memory(int* ptr);
     void copy_int_host_to_device(int* dst, const int* src, size_t size);
+    void synchronize();
 }
 
 #endif // CUDA_OPS_H

@@ -167,6 +167,15 @@ Suggestion: Get batches in the training loop, i should allocate one giant tensor
 Suggestion: cudaMalloc is thrasing, everytime i do a pass on code it can call cudamalloc, why not preallocate on class construction,
 and re use the same tensor. 
 
+# Day 3 : July 7th
+
+I heavily cut down the GPU-CPU transfer during training, but ran into another issue, because I am using 32-bit floating point numbers,
+past a certain number of layers and channels, the time to train jumps up significantly. I am pretty sure the issue is regarding the cache.
+
+I need to find a way to scale these, my first goal is byte pair encoding, and to eventually switch from 32 bit to 16 bit floating point numbers.
+
+A simple optimisation I learnt was using 8 bit numbers for adamW values.
+
 # TODO:
 
 Implement Tensor on the GPU (CUDA)
