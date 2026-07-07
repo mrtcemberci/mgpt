@@ -1438,6 +1438,94 @@ void Tensor::embedding_lookup_into(const Tensor& input_ids, Tensor& output) cons
     }
 }
 
+void Tensor::permute_qkv_to_heads(const Tensor& qkv_all, Tensor& q, Tensor& k, Tensor& v, int B, int T, int num_heads, int head_dim) {
+    std::vector<int> target_shape = {B * num_heads, T, head_dim};
+    if (q.shape != target_shape || q.device != qkv_all.device || (!q.cuda_data && qkv_all.device == Device::CUDA)) {
+        q = Tensor(target_shape, 0.0f, qkv_all.device);
+        k = Tensor(target_shape, 0.0f, qkv_all.device);
+        v = Tensor(target_shape, 0.0f, qkv_all.device);
+    }
+    if (qkv_all.device == Device::CUDA) {
+        cuda_ops::permute_qkv_to_heads(qkv_all.get_data_ptr(), q.get_data_ptr(), k.get_data_ptr(), v.get_data_ptr(), B, T, num_heads, head_dim);
+    } else {
+        int total = B * num_heads * T * head_dim;
+        for (int idx = 0; idx < total; ++idx) {
+            int d = idx % head_dim;
+            int t = (idx / head_dim) % T;
+            int h = (idx / (head_dim * T)) % num_heads;
+            int b = idx / (head_dim * T * num_heads);
+            int in_base = (b * T + t) * (3 * num_heads * head_dim);
+            int stride = num_heads * head_dim;
+            q.data[idx] = qkv_all.data[in_base + 0 * stride + h * head_dim + d];
+            k.data[idx] = qkv_all.data[in_base + 1 * stride + h * head_dim + d];
+            v.data[idx] = qkv_all.data[in_base + 2 * stride + h * head_dim + d];
+        }
+    }
+}
+
+void Tensor::permute_heads_grad_to_qkv(const Tensor& dq, const Tensor& dk, const Tensor& dv, Tensor& dqkv_all, int B, int T, int num_heads, int head_dim) {
+    std::vector<int> target_shape = {B, T, 3 * num_heads * head_dim};
+    if (dqkv_all.shape != target_shape || dqkv_all.device != dq.device || (!dqkv_all.cuda_data && dq.device == Device::CUDA)) {
+        dqkv_all = Tensor(target_shape, 0.0f, dq.device);
+    }
+    if (dq.device == Device::CUDA) {
+        cuda_ops::permute_heads_grad_to_qkv(dq.get_data_ptr(), dk.get_data_ptr(), dv.get_data_ptr(), dqkv_all.get_data_ptr(), B, T, num_heads, head_dim);
+    } else {
+        int total = B * num_heads * T * head_dim;
+        for (int idx = 0; idx < total; ++idx) {
+            int d = idx % head_dim;
+            int t = (idx / head_dim) % T;
+            int h = (idx / (head_dim * T)) % num_heads;
+            int b = idx / (head_dim * T * num_heads);
+            int out_base = (b * T + t) * (3 * num_heads * head_dim);
+            int stride = num_heads * head_dim;
+            dqkv_all.data[out_base + 0 * stride + h * head_dim + d] = dq.data[idx];
+            dqkv_all.data[out_base + 1 * stride + h * head_dim + d] = dk.data[idx];
+            dqkv_all.data[out_base + 2 * stride + h * head_dim + d] = dv.data[idx];
+        }
+    }
+}
+
+void Tensor::permute_heads_to_concat(const Tensor& head_ctx, Tensor& concat_ctx, int B, int T, int num_heads, int head_dim) {
+    std::vector<int> target_shape = {B, T, num_heads * head_dim};
+    if (concat_ctx.shape != target_shape || concat_ctx.device != head_ctx.device || (!concat_ctx.cuda_data && head_ctx.device == Device::CUDA)) {
+        concat_ctx = Tensor(target_shape, 0.0f, head_ctx.device);
+    }
+    if (head_ctx.device == Device::CUDA) {
+        cuda_ops::permute_heads_to_concat(head_ctx.get_data_ptr(), concat_ctx.get_data_ptr(), B, T, num_heads, head_dim);
+    } else {
+        int total = B * num_heads * T * head_dim;
+        for (int idx = 0; idx < total; ++idx) {
+            int d = idx % head_dim;
+            int t = (idx / head_dim) % T;
+            int h = (idx / (head_dim * T)) % num_heads;
+            int b = idx / (head_dim * T * num_heads);
+            int out_idx = (b * T + t) * (num_heads * head_dim) + h * head_dim + d;
+            concat_ctx.data[out_idx] = head_ctx.data[idx];
+        }
+    }
+}
+
+void Tensor::permute_concat_to_heads(const Tensor& concat_ctx, Tensor& head_ctx, int B, int T, int num_heads, int head_dim) {
+    std::vector<int> target_shape = {B * num_heads, T, head_dim};
+    if (head_ctx.shape != target_shape || head_ctx.device != concat_ctx.device || (!head_ctx.cuda_data && concat_ctx.device == Device::CUDA)) {
+        head_ctx = Tensor(target_shape, 0.0f, concat_ctx.device);
+    }
+    if (concat_ctx.device == Device::CUDA) {
+        cuda_ops::permute_concat_to_heads(concat_ctx.get_data_ptr(), head_ctx.get_data_ptr(), B, T, num_heads, head_dim);
+    } else {
+        int total = B * num_heads * T * head_dim;
+        for (int idx = 0; idx < total; ++idx) {
+            int d = idx % head_dim;
+            int t = (idx / head_dim) % T;
+            int h = (idx / (head_dim * T)) % num_heads;
+            int b = idx / (head_dim * T * num_heads);
+            int in_idx = (b * T + t) * (num_heads * head_dim) + h * head_dim + d;
+            head_ctx.data[idx] = concat_ctx.data[in_idx];
+        }
+    }
+}
+
 float Tensor::cross_entropy_loss_into(const Tensor& targets, Tensor& out_probs) const {
     softmax_into(-1, out_probs);
     int V = shape.back();

@@ -22,31 +22,26 @@ public: // Public for optimizer updates and inspection
 
 private: // Private cached states and pre-allocated workspaces for forward/backward execution
     Tensor cached_input;
-    std::vector<Tensor> cached_qkv_slices;
-    std::vector<Tensor> cached_Q_heads;
-    std::vector<Tensor> cached_K_heads;
-    std::vector<Tensor> cached_V_heads;
-    std::vector<Tensor> cached_K_T_heads;
-    std::vector<Tensor> cached_scores_heads;
-    std::vector<Tensor> cached_probs_heads; // Attention weights P after Softmax & causal masking
-    std::vector<Tensor> cached_head_contexts;
-    Tensor cached_concat_ctx;
     Tensor cached_QKV_all_fw;
-    std::vector<Tensor> cached_d_head_contexts;
-    std::vector<Tensor> cached_probs_heads_T;
-    std::vector<Tensor> cached_V_heads_T;
-    std::vector<Tensor> cached_dV_heads;
-    std::vector<Tensor> cached_dP_heads;
-    std::vector<Tensor> cached_dS_heads;
-    std::vector<Tensor> cached_dS_scaled_heads;
-    std::vector<Tensor> cached_dS_scaled_T;
-    std::vector<Tensor> cached_dQ_heads;
-    std::vector<Tensor> cached_dK_heads;
-    Tensor cached_dQ_all;
-    Tensor cached_dK_all;
-    Tensor cached_dV_all;
-    Tensor cached_dQKV_all;
+    Tensor cached_Q;
+    Tensor cached_K;
+    Tensor cached_V;
+    Tensor cached_K_T;
+    Tensor cached_scores;
+    Tensor cached_probs;
+    Tensor cached_head_contexts;
+    Tensor cached_concat_ctx;
     Tensor cached_d_concat_ctx;
+    Tensor cached_d_head_contexts;
+    Tensor cached_probs_T;
+    Tensor cached_V_T;
+    Tensor cached_dV;
+    Tensor cached_dP;
+    Tensor cached_dS;
+    Tensor cached_dS_scaled_T;
+    Tensor cached_dQ;
+    Tensor cached_dK;
+    Tensor cached_dQKV_all;
     Tensor cached_output;
     Tensor cached_dX;
 

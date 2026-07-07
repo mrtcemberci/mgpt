@@ -109,6 +109,10 @@ public:
     void layer_norm_backward_into(const Tensor& dout, const Tensor& x_hat, Tensor& scale, Tensor& shift, const Tensor& var, float eps, Tensor& dx) const;
     void gelu_backward_into(const Tensor& dout, Tensor& d_gelu_workspace, Tensor& result) const;
     static void concat_qkv_grad_into(const Tensor& dq, const Tensor& dk, const Tensor& dv, Tensor& result);
+    static void permute_qkv_to_heads(const Tensor& qkv_all, Tensor& q, Tensor& k, Tensor& v, int B, int T, int num_heads, int head_dim);
+    static void permute_heads_grad_to_qkv(const Tensor& dq, const Tensor& dk, const Tensor& dv, Tensor& dqkv_all, int B, int T, int num_heads, int head_dim);
+    static void permute_heads_to_concat(const Tensor& head_ctx, Tensor& concat_ctx, int B, int T, int num_heads, int head_dim);
+    static void permute_concat_to_heads(const Tensor& concat_ctx, Tensor& head_ctx, int B, int T, int num_heads, int head_dim);
     void embedding_lookup_into(const Tensor& input_ids, Tensor& output) const;
     float cross_entropy_loss_into(const Tensor& targets, Tensor& out_probs) const;
     void cross_entropy_backward_into(const Tensor& targets, Tensor& result) const;

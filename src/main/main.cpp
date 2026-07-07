@@ -291,8 +291,8 @@ int main(int argc, char* argv[]) {
         if (use_gpu) model.to(target_dev);
     } else {
         float learning_rate = 1e-3f;
-        int eval_interval = std::max(10, max_steps / 10);
-        int print_interval = 10;
+        int eval_interval = std::max(1, max_steps / 10);
+        int print_interval = std::max(1, max_steps / 10);
         int eval_steps = 10;
 
         std::unique_ptr<Optimiser> optimizer = std::make_unique<AdamWOptimizer>(learning_rate);

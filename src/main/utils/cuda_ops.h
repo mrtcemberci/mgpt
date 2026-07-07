@@ -56,6 +56,11 @@ namespace cuda_ops {
     void slice_qkv(const float* qkv, float* q, float* k, float* v, int total_tokens, int channels);
     void concat_qkv_grad(const float* dq, const float* dk, const float* dv, float* dqkv, int total_tokens, int channels);
 
+    void permute_qkv_to_heads(const float* qkv_all, float* q, float* k, float* v, int B, int T, int num_heads, int head_dim);
+    void permute_heads_grad_to_qkv(const float* dq, const float* dk, const float* dv, float* dqkv_all, int B, int T, int num_heads, int head_dim);
+    void permute_heads_to_concat(const float* head_ctx, float* concat_ctx, int B, int T, int num_heads, int head_dim);
+    void permute_concat_to_heads(const float* concat_ctx, float* head_ctx, int B, int T, int num_heads, int head_dim);
+
     void fill_pos_ids(float* pos_ids, int B, int T);
     void get_batch_gpu(const int* d_data, int data_size, int batch_size, int max_seq_len, const int* start_indices, float* x_batch, float* y_batch);
 

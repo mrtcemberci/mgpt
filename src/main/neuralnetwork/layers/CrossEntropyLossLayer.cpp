@@ -51,13 +51,6 @@ void CrossEntropyLossLayer::backward_into(const Tensor& dout, Tensor& din) {
         }
         din = cached_probs.cross_entropy_backward(cached_targets);
     }
-    if (!dout.shape.empty() && dout.size() == 1) {
-        float val = 1.0f;
-        dout.copy_to_host(&val);
-        if (val != 1.0f) {
-            din.mul_scalar_in_place(val);
-        }
-    }
     cached_dX = din;
 }
 

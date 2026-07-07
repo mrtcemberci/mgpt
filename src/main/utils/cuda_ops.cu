@@ -563,39 +563,48 @@ namespace cuda_ops {
         CHECK_CUDA(cudaGetLastError());
     }
 
-    __global__ void cross_entropy_loss_kernel(const int* targets, const float* probs, float* losses, int total_tokens, int vocab_size) {
+    __global__ void cross_entropy_loss_kernel(const int* targets, const float* probs, float* out_sum, int total_tokens, int vocab_size) {
         int tok = blockIdx.x * blockDim.x + threadIdx.x;
+        float my_loss = 0.0f;
         if (tok < total_tokens) {
             int target = targets[tok];
             if (target >= 0 && target < vocab_size) {
                 float p = probs[tok * vocab_size + target];
-                losses[tok] = -logf(p + 1e-9f);
-            } else {
-                losses[tok] = 0.0f;
+                my_loss = -logf(p + 1e-9f);
             }
+        }
+        __shared__ float s_loss[256];
+        s_loss[threadIdx.x] = my_loss;
+        __syncthreads();
+
+        for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+            if (threadIdx.x < s) {
+                s_loss[threadIdx.x] += s_loss[threadIdx.x + s];
+            }
+            __syncthreads();
+        }
+
+        if (threadIdx.x == 0) {
+            atomicAdd(out_sum, s_loss[0]);
         }
     }
 
     float cross_entropy_loss(const int* targets, const float* probs, int total_tokens, int vocab_size) {
         if (total_tokens == 0 || vocab_size == 0) return 0.0f;
-        static float* d_losses = nullptr;
-        static int d_losses_size = 0;
-        if (total_tokens > d_losses_size) {
-            if (d_losses) free_memory(d_losses);
-            allocate_memory(&d_losses, total_tokens);
-            d_losses_size = total_tokens;
+        static float* d_loss_sum = nullptr;
+        if (!d_loss_sum) {
+            allocate_memory(&d_loss_sum, 1);
         }
+        cudaMemset(d_loss_sum, 0, sizeof(float));
+
         int threads = 256;
         int blocks = (total_tokens + threads - 1) / threads;
-        cross_entropy_loss_kernel<<<blocks, threads>>>(targets, probs, d_losses, total_tokens, vocab_size);
+        cross_entropy_loss_kernel<<<blocks, threads>>>(targets, probs, d_loss_sum, total_tokens, vocab_size);
         CHECK_CUDA(cudaGetLastError());
 
-        std::vector<float> h_losses(total_tokens);
-        copy_device_to_host(h_losses.data(), d_losses, total_tokens);
-
-        float sum = 0.0f;
-        for (float l : h_losses) sum += l;
-        return sum / total_tokens;
+        float h_sum = 0.0f;
+        copy_device_to_host(&h_sum, d_loss_sum, 1);
+        return h_sum / total_tokens;
     }
 
     __global__ void cross_entropy_backward_kernel(const int* targets, const float* probs, float* dL, int total_tokens, int vocab_size) {
@@ -619,39 +628,48 @@ namespace cuda_ops {
         CHECK_CUDA(cudaGetLastError());
     }
 
-    __global__ void cross_entropy_loss_kernel_float(const float* targets, const float* probs, float* losses, int total_tokens, int vocab_size) {
+    __global__ void cross_entropy_loss_kernel_float(const float* targets, const float* probs, float* out_sum, int total_tokens, int vocab_size) {
         int tok = blockIdx.x * blockDim.x + threadIdx.x;
+        float my_loss = 0.0f;
         if (tok < total_tokens) {
             int target = (int)targets[tok];
             if (target >= 0 && target < vocab_size) {
                 float p = probs[tok * vocab_size + target];
-                losses[tok] = -logf(p + 1e-9f);
-            } else {
-                losses[tok] = 0.0f;
+                my_loss = -logf(p + 1e-9f);
             }
+        }
+        __shared__ float s_loss[256];
+        s_loss[threadIdx.x] = my_loss;
+        __syncthreads();
+
+        for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+            if (threadIdx.x < s) {
+                s_loss[threadIdx.x] += s_loss[threadIdx.x + s];
+            }
+            __syncthreads();
+        }
+
+        if (threadIdx.x == 0) {
+            atomicAdd(out_sum, s_loss[0]);
         }
     }
 
     float cross_entropy_loss_float(const float* targets, const float* probs, int total_tokens, int vocab_size) {
         if (total_tokens == 0 || vocab_size == 0) return 0.0f;
-        static float* d_losses = nullptr;
-        static int d_losses_size = 0;
-        if (total_tokens > d_losses_size) {
-            if (d_losses) free_memory(d_losses);
-            allocate_memory(&d_losses, total_tokens);
-            d_losses_size = total_tokens;
+        static float* d_loss_sum = nullptr;
+        if (!d_loss_sum) {
+            allocate_memory(&d_loss_sum, 1);
         }
+        cudaMemset(d_loss_sum, 0, sizeof(float));
+
         int threads = 256;
         int blocks = (total_tokens + threads - 1) / threads;
-        cross_entropy_loss_kernel_float<<<blocks, threads>>>(targets, probs, d_losses, total_tokens, vocab_size);
+        cross_entropy_loss_kernel_float<<<blocks, threads>>>(targets, probs, d_loss_sum, total_tokens, vocab_size);
         CHECK_CUDA(cudaGetLastError());
 
-        std::vector<float> h_losses(total_tokens);
-        copy_device_to_host(h_losses.data(), d_losses, total_tokens);
-
-        float sum = 0.0f;
-        for (float l : h_losses) sum += l;
-        return sum / total_tokens;
+        float h_sum = 0.0f;
+        copy_device_to_host(&h_sum, d_loss_sum, 1);
+        return h_sum / total_tokens;
     }
 
     __global__ void cross_entropy_backward_kernel_float(const float* targets, const float* probs, float* dL, int total_tokens, int vocab_size) {
@@ -755,6 +773,100 @@ namespace cuda_ops {
         CHECK_CUDA(cudaGetLastError());
     }
 
+    __global__ void permute_qkv_to_heads_kernel(const float* qkv_all, float* q, float* k, float* v, int B, int T, int num_heads, int head_dim) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        int total = B * num_heads * T * head_dim;
+        if (idx < total) {
+            int d = idx % head_dim;
+            int t = (idx / head_dim) % T;
+            int h = (idx / (head_dim * T)) % num_heads;
+            int b = idx / (head_dim * T * num_heads);
+            int in_base = (b * T + t) * (3 * num_heads * head_dim);
+            int stride = num_heads * head_dim;
+            q[idx] = qkv_all[in_base + 0 * stride + h * head_dim + d];
+            k[idx] = qkv_all[in_base + 1 * stride + h * head_dim + d];
+            v[idx] = qkv_all[in_base + 2 * stride + h * head_dim + d];
+        }
+    }
+
+    void permute_qkv_to_heads(const float* qkv_all, float* q, float* k, float* v, int B, int T, int num_heads, int head_dim) {
+        if (B == 0 || T == 0 || num_heads == 0 || head_dim == 0) return;
+        int total = B * num_heads * T * head_dim;
+        int threads = 256;
+        int blocks = (total + threads - 1) / threads;
+        permute_qkv_to_heads_kernel<<<blocks, threads>>>(qkv_all, q, k, v, B, T, num_heads, head_dim);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+    __global__ void permute_heads_grad_to_qkv_kernel(const float* dq, const float* dk, const float* dv, float* dqkv_all, int B, int T, int num_heads, int head_dim) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        int total = B * num_heads * T * head_dim;
+        if (idx < total) {
+            int d = idx % head_dim;
+            int t = (idx / head_dim) % T;
+            int h = (idx / (head_dim * T)) % num_heads;
+            int b = idx / (head_dim * T * num_heads);
+            int out_base = (b * T + t) * (3 * num_heads * head_dim);
+            int stride = num_heads * head_dim;
+            dqkv_all[out_base + 0 * stride + h * head_dim + d] = dq[idx];
+            dqkv_all[out_base + 1 * stride + h * head_dim + d] = dk[idx];
+            dqkv_all[out_base + 2 * stride + h * head_dim + d] = dv[idx];
+        }
+    }
+
+    void permute_heads_grad_to_qkv(const float* dq, const float* dk, const float* dv, float* dqkv_all, int B, int T, int num_heads, int head_dim) {
+        if (B == 0 || T == 0 || num_heads == 0 || head_dim == 0) return;
+        int total = B * num_heads * T * head_dim;
+        int threads = 256;
+        int blocks = (total + threads - 1) / threads;
+        permute_heads_grad_to_qkv_kernel<<<blocks, threads>>>(dq, dk, dv, dqkv_all, B, T, num_heads, head_dim);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+    __global__ void permute_heads_to_concat_kernel(const float* head_ctx, float* concat_ctx, int B, int T, int num_heads, int head_dim) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        int total = B * num_heads * T * head_dim;
+        if (idx < total) {
+            int d = idx % head_dim;
+            int t = (idx / head_dim) % T;
+            int h = (idx / (head_dim * T)) % num_heads;
+            int b = idx / (head_dim * T * num_heads);
+            int out_idx = (b * T + t) * (num_heads * head_dim) + h * head_dim + d;
+            concat_ctx[out_idx] = head_ctx[idx];
+        }
+    }
+
+    void permute_heads_to_concat(const float* head_ctx, float* concat_ctx, int B, int T, int num_heads, int head_dim) {
+        if (B == 0 || T == 0 || num_heads == 0 || head_dim == 0) return;
+        int total = B * num_heads * T * head_dim;
+        int threads = 256;
+        int blocks = (total + threads - 1) / threads;
+        permute_heads_to_concat_kernel<<<blocks, threads>>>(head_ctx, concat_ctx, B, T, num_heads, head_dim);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+    __global__ void permute_concat_to_heads_kernel(const float* concat_ctx, float* head_ctx, int B, int T, int num_heads, int head_dim) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        int total = B * num_heads * T * head_dim;
+        if (idx < total) {
+            int d = idx % head_dim;
+            int t = (idx / head_dim) % T;
+            int h = (idx / (head_dim * T)) % num_heads;
+            int b = idx / (head_dim * T * num_heads);
+            int in_idx = (b * T + t) * (num_heads * head_dim) + h * head_dim + d;
+            head_ctx[idx] = concat_ctx[in_idx];
+        }
+    }
+
+    void permute_concat_to_heads(const float* concat_ctx, float* head_ctx, int B, int T, int num_heads, int head_dim) {
+        if (B == 0 || T == 0 || num_heads == 0 || head_dim == 0) return;
+        int total = B * num_heads * T * head_dim;
+        int threads = 256;
+        int blocks = (total + threads - 1) / threads;
+        permute_concat_to_heads_kernel<<<blocks, threads>>>(concat_ctx, head_ctx, B, T, num_heads, head_dim);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
     __global__ void fill_pos_ids_kernel(float* pos_ids, int B, int T) {
         int idx = blockIdx.x * blockDim.x + threadIdx.x;
         if (idx < B * T) {
@@ -818,7 +930,7 @@ namespace cuda_ops {
     void causal_mask(float*, int, int) {}
     void softmax(const float*, float*, int, int) {}
     void softmax_backward(const float*, const float*, float*, int, int) {}
-    void layer_norm(const float*, const float*, const float*, float, float*, float*, float*, float*, int, int) {}
+    void layer_norm(const float*, const float*, const float*, float*, float*, float, int, int) {}
     void layer_norm_backward(const float*, const float*, const float*, float*, float*, const float*, float, float*, int, int) {}
     void embedding_lookup(const float*, const float*, float*, int, int, int) {}
     void embedding_backward(const float*, const float*, float*, int, int, int) {}
@@ -830,6 +942,10 @@ namespace cuda_ops {
     void split_head(const float*, float*, int, int, int, int) {}
     void slice_qkv(const float*, float*, float*, float*, int, int) {}
     void concat_qkv_grad(const float*, const float*, const float*, float*, int, int) {}
+    void permute_qkv_to_heads(const float*, float*, float*, float*, int, int, int, int) {}
+    void permute_heads_grad_to_qkv(const float*, const float*, const float*, float*, int, int, int, int) {}
+    void permute_heads_to_concat(const float*, float*, int, int, int, int) {}
+    void permute_concat_to_heads(const float*, float*, int, int, int, int) {}
     void fill_pos_ids(float*, int, int) {}
     void get_batch_gpu(const int*, int, int, int, const int*, float*, float*) {}
     void allocate_int_memory(int**, size_t) {}
