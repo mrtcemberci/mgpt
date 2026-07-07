@@ -278,7 +278,7 @@ namespace cuda_ops {
             if ((dim0 == 0 && dim1 == 1) || (dim0 == 1 && dim1 == 0)) { new_b = t; new_t = b; }
             else if ((dim0 == 0 && dim1 == 2) || (dim0 == 2 && dim1 == 0)) { new_b = c; new_c = b; }
             else if ((dim0 == 1 && dim1 == 2) || (dim0 == 2 && dim1 == 1)) { new_t = c; new_c = t; }
-            
+
             int out_stride_b = (dim0 == 0 || dim1 == 0) ? ((dim0 + dim1 == 1) ? B * channels : T * channels) : T * channels;
             // Simplest safe indexing for 3D transpose:
             int out_dim0 = (dim0 == 0 && dim1 == 1) || (dim0 == 1 && dim1 == 0) ? T : B;
@@ -544,11 +544,13 @@ namespace cuda_ops {
             float g = grad[idx];
             if (isnan(g) || isinf(g)) return;
             g = fminf(fmaxf(g, -10.0f), 10.0f);
-            if (weight_decay > 0.0f) g += weight_decay * param[idx];
             m[idx] = beta1 * m[idx] + (1.0f - beta1) * g;
             v[idx] = beta2 * v[idx] + (1.0f - beta2) * g * g;
             float m_hat = m[idx] / (1.0f - powf(beta1, (float)t));
             float v_hat = v[idx] / (1.0f - powf(beta2, (float)t));
+
+            if (weight_decay > 0.0f) param[idx] -= lr * weight_decay * param[idx];
+
             param[idx] -= lr * m_hat / (sqrtf(fmaxf(v_hat, 0.0f)) + eps);
         }
     }
