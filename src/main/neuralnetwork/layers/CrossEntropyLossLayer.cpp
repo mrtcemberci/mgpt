@@ -29,7 +29,7 @@ Tensor CrossEntropyLossLayer::forward(const Tensor& input) {
 // HELPER: Compute Softmax and average Cross-Entropy loss across all tokens
 float CrossEntropyLossLayer::forward_loss(const Tensor& logits, const std::vector<int>& targets) {
     set_targets(targets);
-    return logits.cross_entropy_loss_into(cached_targets, cached_probs);
+    return logits.cross_entropy_loss(cached_targets, cached_probs);
 }
 
 float CrossEntropyLossLayer::forward_loss(const Tensor& logits, const Tensor& targets) {

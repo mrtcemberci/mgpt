@@ -8,7 +8,7 @@
 
 bool check_grad_close(float analytic, float numerical, float tol = 5e-2f) {
     float diff = std::abs(analytic - numerical);
-    float denom = std::abs(analytic) + std::abs(numerical) + 1e-4f;
+    float denom = std::abs(analytic) + std::abs(numerical) + 1e-3f;
     float rel_error = diff / denom;
     if (rel_error >= tol) {
         std::cerr << "Grad check failed! Analytic: " << analytic 

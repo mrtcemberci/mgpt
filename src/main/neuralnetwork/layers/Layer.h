@@ -3,9 +3,15 @@
 #include "Tensor.h"
 
 
+class Scratchpad;
+
 class Layer {
+protected:
+    Scratchpad* scratchpad = nullptr;
 public:
     virtual ~Layer() = default;
+
+    virtual void set_scratchpad(Scratchpad* pad) { scratchpad = pad; }
 
     // Execute mathematical transformation and cache necessary states
     virtual Tensor forward(const Tensor& input) = 0;

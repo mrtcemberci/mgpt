@@ -1,4 +1,5 @@
 #include "TransformerBlock.h"
+#include "Scratchpad.h"
 
 TransformerBlock::TransformerBlock(int channels, int num_heads)
     : channels(channels),
@@ -34,22 +35,57 @@ Tensor TransformerBlock::forward(const Tensor& input) {
 
 // BACKWARD PASS: Chain rule backwards through both skip connection branches
 void TransformerBlock::backward_into(const Tensor& dout, Tensor& din) {
+    size_t savepoint = 0;
+    if (scratchpad && dout.device == Device::CUDA) {
+        savepoint = scratchpad->get_savepoint();
+    }
+
+    int B = dout.shape[0];
+    int T = dout.shape[1];
+    int C = dout.shape[2];
+
+    Tensor tmp_d_fc2 = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({B, T, 4 * C}, scratchpad->get_address((size_t)B * T * 4 * C), Device::CUDA)
+        : cached_d_fc2;
+    Tensor tmp_d_act = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({B, T, 4 * C}, scratchpad->get_address((size_t)B * T * 4 * C), Device::CUDA)
+        : cached_d_act;
+    Tensor tmp_d_fc1 = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({B, T, C}, scratchpad->get_address((size_t)B * T * C), Device::CUDA)
+        : cached_d_fc1;
+    Tensor tmp_d_ln2 = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({B, T, C}, scratchpad->get_address((size_t)B * T * C), Device::CUDA)
+        : cached_d_ln2;
+    Tensor tmp_d_x1 = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({B, T, C}, scratchpad->get_address((size_t)B * T * C), Device::CUDA)
+        : cached_d_x1;
+    Tensor tmp_d_attn = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({B, T, C}, scratchpad->get_address((size_t)B * T * C), Device::CUDA)
+        : cached_d_attn;
+    Tensor tmp_d_ln1 = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({B, T, C}, scratchpad->get_address((size_t)B * T * C), Device::CUDA)
+        : cached_d_ln1;
+
     // Backprop through MLP branch: fc2 -> act -> fc1 -> ln2
-    mlp_fc2.backward_into(dout, cached_d_fc2);
-    act.backward_into(cached_d_fc2, cached_d_act);
-    mlp_fc1.backward_into(cached_d_act, cached_d_fc1);
-    ln2.backward_into(cached_d_fc1, cached_d_ln2);
+    mlp_fc2.backward_into(dout, tmp_d_fc2);
+    act.backward_into(tmp_d_fc2, tmp_d_act);
+    mlp_fc1.backward_into(tmp_d_act, tmp_d_fc1);
+    ln2.backward_into(tmp_d_fc1, tmp_d_ln2);
 
     // Gradient entering X1 is the sum of direct skip connection (dout) and MLP branch (d_ln2)
-    Tensor::add_into(dout, cached_d_ln2, cached_d_x1);
+    Tensor::add_into(dout, tmp_d_ln2, tmp_d_x1);
 
     // Backprop through Self-Attention branch: attn -> ln1
-    attn.backward_into(cached_d_x1, cached_d_attn);
-    ln1.backward_into(cached_d_attn, cached_d_ln1);
+    attn.backward_into(tmp_d_x1, tmp_d_attn);
+    ln1.backward_into(tmp_d_attn, tmp_d_ln1);
 
     // Gradient entering initial input X is sum of direct skip connection (d_x1) and Attn branch (d_ln1)
-    Tensor::add_into(cached_d_x1, cached_d_ln1, din);
+    Tensor::add_into(tmp_d_x1, tmp_d_ln1, din);
     cached_dX = din;
+
+    if (scratchpad && dout.device == Device::CUDA) {
+        scratchpad->restore_savepoint(savepoint);
+    }
 }
 
 Tensor TransformerBlock::backward(const Tensor& dout) {

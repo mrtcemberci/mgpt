@@ -53,6 +53,7 @@ public:
     Tensor backward(const Tensor& dout) override;
     void backward_into(const Tensor& dout, Tensor& din) override;
     std::vector<Tensor*> get_parameters() override;
+    void set_scratchpad(Scratchpad* pad) override;
 };
 
 #endif // MULTIHEADATTENTIONLAYER_H

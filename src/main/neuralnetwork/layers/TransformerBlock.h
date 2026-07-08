@@ -45,6 +45,16 @@ public:
     Tensor backward(const Tensor& dout) override;
     void backward_into(const Tensor& dout, Tensor& din) override;
     std::vector<Tensor*> get_parameters() override;
+
+    void set_scratchpad(Scratchpad* pad) override {
+        this->scratchpad = pad;
+        attn.set_scratchpad(pad);
+        ln1.set_scratchpad(pad);
+        mlp_fc1.set_scratchpad(pad);
+        act.set_scratchpad(pad);
+        mlp_fc2.set_scratchpad(pad);
+        ln2.set_scratchpad(pad);
+    }
 };
 
 #endif //TRANSFORMERBLOCK_H
