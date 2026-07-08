@@ -174,7 +174,16 @@ past a certain number of layers and channels, the time to train jumps up signifi
 
 I need to find a way to scale these, my first goal is byte pair encoding, and to eventually switch from 32 bit to 16 bit floating point numbers.
 
-A simple optimisation I learnt was using 8 bit numbers for adamW values.
+A simple optimisation I learnt was using 8 bit numbers for adamW values, this did not help at all.
+
+
+# Day 4 : July 8th
+
+I have made a breakthrough, the issue was not the cache, but actually the VRAM was getting full when increasing the layers/channels, causing the GPU
+to use the shared unified memory, which would be much slower to access, dramatically lowering the speed of training, I monitored task manager
+during training and surely this was the case, and halving the batch size immediately brought training back to great speeds.
+
+I have researched fixes, which include trimming down temporary tensors, gradient accumulation and gradient checkpointing.
 
 # TODO:
 
