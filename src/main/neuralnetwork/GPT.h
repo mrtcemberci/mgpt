@@ -7,6 +7,7 @@
 #include "LayerNormLayer.h"
 #include "LinearLayer.h"
 #include "CrossEntropyLossLayer.h"
+#include "Scratchpad.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -58,6 +59,10 @@ public:
     float compute_loss(const Tensor& logits, const Tensor& target_ids);
     Tensor backward(const Tensor& d_logits) override;
     void backward_into(const Tensor& d_logits, Tensor& din) override;
+
+    std::unique_ptr<Scratchpad> owned_scratchpad;
+    void init_scratchpad(size_t capacity_floats = 128 * 1024 * 1024);
+    void set_scratchpad(Scratchpad* pad) override;
 
     std::vector<Tensor*> get_parameters() override;
 

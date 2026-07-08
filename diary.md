@@ -185,6 +185,12 @@ during training and surely this was the case, and halving the batch size immedia
 
 I have researched fixes, which include trimming down temporary tensors, gradient accumulation and gradient checkpointing.
 
+I implemented gradient accumulation, and a scratch memory VRAM workplace, for layers to re-use temporarily for calculations, this cut down the memory footprint
+while also not requiring cuda allocations during hot paths. I ran into an issue where I had to add the ability to pass in a float* to view as a tensor
+this led to an issue with the CPU as it used vectors rather than direct addresses, hence the tensor::view function is limited to cuda devices only.
+
+This cut down the memory footprint by almost 3GB!!!!!!!
+
 # TODO:
 
 Implement Tensor on the GPU (CUDA)

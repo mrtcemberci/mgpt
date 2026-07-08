@@ -121,8 +121,9 @@ std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& p
 }
 
 
-int main(int argc, char* argv[]) {
-    std::cout << "============================================================\n";
+int main(int argc, char** argv) {
+    try {
+        std::cout << "============================================================\n";
     std::cout << "      🚀 MGPT: CHARACTER-LEVEL GPT TRAINING ENGINE 🚀       \n";
     std::cout << "============================================================\n\n";
 
@@ -290,6 +291,7 @@ int main(int argc, char* argv[]) {
 #endif
         std::cout << "[4.5/6] Migrating GPT Model and Engine to CUDA GPU...\n";
         model.to(target_dev);
+        model.init_scratchpad(256 * 1024 * 1024); // 256M floats (1 GB CUDA memory arena)
     }
 
     if (mode_infer_only) {
@@ -417,4 +419,8 @@ int main(int argc, char* argv[]) {
     std::cout << "------------------------------------------------------------\n\n";
 
     return 0;
+    } catch (const std::exception& e) {
+        std::cerr << "\n[FATAL ERROR]: " << e.what() << "\n";
+        return -1;
+    }
 }

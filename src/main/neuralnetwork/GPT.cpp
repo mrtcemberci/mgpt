@@ -187,3 +187,20 @@ void GPT::load_weights_bin(const std::string& filepath) {
     in.close();
     std::cout << "Successfully loaded GPT model weights from " << filepath << "!\n";
 }
+
+void GPT::set_scratchpad(Scratchpad* pad) {
+    this->scratchpad = pad;
+    tok_emb.set_scratchpad(pad);
+    pos_emb.set_scratchpad(pad);
+    for (auto& block : blocks) {
+        if (block) block->set_scratchpad(pad);
+    }
+    ln_f.set_scratchpad(pad);
+    lm_head.set_scratchpad(pad);
+    loss_layer.set_scratchpad(pad);
+}
+
+void GPT::init_scratchpad(size_t capacity_floats) {
+    owned_scratchpad = std::make_unique<Scratchpad>(capacity_floats, ScratchpadDevice::CUDA);
+    set_scratchpad(owned_scratchpad.get());
+}
