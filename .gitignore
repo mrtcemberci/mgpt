@@ -6,6 +6,8 @@
 cmake-build-*/
 build/
 out/
+build_vs2022/
+build_release/
 *.exe
 *.obj
 *.dll
