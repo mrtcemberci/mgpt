@@ -147,6 +147,7 @@ int main(int argc, char** argv) {
             s = s.substr(1, s.length() - 2);
         }
     };
+    bool use_checkpointing = true; // Enabled by default to maximize VRAM efficiency
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -156,6 +157,8 @@ int main(int argc, char** argv) {
                       << "  -t, --train               Run in training mode (default)\n"
                       << "  -i, --infer               Run in inference/generation mode (load weights without training)\n"
                       << "  -g, --gpu                 Run training and inference using CUDA GPU engine\n"
+                      << "  -k, --checkpointing       Enable gradient/activation checkpointing (default: enabled)\n"
+                      << "      --no-checkpointing    Disable gradient/activation checkpointing\n"
                       << "  -f, --file <path>         Path to model weights file (.bin) (default: shakespeare_gpt.bin)\n"
                       << "  -d, --data <path>         Path to training dataset (default: input.txt)\n"
                       << "  -p, --prompt <str>        Text generation prompt (default: \"To be or not to be\")\n"
@@ -175,6 +178,8 @@ int main(int argc, char** argv) {
         if (arg == "-t" || arg == "--train") { mode_train = true; mode_infer_only = false; continue; }
         if (arg == "-i" || arg == "--infer") { mode_infer_only = true; mode_train = false; continue; }
         if (arg == "-g" || arg == "--gpu") { use_gpu = true; continue; }
+        if (arg == "-k" || arg == "--checkpointing") { use_checkpointing = true; continue; }
+        if (arg == "--no-checkpointing") { use_checkpointing = false; continue; }
         
         if (arg == "-f" || arg == "--file") { if (i + 1 < argc) weights_path = argv[++i]; continue; }
         if (arg.find("-f=") == 0) { weights_path = arg.substr(3); continue; }
@@ -264,6 +269,7 @@ int main(int argc, char** argv) {
     config.max_seq_len = max_seq_len;
     config.embed_dim = embed_dim;
     config.num_layers = num_layers;
+    config.use_gradient_checkpointing = use_checkpointing;
 
     GPT model(config);
 
@@ -272,11 +278,12 @@ int main(int argc, char** argv) {
         total_params += param->size();
     }
     std::cout << "[4/6] Instantiated GPT Model Architecture:\n"
-              << "      -> Vocab Size:   " << config.vocab_size << "\n"
-              << "      -> Max Seq Len:  " << config.max_seq_len << "\n"
-              << "      -> Embed Dim:    " << config.embed_dim << "\n"
-              << "      -> Num Layers:   " << config.num_layers << "\n"
-              << "      -> Total Params: " << total_params << " float32 parameters (~" 
+              << "      -> Vocab Size:    " << config.vocab_size << "\n"
+              << "      -> Max Seq Len:   " << config.max_seq_len << "\n"
+              << "      -> Embed Dim:     " << config.embed_dim << "\n"
+              << "      -> Num Layers:    " << config.num_layers << "\n"
+              << "      -> Checkpointing: " << (config.use_gradient_checkpointing ? "ENABLED (Block-Level Activation Recomputation)" : "DISABLED") << "\n"
+              << "      -> Total Params:  " << total_params << " float32 parameters (~" 
               << (total_params * sizeof(float)) / 1024 << " KB)\n\n";
 
     // Training or Inference Execution

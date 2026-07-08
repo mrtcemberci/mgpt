@@ -20,6 +20,7 @@ struct GPTConfig {
     int embed_dim = 384;   // Channel dimension C = 384 (high representational capacity for character grammar)
     int num_layers = 6;    // 6 sequential Transformer blocks (hierarchical feature learning)
     int num_heads = 6;     // 6 parallel attention heads (each head size = 384 / 6 = 64)
+    bool use_gradient_checkpointing = true; // Block-level activation checkpointing (trades ~25% compute for ~80% less activation VRAM)
 };
 
 class GPT : public Layer {

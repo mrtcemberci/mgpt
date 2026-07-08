@@ -18,8 +18,9 @@ public: // Public for optimizer updates and inspection
     GELULayer act;                    // GELU activation function
     LinearLayer mlp_fc2;              // Feed-forward contraction: 4 * channels -> channels
 
+    Tensor cached_input;              // Publicly accessible for gradient checkpointing recomputation
+
 private: // Private cached states for backpropagation
-    Tensor cached_input;
     Tensor cached_ln1_out;
     Tensor cached_attn_out;
     Tensor cached_x1; // Intermediate state: input + attn(ln1(input))

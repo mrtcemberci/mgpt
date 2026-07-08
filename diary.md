@@ -191,6 +191,8 @@ this led to an issue with the CPU as it used vectors rather than direct addresse
 
 This cut down the memory footprint by almost 3GB!!!!!!!
 
+In addition, I implemented Block-Level Gradient Checkpointing (Activation Checkpointing). Instead of retaining all forward intermediate activations across all Transformer blocks simultaneously (~1.8GB for L=6), each block now stores only its input tensor X_l. During backpropagation, each block recomputes its internal activations just-in-time from its input before computing parameter gradients. Added `-k`/`--checkpointing` CLI flags and numerical equivalence unit tests.
+
 # TODO:
 
 Implement Tensor on the GPU (CUDA)
