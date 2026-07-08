@@ -7,32 +7,39 @@
 #include <stdexcept>
 
 Tensor::~Tensor() {
-    if (device == Device::CUDA) {
+    if (is_owning && device == Device::CUDA) {
         cuda_ops::free_memory(cuda_data);
         cuda_ops::free_memory(cuda_grad);
     }
 }
 
 Tensor::Tensor(const Tensor& other)
-    : device(other.device), data(other.data), grad(other.grad), shape(other.shape), cuda_data(nullptr), cuda_grad(nullptr) {
+    : device(other.device), is_owning(other.is_owning), data(other.data), grad(other.grad), shape(other.shape), cuda_data(nullptr), cuda_grad(nullptr) {
     if (device == Device::CUDA) {
-        size_t sz = size();
-        if (other.cuda_data && sz > 0) {
-            cuda_ops::allocate_memory(&cuda_data, sz);
-            cuda_ops::copy_device_to_device(cuda_data, other.cuda_data, sz);
-        }
-        if (other.cuda_grad && sz > 0) {
-            cuda_ops::allocate_memory(&cuda_grad, sz);
-            cuda_ops::copy_device_to_device(cuda_grad, other.cuda_grad, sz);
+        if (!is_owning) {
+            cuda_data = other.cuda_data;
+            cuda_grad = other.cuda_grad;
+        } else {
+            size_t sz = size();
+            if (other.cuda_data && sz > 0) {
+                cuda_ops::allocate_memory(&cuda_data, sz);
+                cuda_ops::copy_device_to_device(cuda_data, other.cuda_data, sz);
+            }
+            if (other.cuda_grad && sz > 0) {
+                cuda_ops::allocate_memory(&cuda_grad, sz);
+                cuda_ops::copy_device_to_device(cuda_grad, other.cuda_grad, sz);
+            }
         }
     }
 }
 
 Tensor::Tensor(Tensor&& other) noexcept
-    : device(other.device), data(std::move(other.data)), grad(std::move(other.grad)),
+    : device(other.device), is_owning(other.is_owning), data(std::move(other.data)), grad(std::move(other.grad)),
       cuda_data(other.cuda_data), cuda_grad(other.cuda_grad), shape(std::move(other.shape)) {
-    other.cuda_data = nullptr;
-    other.cuda_grad = nullptr;
+    if (other.is_owning) {
+        other.cuda_data = nullptr;
+        other.cuda_grad = nullptr;
+    }
 }
 
 Tensor& Tensor::operator=(const Tensor& other) {
@@ -41,7 +48,7 @@ Tensor& Tensor::operator=(const Tensor& other) {
     for (int dim : other.shape) new_sz *= dim;
     if (other.shape.empty()) new_sz = 0;
 
-    if (device == Device::CUDA && other.device == Device::CUDA && size() == new_sz && new_sz > 0 && cuda_data) {
+    if (is_owning && device == Device::CUDA && other.is_owning && other.device == Device::CUDA && size() == new_sz && new_sz > 0 && cuda_data) {
         shape = other.shape;
         if (other.cuda_data) {
             cuda_ops::copy_device_to_device(cuda_data, other.cuda_data, new_sz);
@@ -53,25 +60,31 @@ Tensor& Tensor::operator=(const Tensor& other) {
         return *this;
     }
 
-    if (device == Device::CUDA) {
+    if (is_owning && device == Device::CUDA) {
         cuda_ops::free_memory(cuda_data);
         cuda_ops::free_memory(cuda_grad);
     }
     device = other.device;
+    is_owning = other.is_owning;
     data = other.data;
     grad = other.grad;
     shape = other.shape;
     cuda_data = nullptr;
     cuda_grad = nullptr;
     if (device == Device::CUDA) {
-        size_t sz = size();
-        if (other.cuda_data && sz > 0) {
-            cuda_ops::allocate_memory(&cuda_data, sz);
-            cuda_ops::copy_device_to_device(cuda_data, other.cuda_data, sz);
-        }
-        if (other.cuda_grad && sz > 0) {
-            cuda_ops::allocate_memory(&cuda_grad, sz);
-            cuda_ops::copy_device_to_device(cuda_grad, other.cuda_grad, sz);
+        if (!is_owning) {
+            cuda_data = other.cuda_data;
+            cuda_grad = other.cuda_grad;
+        } else {
+            size_t sz = size();
+            if (other.cuda_data && sz > 0) {
+                cuda_ops::allocate_memory(&cuda_data, sz);
+                cuda_ops::copy_device_to_device(cuda_data, other.cuda_data, sz);
+            }
+            if (other.cuda_grad && sz > 0) {
+                cuda_ops::allocate_memory(&cuda_grad, sz);
+                cuda_ops::copy_device_to_device(cuda_grad, other.cuda_grad, sz);
+            }
         }
     }
     return *this;
@@ -79,19 +92,37 @@ Tensor& Tensor::operator=(const Tensor& other) {
 
 Tensor& Tensor::operator=(Tensor&& other) noexcept {
     if (this == &other) return *this;
-    if (device == Device::CUDA) {
+    if (is_owning && device == Device::CUDA) {
         cuda_ops::free_memory(cuda_data);
         cuda_ops::free_memory(cuda_grad);
     }
     device = other.device;
+    is_owning = other.is_owning;
     data = std::move(other.data);
     grad = std::move(other.grad);
     cuda_data = other.cuda_data;
     cuda_grad = other.cuda_grad;
     shape = std::move(other.shape);
-    other.cuda_data = nullptr;
-    other.cuda_grad = nullptr;
+    if (other.is_owning) {
+        other.cuda_data = nullptr;
+        other.cuda_grad = nullptr;
+    }
     return *this;
+}
+
+Tensor Tensor::view(const std::vector<int>& dims, float* vram_ptr, Device dev) {
+    if (dev != Device::CUDA) {
+        throw std::runtime_error("Tensor::view precondition failed: dev must be Device::CUDA (VRAM address only)!");
+    }
+    if (!vram_ptr) {
+        throw std::runtime_error("Tensor::view precondition failed: vram_ptr cannot be null!");
+    }
+    Tensor t;
+    t.device = dev;
+    t.shape = dims;
+    t.cuda_data = vram_ptr;
+    t.is_owning = false;
+    return t;
 }
 
 Tensor::Tensor(const std::vector<int>& dims, float init_val, Device dev) : shape(dims), device(dev) {
@@ -524,6 +555,7 @@ Tensor Tensor::transpose(int dim1, int dim2) const {
 }
 
 void Tensor::matmul2d_raw(const float* A, const float* B, float* C, int M, int K, int N) const {
+    std::fill(C, C + (size_t)M * N, 0.0f);
     for (int i = 0; i < M; ++i) {
         for (int k = 0; k < K; ++k) {
             float a_val = A[i * K + k];
@@ -1377,6 +1409,8 @@ void Tensor::softmax_backward_into(const Tensor& dout, Tensor& result) const {
     int total_rows = (int)(size() / cols);
     if (device == Device::CUDA) {
         cuda_ops::softmax_backward(dout.get_data_ptr(), get_data_ptr(), result.get_data_ptr(), total_rows, cols);
+    } else {
+        result = softmax_backward(dout);
     }
 }
 
@@ -1403,6 +1437,8 @@ void Tensor::gelu_backward_into(const Tensor& dout, Tensor& d_gelu_workspace, Te
     if (device == Device::CUDA) {
         cuda_ops::map_op(get_data_ptr(), d_gelu_workspace.get_data_ptr(), size(), 1);
         cuda_ops::mul(dout.get_data_ptr(), d_gelu_workspace.get_data_ptr(), result.get_data_ptr(), size());
+    } else {
+        result = gelu_backward(dout);
     }
 }
 

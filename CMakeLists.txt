@@ -7,7 +7,7 @@ option(USE_CUDA "Build with CUDA support" ON)
 
 include_directories(src/main src/main/utils src/main/neuralnetwork src/main/neuralnetwork/layers src/main/neuralnetwork/optimisers)
 
-set(TENSOR_SOURCES src/main/utils/Tensor.cpp src/main/utils/cuda_ops.cu)
+set(TENSOR_SOURCES src/main/utils/Tensor.cpp src/main/utils/cuda_ops.cu src/main/utils/Scratchpad.cpp)
 
 if(USE_CUDA)
     if(NOT DEFINED CUDAToolkit_ROOT AND EXISTS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3")
@@ -54,6 +54,7 @@ add_executable(mgpt src/main/main.cpp src/main/utils/Tokenizer.cpp
         src/main/neuralnetwork/optimisers/SGDOptimiser.h
         src/main/neuralnetwork/optimisers/AdamWOptimiser.h)
 add_executable(utils_tests src/test/utilsTest/tokenizerTests.cpp src/main/utils/Tokenizer.cpp)
+add_executable(scratchpad_tests src/test/utilsTest/scratchpadTests.cpp ${TENSOR_SOURCES})
 add_executable(tensor_tests src/test/utilsTest/tensorTests.cpp ${TENSOR_SOURCES})
 add_executable(mlp_tests src/test/networkTest/mlpTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp src/main/neuralnetwork/layers/GELULayer.cpp)
 add_executable(norm_loss_tests src/test/networkTest/normAndLossTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LayerNormLayer.cpp src/main/neuralnetwork/layers/CrossEntropyLossLayer.cpp)
@@ -62,6 +63,7 @@ add_executable(attention_tests src/test/networkTest/attentionTests.cpp ${TENSOR_
 add_executable(optimiser_tests src/test/networkTest/optimiserTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp)
 add_executable(gpt_tests src/test/networkTest/gptTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp src/main/neuralnetwork/layers/GELULayer.cpp src/main/neuralnetwork/layers/LayerNormLayer.cpp src/main/neuralnetwork/layers/CrossEntropyLossLayer.cpp src/main/neuralnetwork/layers/EmbeddingLayer.cpp src/main/neuralnetwork/layers/SingleHeadAttentionLayer.cpp src/main/neuralnetwork/layers/MultiHeadAttentionLayer.cpp src/main/neuralnetwork/layers/TransformerBlock.cpp src/main/neuralnetwork/GPT.cpp)
 add_test(NAME utils_tests COMMAND utils_tests)
+add_test(NAME scratchpad_tests COMMAND scratchpad_tests)
 add_test(NAME tensor_tests COMMAND tensor_tests)
 add_test(NAME mlp_tests COMMAND mlp_tests)
 add_test(NAME norm_loss_tests COMMAND norm_loss_tests)

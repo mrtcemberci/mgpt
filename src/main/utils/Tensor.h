@@ -15,6 +15,7 @@ private:
     void matmul2d_raw(const float* A, const float* B, float* C, int M, int K, int N) const;
 public:
     Device device = Device::CPU;
+    bool is_owning = true;    // True if Tensor owns its buffer; false if wrapping a Scratchpad view
     std::vector<float> data;  // Parameter values or activation values (CPU)
     std::vector<float> grad;  // Accumulated calculus gradients (CPU)
     float* cuda_data = nullptr; // GPU memory pointer when device == Device::CUDA
@@ -28,8 +29,9 @@ public:
     Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other) noexcept;
 
-    Tensor(const std::vector<int>& dims, float init_val = 0.0f, Device dev = Device::CPU);
+    explicit Tensor(const std::vector<int>& dims, float init_val = 0.0f, Device dev = Device::CPU);
     static Tensor randn(const std::vector<int>& dims, float mean, float stddev, Device dev = Device::CPU);
+    static Tensor view(const std::vector<int>& dims, float* vram_ptr, Device dev = Device::CUDA);
 
     Tensor& to(Device target_device);
     float* get_data_ptr();
