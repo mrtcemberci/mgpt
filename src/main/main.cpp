@@ -139,6 +139,8 @@ int main(int argc, char* argv[]) {
     int batch_size = 16;
     int max_seq_len = 64;
 
+    int grad_accum_steps = 1;
+
     auto strip_quotes = [](std::string& s) {
         if (s.length() >= 2 && ((s.front() == '"' && s.back() == '"') || (s.front() == '\'' && s.back() == '\''))) {
             s = s.substr(1, s.length() - 2);
@@ -162,6 +164,7 @@ int main(int argc, char* argv[]) {
                       << "  -c, --channels <int>      Embedding channel dimension (default: 128)\n"
                       << "  -b, --batch <int>         Training batch size (default: 16)\n"
                       << "  -w, --window <int>        Context window / sequence length (default: 64)\n"
+                      << "  -a, --accumulate <int>    Gradient accumulation steps (default: 1)\n"
                       << "  -h, --help                Show this help message and exit\n\n"
                       << "Examples:\n"
                       << "  mgpt -t -g -f=\"my_model.bin\" -s=2000 -l=6 -b=64 -w=128\n"
@@ -203,6 +206,10 @@ int main(int argc, char* argv[]) {
         if (arg == "-b" || arg == "--batch") { if (i + 1 < argc) batch_size = std::stoi(argv[++i]); continue; }
         if (arg.find("-b=") == 0) { batch_size = std::stoi(arg.substr(3)); continue; }
         if (arg.find("--batch=") == 0) { batch_size = std::stoi(arg.substr(8)); continue; }
+
+        if (arg == "-a" || arg == "--accumulate") { if (i + 1 < argc) grad_accum_steps = std::stoi(argv[++i]); continue; }
+        if (arg.find("-a=") == 0) { grad_accum_steps = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--accumulate=") == 0) { grad_accum_steps = std::stoi(arg.substr(13)); continue; }
 
         if (arg == "-w" || arg == "--window") { if (i + 1 < argc) max_seq_len = std::stoi(argv[++i]); continue; }
         if (arg.find("-w=") == 0) { max_seq_len = std::stoi(arg.substr(3)); continue; }
@@ -313,7 +320,10 @@ int main(int argc, char* argv[]) {
         std::vector<Tensor*> params = model.get_parameters();
 
         std::cout << "[5/6] Starting Training Loop (AdamW, LR=" << learning_rate 
-                  << ", Batch=" << batch_size << ", Steps=" << max_steps << ")...\n";
+                  << ", Micro-Batch=" << batch_size
+                  << ", Accum Steps=" << grad_accum_steps
+                  << " [Effective Batch: " << (batch_size * grad_accum_steps) << "]"
+                  << ", Steps=" << max_steps << ")...\n";
         std::cout << "------------------------------------------------------------\n";
         std::cout << "Step       Progress & Timings                      Train Loss   Val Loss\n";
         std::cout << "------------------------------------------------------------\n";
@@ -332,28 +342,40 @@ int main(int argc, char* argv[]) {
 
         for (int step = 1; step <= max_steps; ++step) {
             float current_lr = calculate_lr(step, max_steps, learning_rate, learning_rate * 0.1f);
-            optimizer->set_lr(current_lr);
+
+            optimizer->set_lr(current_lr / (float)grad_accum_steps);
 
             auto step_start = std::chrono::high_resolution_clock::now();
-
-            get_batch(train_data, batch_size, config.max_seq_len, x_batch, y_batch, rng, d_train_data);
 
             for (Tensor* param : params) {
                 param->zero_grad();
             }
 
-            auto t0 = std::chrono::high_resolution_clock::now();
-            model.forward_into(x_batch, logits);
-            auto t1 = std::chrono::high_resolution_clock::now();
-            double fwd_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+            float accum_train_loss = 0.0f;
+            double total_fwd_ms = 0.0;
+            double total_bwd_ms = 0.0;
 
-            float train_loss = model.compute_loss(logits, y_batch);
-            auto t2 = std::chrono::high_resolution_clock::now();
-            double bwd_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
+            for (int micro = 0; micro < grad_accum_steps; ++micro) {
+                get_batch(train_data, batch_size, config.max_seq_len, x_batch, y_batch, rng, d_train_data);
 
+                auto t0 = std::chrono::high_resolution_clock::now();
+                model.forward_into(x_batch, logits);
+                auto t1 = std::chrono::high_resolution_clock::now();
+
+                float micro_loss = model.compute_loss(logits, y_batch);
+                auto t2 = std::chrono::high_resolution_clock::now();
+
+                accum_train_loss += micro_loss;
+                total_fwd_ms += std::chrono::duration<double, std::milli>(t1 - t0).count();
+                total_bwd_ms += std::chrono::duration<double, std::milli>(t2 - t1).count();
+            }
+
+            float train_loss = accum_train_loss / (float)grad_accum_steps;
+
+            auto opt_start = std::chrono::high_resolution_clock::now();
             optimizer->step(params);
-            auto t3 = std::chrono::high_resolution_clock::now();
-            double opt_ms = std::chrono::duration<double, std::milli>(t3 - t2).count();
+            auto opt_end = std::chrono::high_resolution_clock::now();
+            double opt_ms = std::chrono::duration<double, std::milli>(opt_end - opt_start).count();
 
             auto step_end = std::chrono::high_resolution_clock::now();
             double step_ms = std::chrono::duration<double, std::milli>(step_end - step_start).count();
@@ -367,7 +389,7 @@ int main(int argc, char* argv[]) {
                 int percent = (int)((step * 100.0) / max_steps);
                 std::cout << "[" << std::setw(3) << step << "/" << max_steps << " (" << std::setw(3) << percent << "%)] "
                           << "LR:" << std::scientific << std::setprecision(2) << current_lr << " "
-                          << "Fwd:" << (int)fwd_ms << "ms Loss:" << (int)bwd_ms << "ms Opt:" << (int)opt_ms << "ms "
+                          << "Fwd:" << (int)total_fwd_ms << "ms Loss:" << (int)total_bwd_ms << "ms Opt:" << (int)opt_ms << "ms "
                           << "| Step:" << (int)step_ms << "ms | Loss: " 
                           << std::fixed << std::setprecision(4) << train_loss;
                 if (val_loss > 0.0f) {
