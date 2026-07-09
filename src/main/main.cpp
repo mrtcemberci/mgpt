@@ -5,6 +5,7 @@
 #include <random>
 #include <iomanip>
 #include <chrono>
+#include <algorithm>
 #include "utils/Tokenizer.h"
 #include "utils/CharacterTokenizer.h"
 #include "utils/BytePairEncodingTokenizer.h"
@@ -66,7 +67,7 @@ float evaluate_loss(GPT& model, const std::vector<int>& val_data,
 
 //  Autoregressive text generation sample from trained model
 std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& prompt, 
-                          int max_new_tokens, float temperature, std::mt19937& rng) {
+                          int max_new_tokens, float temperature, int top_k, std::mt19937& rng) {
     std::vector<int> tokens = tokenizer.encode(prompt);
     
     for (int step = 0; step < max_new_tokens; ++step) {
@@ -97,6 +98,21 @@ std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& p
         float temp = (temperature < 1e-4f) ? 1e-4f : temperature;
         for (int v = 0; v < model.config.vocab_size; ++v) {
             logits_host[last_t_offset + v] /= temp;
+        }
+
+        // Apply Top-K Filtering (Clamp low-probability tail tokens to -1e15)
+        if (top_k > 0 && top_k < model.config.vocab_size) {
+            std::vector<float> sorted_logits(model.config.vocab_size);
+            for (int v = 0; v < model.config.vocab_size; ++v) {
+                sorted_logits[v] = logits_host[last_t_offset + v];
+            }
+            std::sort(sorted_logits.rbegin(), sorted_logits.rend());
+            float cutoff = sorted_logits[top_k - 1];
+            for (int v = 0; v < model.config.vocab_size; ++v) {
+                if (logits_host[last_t_offset + v] < cutoff) {
+                    logits_host[last_t_offset + v] = -1e15f;
+                }
+            }
         }
 
         // Find max logit for stable softmax
@@ -148,6 +164,7 @@ int main(int argc, char** argv) {
     int max_seq_len = 64;
     int target_vocab_size = 512;
     float temperature = 0.8f;
+    int top_k = 15;
 
     int grad_accum_steps = 1;
 
@@ -172,6 +189,7 @@ int main(int argc, char** argv) {
                       << "  -d, --data <path>         Path to training dataset (default: input.txt)\n"
                       << "  -v, --vocab <int>         Target BPE vocabulary size (default: 512)\n"
                       << "  -T, --temp <float>        Sampling temperature for text generation (default: 0.8)\n"
+                      << "  -K, --topk <int>          Top-K nucleus filtering for generation (default: 15)\n"
                       << "  -p, --prompt <str>        Text generation prompt (default: \"To be or not to be\")\n"
                       << "  -n, --tokens <int>        Number of characters to generate (default: 500)\n"
                       << "  -s, --steps <int>         Number of training steps (default: 1000)\n"
@@ -239,6 +257,10 @@ int main(int argc, char** argv) {
         if (arg == "-T" || arg == "--temp") { if (i + 1 < argc) temperature = std::stof(argv[++i]); continue; }
         if (arg.find("-T=") == 0) { temperature = std::stof(arg.substr(3)); continue; }
         if (arg.find("--temp=") == 0) { temperature = std::stof(arg.substr(7)); continue; }
+
+        if (arg == "-K" || arg == "--topk") { if (i + 1 < argc) top_k = std::stoi(argv[++i]); continue; }
+        if (arg.find("-K=") == 0) { top_k = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--topk=") == 0) { top_k = std::stoi(arg.substr(7)); continue; }
     }
 
     strip_quotes(weights_path);
@@ -440,8 +462,8 @@ int main(int argc, char** argv) {
         model.save_weights_bin(weights_path);
     }
 
-    std::cout << "\n--- 📜 Text Generation Sample (Prompt: \"" << prompt << "\" | Temp: " << temperature << ") ---\n";
-    std::string generated = generate_text(model, tokenizer, prompt, max_tokens, temperature, rng);
+    std::cout << "\n--- 📜 Text Generation Sample (Prompt: \"" << prompt << "\" | Temp: " << temperature << " | Top-K: " << top_k << ") ---\n";
+    std::string generated = generate_text(model, tokenizer, prompt, max_tokens, temperature, top_k, rng);
     std::cout << generated << "\n";
     std::cout << "------------------------------------------------------------\n\n";
 
