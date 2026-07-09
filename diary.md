@@ -191,7 +191,98 @@ this led to an issue with the CPU as it used vectors rather than direct addresse
 
 This cut down the memory footprint by almost 3GB!!!!!!!
 
-In addition, I implemented Block-Level Gradient Checkpointing (Activation Checkpointing). Instead of retaining all forward intermediate activations across all Transformer blocks simultaneously (~1.8GB for L=6), each block now stores only its input tensor X_l. During backpropagation, each block recomputes its internal activations just-in-time from its input before computing parameter gradients. Added `-k`/`--checkpointing` CLI flags and numerical equivalence unit tests.
+In addition, I implemented Block-Level Gradient Checkpointing (Activation Checkpointing). Instead of retaining all forward intermediate activations across all Transformer blocks simultaneously (~1.8GB for L=6), each block now stores only its input tensor X_l. During backpropagation, each block recomputes its internal activations just-in-time from its input before computing parameter gradients.
+
+# Day 5 : July 9th
+
+I implemented BPE tokenizing, I ran the model with 512 vocab size, 16 batch size (effective x2), 1200 steps, 384 channels, 256 token context window, and these were the results:
+
+ROMEO: your graland;
+Aning my kill mfoes toge'such as toged, I, yet bel;
+Huns, sil, Sin me garets to defer lack here
+To hear yourself with them ondishon. We have becomell have ake?
+
+ISHERBELL:
+Lly without like a cheldful ga tal seed kingly stand,
+When say they rengractors an overs;
+rave I have prisoner hope, I send me deign of the world,
+Even in so more so aught their fets with wraines,
+I think mistall ract an not the vedyself,
+ungetison I prace be night.
+
+LEONTES:
+Who same have beseed agmince within
+I am loved with such formsue
+Thairly not abattual soted na thoufffore,
+When thou meet which am countince
+I here trif of th thou wbe sfor the cause yons
+As if you myself beliew not exceive me the doess,
+But for tearsing be his mon'd of hand,
+Hearer thee:
+What did the Buse of the gods,
+Fromoes in magood posceive,
+Cristild out his founsels and feast,
+'Tis my made you should g one; or on men no
+I should marreat his just conceed,
+To would would seembaroin at exe,
+And not stay all the world,
+Romin the meet and hand?
+I thee be thy counc went so next too mate,
+Have while,
+A tope but have set, on his name, keal jest.
+
+LORTIUS:
+A good cales--
+
+AUFII:
+Ay, comes to Fnow:
+I shall you hast so. Cry not
+Cell me your wintes!
+God the ear, in Rome! you fl! where is thoua luice,
+Of you, here is a lip's feed?
+
+LTA:
+Alaster? Fare to your gue,
+A soltly husband.
+
+LEONTES:
+I have bety t's day?
+
+ANTES:
+What, be but den.
+
+ANTES:
+You'll fear say,
+I make this us a offereld: dce with a truitor
+Greach as joio the truwearst: though Thir art y.
+
+y hold
+The noble that hence come to may, She had you, I know
+The firction is your helder that.
+
+HASTER:
+Mmabrain theem to your hop are you woff
+That his consequal?
+
+ASONGELY:
+Graiance, to estir, my you INCENTIO:
+Your grace, will pracuse you be infits,
+A supmen oneyou, if you know you was gright.
+
+HASTINGS:
+
+Pray, I waldister-cor foo'd more, move.
+Nowingult you a worthy comppersons? and well.
+Let you all a foolihfauly, shie, in jestee
+Morrent be int. Parry, Looem knows habo'
+Ra calone and cank hair in the preport nack's mondery dear;
+Are for hour shaking's ancius: y' before my brother,
+Prain me requick,'st en toio-body.
+
+PAULINA:
+Go! A should lieve at your ba hon Brunt,
+I come my scarted but to
+------------------------------------------------------------
 
 # TODO:
 
