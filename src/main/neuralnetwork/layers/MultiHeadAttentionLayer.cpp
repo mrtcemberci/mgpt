@@ -16,12 +16,34 @@ MultiHeadAttentionLayer::MultiHeadAttentionLayer(int channels, int num_heads_req
     // CONSOLIDATED PROJECTIONS: 1 massive kernel projecting channels -> 3 * channels
     W_QKV = std::make_unique<LinearLayer>(channels, 3 * channels);
     W_O = std::make_unique<LinearLayer>(channels, channels);
+
+    int max_rope_len = 2048;
+    int half_dim = head_dim / 2;
+    std::vector<float> h_cos(max_rope_len * half_dim);
+    std::vector<float> h_sin(max_rope_len * half_dim);
+    for (int t = 0; t < max_rope_len; ++t) {
+        for (int j = 0; j < half_dim; ++j) {
+            float freq = 1.0f / std::pow(10000.0f, (2.0f * j) / (float)head_dim);
+            float angle = t * freq;
+            h_cos[t * half_dim + j] = std::cos(angle);
+            h_sin[t * half_dim + j] = std::sin(angle);
+        }
+    }
+    rope_cos_table = Tensor({max_rope_len, half_dim}, 0.0f, Device::CPU);
+    rope_cos_table.data = h_cos;
+    rope_sin_table = Tensor({max_rope_len, half_dim}, 0.0f, Device::CPU);
+    rope_sin_table.data = h_sin;
 }
 
 // ----------------------------------------------------------------------------
 // FORWARD PASS
 // ----------------------------------------------------------------------------
 void MultiHeadAttentionLayer::forward_into(const Tensor& input, Tensor& output) {
+    if (input.device == Device::CUDA && rope_cos_table.device != Device::CUDA) {
+        rope_cos_table.to(Device::CUDA);
+        rope_sin_table.to(Device::CUDA);
+    }
+
     size_t savepoint = 0;
     if (scratchpad && input.device == Device::CUDA) {
         savepoint = scratchpad->get_savepoint();
@@ -36,6 +58,10 @@ void MultiHeadAttentionLayer::forward_into(const Tensor& input, Tensor& output) 
 
     // 2. Permute Q, K, V directly into batched head format {B * num_heads, T, head_dim}
     Tensor::permute_qkv_to_heads(cached_QKV_all_fw, cached_Q, cached_K, cached_V, B, T, num_heads, head_dim);
+
+    // 2.5 Apply RoPE rotary positional embeddings to Q and K
+    Tensor::apply_rope_inplace(cached_Q, rope_cos_table, rope_sin_table, B, num_heads, T, head_dim, true);
+    Tensor::apply_rope_inplace(cached_K, rope_cos_table, rope_sin_table, B, num_heads, T, head_dim, true);
 
     float scale = 1.0f / std::sqrt((float)head_dim);
 
@@ -113,6 +139,10 @@ void MultiHeadAttentionLayer::backward_into(const Tensor& dout, Tensor& din) {
 
     cached_dS.transpose_into(1, 2, cached_dS_scaled_T);
     cached_dS_scaled_T.matmul_into(cached_Q, cached_dK);
+
+    // Apply inverse RoPE rotation to dQ and dK during backprop
+    Tensor::apply_rope_inplace(cached_dQ, rope_cos_table, rope_sin_table, B, num_heads, T, head_dim, false);
+    Tensor::apply_rope_inplace(cached_dK, rope_cos_table, rope_sin_table, B, num_heads, T, head_dim, false);
 
     Tensor::permute_heads_grad_to_qkv(cached_dQ, cached_dK, cached_dV, cached_dQKV_all, B, T, num_heads, head_dim);
     W_QKV->backward_into(cached_dQKV_all, din);

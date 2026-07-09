@@ -68,6 +68,11 @@ namespace cuda_ops {
     void free_int_memory(int* ptr);
     void copy_int_host_to_device(int* dst, const int* src, size_t size);
     void synchronize();
+    void apply_rope_cuda(float* Q_or_K, 
+                                   float* cos_table, 
+                                   float* sin_table, 
+                                   int B, int num_heads, int T, int head_dim, 
+                                   bool forward);
 }
 
 #endif // CUDA_OPS_H

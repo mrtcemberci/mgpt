@@ -4,7 +4,6 @@
 GPT::GPT(const GPTConfig& config)
     : config(config),
       tok_emb(config.vocab_size, config.embed_dim),
-      pos_emb(config.max_seq_len, config.embed_dim),
       ln_f(config.embed_dim),
       lm_head(config.embed_dim, config.vocab_size) {
     for (int i = 0; i < config.num_layers; ++i) {
@@ -12,7 +11,7 @@ GPT::GPT(const GPTConfig& config)
     }
 }
 
-// FORWARD PASS: Token + Pos Embeddings -> L Transformer Blocks -> LayerNorm -> LM Head
+// FORWARD PASS: Token Embeddings -> L Transformer Blocks -> LayerNorm -> LM Head
 void GPT::forward_into(const Tensor& input_ids, Tensor& output) {
     if (input_ids.shape.size() != 2) {
         std::cerr << "GPT::forward_into: input_ids must be 2D {Batch, Time}!" << std::endl;
@@ -29,25 +28,7 @@ void GPT::forward_into(const Tensor& input_ids, Tensor& output) {
 
     // Token Embeddings: {B, T} -> {B, T, C}
     tok_emb.forward_into(input_ids, cached_tok_emb);
-
-    // Positional Embeddings: generate [0, 1, ..., T-1] across batch -> {B, T, C}
-    std::vector<int> target_pos_shape = {B, T};
-    if (cached_pos_ids.shape != target_pos_shape || cached_pos_ids.device != pos_emb.lookup_table.device || (!cached_pos_ids.cuda_data && pos_emb.lookup_table.device == Device::CUDA)) {
-        cached_pos_ids = Tensor(target_pos_shape, 0.0f, pos_emb.lookup_table.device);
-        if (pos_emb.lookup_table.device == Device::CUDA) {
-            cuda_ops::fill_pos_ids(cached_pos_ids.get_data_ptr(), B, T);
-        } else {
-            for (int b = 0; b < B; ++b) {
-                for (int t = 0; t < T; ++t) {
-                    cached_pos_ids.data[b * T + t] = (float)t;
-                }
-            }
-        }
-    }
-    pos_emb.forward_into(cached_pos_ids, cached_pos_emb);
-
-    // Combine embeddings
-    Tensor::add_into(cached_tok_emb, cached_pos_emb, cached_x0);
+    cached_x0 = cached_tok_emb;
 
     // Pass sequentially through Transformer Blocks
     Tensor* curr_ptr = &cached_x0;
@@ -100,13 +81,11 @@ void GPT::backward_into(const Tensor& d_logits, Tensor& din) {
         }
     }
 
-    // Backprop through Embeddings (sum of tok and pos branches)
+    // Backprop through Embeddings (tok branch only since pos_emb is replaced by RoPE)
     if (!blocks.empty()) {
         tok_emb.backward_into(cached_d_blocks[0], cached_dummy_din);
-        pos_emb.backward_into(cached_d_blocks[0], cached_dummy_din);
     } else {
         tok_emb.backward_into(cached_d_curr, cached_dummy_din);
-        pos_emb.backward_into(cached_d_curr, cached_dummy_din);
     }
     cached_dX = Tensor();
 }
@@ -119,7 +98,6 @@ Tensor GPT::backward(const Tensor& d_logits) {
 std::vector<Tensor*> GPT::get_parameters() {
     std::vector<Tensor*> params;
     auto p_tok = tok_emb.get_parameters(); params.insert(params.end(), p_tok.begin(), p_tok.end());
-    auto p_pos = pos_emb.get_parameters(); params.insert(params.end(), p_pos.begin(), p_pos.end());
     for (auto& block : blocks) {
         auto p_b = block->get_parameters();
         params.insert(params.end(), p_b.begin(), p_b.end());
@@ -196,7 +174,6 @@ void GPT::load_weights_bin(const std::string& filepath) {
 void GPT::set_scratchpad(Scratchpad* pad) {
     this->scratchpad = pad;
     tok_emb.set_scratchpad(pad);
-    pos_emb.set_scratchpad(pad);
     for (auto& block : blocks) {
         if (block) block->set_scratchpad(pad);
     }

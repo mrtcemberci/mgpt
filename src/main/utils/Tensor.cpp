@@ -5,6 +5,7 @@
 #include <random>
 #include <cmath>
 #include <stdexcept>
+#include <cassert>
 
 Tensor::~Tensor() {
     if (is_owning && device == Device::CUDA) {
@@ -1588,3 +1589,41 @@ void Tensor::cross_entropy_backward_into(const Tensor& targets, Tensor& result) 
     for (int i = 0; i < total_tokens; ++i) h_targets[i] = (int)targets.data[i];
     result = cross_entropy_backward(h_targets);
 }
+
+void Tensor::apply_rope_inplace(Tensor& Q_or_K, 
+                                   const Tensor& cos_table, 
+                                   const Tensor& sin_table, 
+                                   int B, int num_heads, int T, int head_dim, 
+                                   bool forward) 
+    {
+        assert(Q_or_K.device == cos_table.device && Q_or_K.device == sin_table.device &&
+           "RoPE error: Q_or_K, cos_table, and sin_table must all be on the same Device!");
+
+        if (Q_or_K.device == Device::CUDA) {
+            cuda_ops::apply_rope_cuda(Q_or_K.cuda_data, cos_table.cuda_data, sin_table.cuda_data,
+                                      B, num_heads, T, head_dim, forward);
+        } else {
+            // matrix is on the CPU.
+            for (int b = 0; b < B * num_heads; ++b) {
+                for (int t = 0; t < T; ++t) {
+                    for (int j = 0; j < head_dim / 2; ++j) {
+                        int idx0 = (b * T + t) * head_dim + (2 * j);
+                        int idx1 = idx0 + 1;
+        
+                        float q0 = Q_or_K.data[idx0];
+                        float q1 = Q_or_K.data[idx1];
+        
+                        int table_idx = t * (head_dim / 2) + j;
+                        float c = cos_table.data[table_idx];
+                        float s = forward ? sin_table.data[table_idx] : -sin_table.data[table_idx];
+        
+                        Q_or_K.data[idx0] = q0 * c - q1 * s;
+                        Q_or_K.data[idx1] = q1 * c + q0 * s;
+                    }
+                
+                }
+            }
+        }
+
+
+    }

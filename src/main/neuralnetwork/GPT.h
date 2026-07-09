@@ -27,7 +27,6 @@ class GPT : public Layer {
 public: // Public for inspection and optimizer updates
     GPTConfig config;
     EmbeddingLayer tok_emb;                                    // Token embeddings: V x C
-    EmbeddingLayer pos_emb;                                    // Positional embeddings: T x C
     std::vector<std::unique_ptr<TransformerBlock>> blocks;     // Stack of L Transformer blocks
     LayerNormLayer ln_f;                                       // Final layer normalization
     LinearLayer lm_head;                                       // Language model projection: C x V
@@ -36,8 +35,6 @@ public: // Public for inspection and optimizer updates
 private: // Private cached states for backpropagation
     Tensor cached_input_ids;
     Tensor cached_tok_emb;
-    Tensor cached_pos_emb;
-    Tensor cached_pos_ids;
     Tensor cached_x0;
     Tensor cached_ln_f_out;
     Tensor cached_logits;

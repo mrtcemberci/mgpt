@@ -287,9 +287,7 @@ namespace cuda_ops {
             else if ((dim0 == 0 && dim1 == 2) || (dim0 == 2 && dim1 == 0)) { new_b = c; new_c = b; }
             else if ((dim0 == 1 && dim1 == 2) || (dim0 == 2 && dim1 == 1)) { new_t = c; new_c = t; }
 
-            int out_stride_b = (dim0 == 0 || dim1 == 0) ? ((dim0 + dim1 == 1) ? B * channels : T * channels) : T * channels;
             // Simplest safe indexing for 3D transpose:
-            int out_dim0 = (dim0 == 0 && dim1 == 1) || (dim0 == 1 && dim1 == 0) ? T : B;
             int out_dim1 = (dim0 == 0 && dim1 == 1) || (dim0 == 1 && dim1 == 0) ? B : ((dim0 == 1 && dim1 == 2) || (dim0 == 2 && dim1 == 1) ? channels : T);
             int out_dim2 = (dim0 == 1 && dim1 == 2) || (dim0 == 2 && dim1 == 1) ? T : channels;
             int out_idx = new_b * (out_dim1 * out_dim2) + new_t * out_dim2 + new_c;
@@ -916,6 +914,58 @@ namespace cuda_ops {
         CHECK_CUDA(cudaDeviceSynchronize());
     }
 
+    __global__ void apply_rope_cuda_kernel(float* Q_or_K, 
+                                float* cos_table, 
+                                float* sin_table, 
+                                int B, int num_heads, int T, int head_dim, 
+                                bool forward) {
+
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        
+        int half_dim = head_dim / 2;
+        int total_pairs = B * T * num_heads * half_dim;
+        
+        if (idx >= total_pairs) return;
+
+        int d_pair = idx % half_dim;
+        int t = (idx / half_dim) % T;
+
+        int trig_idx = t * half_dim + d_pair;
+
+        float cos_val = cos_table[trig_idx];
+        float sin_val = sin_table[trig_idx];
+
+        int mem_offset = idx * 2;
+        float q0 = Q_or_K[mem_offset];
+        float q1 = Q_or_K[mem_offset + 1];
+
+        float rotated_q0, rotated_q1;
+        if (forward) {
+            rotated_q0 = q0 * cos_val - q1 * sin_val;
+            rotated_q1 = q1 * cos_val + q0 * sin_val;
+        } else {
+            rotated_q0 = q0 * cos_val + q1 * sin_val;
+            rotated_q1 = q1 * cos_val - q0 * sin_val;
+        }
+
+        Q_or_K[mem_offset] = rotated_q0;
+        Q_or_K[mem_offset + 1] = rotated_q1;
+    }
+
+    void apply_rope_cuda(float* Q_or_K, 
+                         float* cos_table, 
+                         float* sin_table, 
+                         int B, int num_heads, int T, int head_dim, 
+                         bool forward) {
+        int half_dim = head_dim / 2;
+        int total_pairs = B * T * num_heads * half_dim;
+        if (total_pairs <= 0) return;
+        int threads = 256;
+        int blocks = (total_pairs + threads - 1) / threads;
+        apply_rope_cuda_kernel<<<blocks, threads>>>(Q_or_K, cos_table, sin_table, B, num_heads, T, head_dim, forward);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
 } // namespace cuda_ops
 
 #else // !USE_CUDA
@@ -964,6 +1014,11 @@ namespace cuda_ops {
     void allocate_int_memory(int**, size_t) {}
     void free_int_memory(int*) {}
     void copy_int_host_to_device(int*, const int*, size_t) {}
+    void apply_rope_cuda(float* Q_or_K, 
+                                   float* cos_table, 
+                                   float* sin_table, 
+                                   int B, int num_heads, int T, int head_dim, 
+                                   bool forward) {}
 }
 
 #endif // USE_CUDA

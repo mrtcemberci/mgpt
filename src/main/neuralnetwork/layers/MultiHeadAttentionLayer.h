@@ -20,6 +20,10 @@ public: // Public for optimizer updates and inspection
     // Final output projection: channels -> channels
     std::unique_ptr<LinearLayer> W_O;
 
+    // Precomputed RoPE trig tables
+    Tensor rope_cos_table;
+    Tensor rope_sin_table;
+
 private: // Private cached states and pre-allocated workspaces for forward/backward execution
     Tensor cached_input;
     Tensor cached_QKV_all_fw;

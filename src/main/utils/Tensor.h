@@ -118,6 +118,12 @@ public:
     void embedding_lookup_into(const Tensor& input_ids, Tensor& output) const;
     float cross_entropy_loss_into(const Tensor& targets, Tensor& out_probs) const;
     void cross_entropy_backward_into(const Tensor& targets, Tensor& result) const;
+
+    static void apply_rope_inplace(Tensor& Q_or_K, 
+                                   const Tensor& cos_table, 
+                                   const Tensor& sin_table, 
+                                   int B, int num_heads, int T, int head_dim, 
+                                   bool forward);
 };
 
 
