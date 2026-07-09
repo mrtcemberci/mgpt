@@ -430,9 +430,13 @@ And if you sorrow to the king;
 
 
 
-# TODO:
+# MILESTONE: Rotary Positional Embeddings (RoPE) Implemented
 
-Implement Tensor on the GPU (CUDA)
-Implement a separate inference engine with caching
-Implement Multi-Head Attention and RoPE
-Build Goku roleplay and Text-to-SQL commercial milestone bots
+- Completely excised absolute positional embeddings (`pos_emb`) from the GPT architecture.
+- Implemented CUDA kernel `apply_rope_cuda` and C++ fallback `Tensor::apply_rope_inplace` applying orthogonal 2D rotations ($q_0 \cos - q_1 \sin, q_1 \cos + q_0 \sin$) to consecutive channel pairs across batched heads.
+- Integrated RoPE in-place into `MultiHeadAttentionLayer::forward_into()` on $Q, K$ and `backward_into()` on $dQ, dK$.
+- Drastically reduced model memory footprint by eliminating dense positional embedding tables and scratchpad activation buffers.
+
+# NEXT STEPS & TODO:
+- Implement dataset sharding / binary shard loading (`.bin` files) for large datasets (2GB+ TinyStories) with invisible model continuation / `--resume` checkpoints.
+- Build Goku roleplay and Text-to-SQL commercial milestone bots.
