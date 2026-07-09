@@ -345,6 +345,91 @@ The stays the tootarto righ wall ite
 Which he is plexfor this gosound less are a
 ------------------------------------------------------------
 
+The model has gone from spitting garbage, to mostly real text by updating the BPE encoding to prevent fusing of incorrect words by using REGEXs.
+
+--- ≡ƒô£ Text Generation Sample (Prompt: "KING RICHARD: Speak" | Temp: 0.7 | Top-K: 15) ---
+KING RICHARD: Speak my daughter's banishment;
+Here have, the little, i' the wife,
+For I to keep my part, I'll perhalf,
+But in the chair of this brailt,
+I'll labbour my humy of your highness.
+
+RICHARD:
+WARWas each, no more words:
+I would not stand for adver'd with woe:
+And, my lord, and I shall be smildly,
+Shall boy, by my imprembles,
+Whose friendly prepare my wronger'd up the find:
+I darell, by my signity, for I,
+That thought on thy life.
+
+RICHARD:
+I will not dost, and damned, and I will.
+And, Lord Marius, and I am Hereford,
+Not before, and menenianus and Duke of Gloucester,
+Or Duke of Gloucester,
+I cannot law the first, but I may breaks
+In this impery.
+
+YORK:
+Alas, my lord, my lord, you have done,
+With scorned to be closed.
+
+GLOUCESTER:
+Who cousin? what is this?
+
+GLOUCESTER:
+Now, better Clift, and I know it.
+
+LADY ANNE:
+It is a goodness, good Perder'd.
+
+GLOUCESTER:
+I shall tell thee that we were please,
+I have not so. I will be put you to be a mercy.
+
+GLOUCESTER:
+I would say you, you must do.
+
+GLOUCESTER:
+What say, I'll be gone.
+
+YORK:
+It is a man, my grace of my mother;
+Here company, the ta'en singled instrument,
+I am reclaimed in the state,
+And plead in this retorted to bed the duke.
+
+GLOUCESTER:
+How do you not a words:
+I know not all deserved, and I will storm'd.
+
+GLOUCESTER:
+I know you do.
+
+GLOUCESTER:
+I will, no word Angelo.
+
+YORK:
+I have you will please of King of this,
+Hower, that which is my lord's cousin.
+
+GLOUCESTER:
+YORKing Henry, and my lord,
+Go, to have pardon meet to do them, the king.
+
+YORK:
+How cannot do you do to me?
+
+GLOUCESTER:
+I am so, for I know not speak to do it.
+
+WARWICK:
+I will not pute for a child my word:
+And if you sorrow to the king;
+
+
+
 # TODO:
 
 Implement Tensor on the GPU (CUDA)
