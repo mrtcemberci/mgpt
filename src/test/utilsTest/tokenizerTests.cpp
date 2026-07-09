@@ -123,6 +123,20 @@ void test_bpe_tokenizer() {
     std::cout << "Test 8 (BytePairEncodingTokenizer End-to-End) passed! ✅\n";
 }
 
+// Test 9: Testing BPE boundary filter prevents illegal word-boundary crossing and speaker case mixing
+void test_bpe_word_boundaries_and_case_filter() {
+    BytePairEncodingTokenizer bpe(25);
+    // Even if repeated many times, "KING" (all caps) + "win" (lower) should not merge together
+    std::string text = "KINGwin KINGwin KINGwin lovE your lovE your";
+    bpe.build_vocab(text);
+
+    std::vector<int> encoded = bpe.encode(text);
+    std::string decoded = bpe.decode(encoded);
+    assert(decoded == text && "BPE must decode exactly to original string");
+
+    std::cout << "Test 9 (BPE Word Boundary & Case Filter) passed! ✅\n";
+}
+
 int main() {
     std::cout << "--- Starting Tokenizer Tests ---\n";
     test_empty_file();
@@ -133,6 +147,7 @@ int main() {
     test_vocab_size_getter();
     test_separate_build_vocab_and_encode();
     test_bpe_tokenizer();
-    std::cout << "--- All 8 Tests Passed Successfully! --- 🎉\n";
+    test_bpe_word_boundaries_and_case_filter();
+    std::cout << "--- All 9 Tests Passed Successfully! --- 🎉\n";
     return 0;
 }

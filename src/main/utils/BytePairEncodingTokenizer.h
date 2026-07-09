@@ -20,6 +20,8 @@ private:
     std::unordered_map<char, int> char_to_id;
     std::vector<MergeRule> ordered_merges;
 
+    static bool can_merge(const std::string& left, const std::string& right);
+
 public:
     explicit BytePairEncodingTokenizer(int target_vocab_size = 512);
 

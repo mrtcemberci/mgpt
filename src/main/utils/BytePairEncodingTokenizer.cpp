@@ -8,13 +8,78 @@
 BytePairEncodingTokenizer::BytePairEncodingTokenizer(int target_vocab_size)
     : target_vocab_size(target_vocab_size) {}
 
+bool BytePairEncodingTokenizer::can_merge(const std::string& left, const std::string& right) {
+    if (left.empty() || right.empty()) return false;
+
+    // 1. Never merge across newlines (prevents speaker headers from merging into next line)
+    if (left.find('\n') != std::string::npos || right.find('\n') != std::string::npos) {
+        return false;
+    }
+
+    // 2. Never merge if right starts with a space (prevents merging across word boundaries like "love" + " you")
+    if (right.front() == ' ') {
+        return false;
+    }
+
+    // 3. If left ends with a space, only allow if left is EXACTLY " " (allows leading space on a word " " + "word" -> " word")
+    if (left.back() == ' ' && left != " ") {
+        return false;
+    }
+
+    auto is_alpha_num = [](char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+    };
+
+    // 4. Do not merge alphanumeric characters with punctuation (keeps punctuation separate from words)
+    bool left_has_alnum = false, left_has_punct = false;
+    for (char c : left) {
+        if (c != ' ') {
+            if (is_alpha_num(c)) left_has_alnum = true;
+            else left_has_punct = true;
+        }
+    }
+    bool right_has_alnum = false, right_has_punct = false;
+    for (char c : right) {
+        if (c != ' ') {
+            if (is_alpha_num(c)) right_has_alnum = true;
+            else right_has_punct = true;
+        }
+    }
+
+    if ((left_has_alnum && !left_has_punct && right_has_punct && !right_has_alnum) ||
+        (left_has_punct && !left_has_alnum && right_has_alnum && !right_has_punct)) {
+        return false;
+    }
+
+    // 5. Do not merge multi-character ALL-CAPS words/speaker names ("KING", "ROMEO") with lowercase words
+    auto is_all_upper = [](const std::string& s) {
+        int upper_count = 0;
+        for (char c : s) {
+            if (c >= 'A' && c <= 'Z') upper_count++;
+            else if (c >= 'a' && c <= 'z') return false;
+        }
+        return upper_count >= 2;
+    };
+    auto has_lower = [](const std::string& s) {
+        for (char c : s) {
+            if (c >= 'a' && c <= 'z') return true;
+        }
+        return false;
+    };
+
+    if (is_all_upper(left) && has_lower(right)) {
+        return false;
+    }
+
+    return true;
+}
+
 void BytePairEncodingTokenizer::build_vocab(const std::string& text) {
     id_to_token.clear();
     char_to_id.clear();
-    ordered_merges.clear();
     vocab_chars.clear();
+    ordered_merges.clear();
 
-    // Build initial single-character base vocabulary
     std::vector<char> unique_chars;
     for (char c : text) {
         if (char_to_id.find(c) == char_to_id.end()) {
@@ -41,7 +106,9 @@ void BytePairEncodingTokenizer::build_vocab(const std::string& text) {
     while ((int)id_to_token.size() < target_vocab_size) {
         std::map<std::pair<int, int>, int> pair_counts;
         for (size_t i = 0; i + 1 < ids.size(); ++i) {
-            pair_counts[{ids[i], ids[i + 1]}]++;
+            if (can_merge(id_to_token[ids[i]], id_to_token[ids[i + 1]])) {
+                pair_counts[{ids[i], ids[i + 1]}]++;
+            }
         }
 
         std::pair<int, int> best_pair = {-1, -1};
@@ -126,7 +193,8 @@ std::vector<int> BytePairEncodingTokenizer::encode(const std::string& text) {
         std::vector<int> next_ids;
         next_ids.reserve(ids.size());
         for (size_t i = 0; i < ids.size(); ++i) {
-            if (i + 1 < ids.size() && ids[i] == rule.left && ids[i + 1] == rule.right) {
+            if (i + 1 < ids.size() && ids[i] == rule.left && ids[i + 1] == rule.right &&
+                can_merge(id_to_token[ids[i]], id_to_token[ids[i + 1]])) {
                 next_ids.push_back(rule.new_id);
                 i++;
             } else {
