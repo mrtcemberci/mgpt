@@ -32,6 +32,9 @@ public:
     std::vector<int> encode(const std::string& text) override;
     std::string decode(const std::vector<int>& encoded_data) override;
 
+    void save_vocab(const std::string& filepath) const;
+    bool load_vocab(const std::string& filepath);
+
     size_t get_vocab_size() const override;
     const std::vector<char>& get_vocab() const override;
 };

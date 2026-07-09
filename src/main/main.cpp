@@ -282,15 +282,55 @@ int main(int argc, char** argv) {
     test_file.close();
     std::cout << "[1/6] Using dataset at: " << data_path << "\n";
 
-    // Tokenize and Build BPE Vocabulary Dynamically
-    BytePairEncodingTokenizer tokenizer(target_vocab_size);
-    tokenizer.build_vocab_from_file(data_path);
-    int vocab_size = (int)tokenizer.get_vocab_size();
-    std::cout << "[2/6] BPE Vocabulary Built! Target Vocab Size = " << target_vocab_size
-              << " | Actual Vocab Size = " << vocab_size << " tokens.\n";
+    BytePairEncodingTokenizer bpe_tokenizer(target_vocab_size);
+    Tokenizer& tokenizer = bpe_tokenizer;
 
-    std::vector<int> full_data = tokenizer.load_and_encode(data_path);
-    std::cout << "      Total Dataset Tokens: " << full_data.size() << "\n";
+    std::string tok_bin_path = data_path + ".tok.bin";
+    std::string vocab_bin_path = data_path + ".vocab.bin";
+    std::vector<int> full_data;
+
+    std::ifstream tok_test(tok_bin_path, std::ios::binary);
+    std::ifstream vocab_test(vocab_bin_path, std::ios::binary);
+    if (tok_test.is_open() && vocab_test.is_open() && tokenizer.load_vocab(vocab_bin_path)) {
+        int loaded_vocab_size = (int)tokenizer.get_vocab_size();
+        std::cout << "[2/6] Found cached binary dataset files:\n"
+                  << "      -> Loaded Vocabulary Size = " << loaded_vocab_size << " tokens (" << vocab_bin_path << ")\n"
+                  << "      -> Loading pre-encoded token stream from " << tok_bin_path << "...\n";
+        tok_test.seekg(0, std::ios::end);
+        size_t file_bytes = tok_test.tellg();
+        tok_test.seekg(0, std::ios::beg);
+        size_t num_tokens = file_bytes / sizeof(int);
+        full_data.resize(num_tokens);
+        tok_test.read((char*)full_data.data(), file_bytes);
+        tok_test.close();
+        vocab_test.close();
+        std::cout << "      Total Dataset Tokens: " << full_data.size() << " (Loaded instantly from binary cache!)\n";
+    } else {
+        if (tok_test.is_open()) tok_test.close();
+        if (vocab_test.is_open()) vocab_test.close();
+
+        std::cout << "[2/6] Binary cache not found. Building Vocabulary from " << data_path << "...\n";
+        tokenizer.build_vocab_from_file(data_path);
+        int built_vocab_size = (int)tokenizer.get_vocab_size();
+        std::cout << "      -> Vocabulary Built! Actual Vocab Size = " << built_vocab_size << " tokens.\n";
+
+        std::cout << "      -> Encoding dataset text into token IDs...\n";
+        full_data = tokenizer.load_and_encode(data_path);
+        std::cout << "      Total Dataset Tokens: " << full_data.size() << "\n";
+
+        std::cout << "      -> Caching vocabulary to " << vocab_bin_path << "...\n";
+        tokenizer.save_vocab(vocab_bin_path);
+
+        std::cout << "      -> Caching raw encoded binary stream (" << (full_data.size() * sizeof(int)) / (1024 * 1024) 
+                  << " MB) to " << tok_bin_path << "...\n";
+        std::ofstream tok_out(tok_bin_path, std::ios::binary);
+        if (tok_out.is_open()) {
+            tok_out.write((const char*)full_data.data(), full_data.size() * sizeof(int));
+            tok_out.close();
+            std::cout << "      -> Successfully dumped raw encoded data to " << tok_bin_path << "!\n";
+        }
+    }
+    int vocab_size = (int)tokenizer.get_vocab_size();
 
     // Train / Validation Split
     std::vector<int> train_data, val_data;

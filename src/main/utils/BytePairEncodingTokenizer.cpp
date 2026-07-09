@@ -220,6 +220,59 @@ std::string BytePairEncodingTokenizer::decode(const std::vector<int>& encoded_da
     return result;
 }
 
+void BytePairEncodingTokenizer::save_vocab(const std::string& filepath) const {
+    std::ofstream out(filepath, std::ios::binary);
+    if (!out.is_open()) return;
+    int vocab_sz = (int)id_to_token.size();
+    out.write((const char*)&vocab_sz, sizeof(int));
+    for (const auto& token : id_to_token) {
+        int len = (int)token.size();
+        out.write((const char*)&len, sizeof(int));
+        out.write(token.data(), len);
+    }
+    int num_merges = (int)ordered_merges.size();
+    out.write((const char*)&num_merges, sizeof(int));
+    for (const auto& rule : ordered_merges) {
+        out.write((const char*)&rule.left, sizeof(int));
+        out.write((const char*)&rule.right, sizeof(int));
+        out.write((const char*)&rule.new_id, sizeof(int));
+    }
+    out.close();
+}
+
+bool BytePairEncodingTokenizer::load_vocab(const std::string& filepath) {
+    std::ifstream in(filepath, std::ios::binary);
+    if (!in.is_open()) return false;
+    int vocab_sz = 0;
+    in.read((char*)&vocab_sz, sizeof(int));
+    if (vocab_sz <= 0) return false;
+    id_to_token.resize(vocab_sz);
+    vocab_chars.clear();
+    char_to_id.clear();
+    for (int i = 0; i < vocab_sz; ++i) {
+        int len = 0;
+        in.read((char*)&len, sizeof(int));
+        std::string token(len, '\0');
+        in.read(&token[0], len);
+        id_to_token[i] = token;
+        if (len == 1) {
+            char c = token[0];
+            vocab_chars.push_back(c);
+            char_to_id[c] = i;
+        }
+    }
+    int num_merges = 0;
+    in.read((char*)&num_merges, sizeof(int));
+    ordered_merges.resize(num_merges);
+    for (int i = 0; i < num_merges; ++i) {
+        in.read((char*)&ordered_merges[i].left, sizeof(int));
+        in.read((char*)&ordered_merges[i].right, sizeof(int));
+        in.read((char*)&ordered_merges[i].new_id, sizeof(int));
+    }
+    in.close();
+    return true;
+}
+
 size_t BytePairEncodingTokenizer::get_vocab_size() const {
     return id_to_token.size();
 }

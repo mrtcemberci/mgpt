@@ -17,6 +17,9 @@ public:
     virtual std::vector<int> encode(const std::string& text) = 0;
     virtual std::string decode(const std::vector<int>& encoded_data) = 0;
 
+    virtual void save_vocab(const std::string& filepath) const {}
+    virtual bool load_vocab(const std::string& filepath) { return false; }
+
     // Getters for neural network / bigram model initialization
     virtual size_t get_vocab_size() const = 0;
     virtual const std::vector<char>& get_vocab() const = 0;

@@ -87,6 +87,35 @@ std::string CharacterTokenizer::decode(const std::vector<int>& encoded_data) {
     return decoded_data;
 }
 
+void CharacterTokenizer::save_vocab(const std::string& filepath) const {
+    std::ofstream out(filepath, std::ios::binary);
+    if (!out.is_open()) return;
+    int sz = (int)vocab.size();
+    out.write((const char*)&sz, sizeof(int));
+    if (sz > 0) {
+        out.write(vocab.data(), sz);
+    }
+    out.close();
+}
+
+bool CharacterTokenizer::load_vocab(const std::string& filepath) {
+    std::ifstream in(filepath, std::ios::binary);
+    if (!in.is_open()) return false;
+    int sz = 0;
+    in.read((char*)&sz, sizeof(int));
+    if (sz <= 0) return false;
+    vocab.resize(sz);
+    in.read(vocab.data(), sz);
+    in.close();
+    char_to_int.clear();
+    int_to_char.clear();
+    for (int i = 0; i < sz; ++i) {
+        char_to_int[vocab[i]] = i;
+        int_to_char[i] = vocab[i];
+    }
+    return true;
+}
+
 size_t CharacterTokenizer::get_vocab_size() const {
     return vocab.size();
 }

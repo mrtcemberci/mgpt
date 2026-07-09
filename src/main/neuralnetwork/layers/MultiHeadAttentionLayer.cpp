@@ -18,12 +18,13 @@ MultiHeadAttentionLayer::MultiHeadAttentionLayer(int channels, int num_heads_req
     W_O = std::make_unique<LinearLayer>(channels, channels);
 
     int max_rope_len = 2048;
-    int half_dim = head_dim / 2;
-    std::vector<float> h_cos(max_rope_len * half_dim);
-    std::vector<float> h_sin(max_rope_len * half_dim);
+    int half_dim = std::max(1, head_dim / 2);
+    std::vector<float> h_cos(max_rope_len * half_dim, 1.0f);
+    std::vector<float> h_sin(max_rope_len * half_dim, 0.0f);
     for (int t = 0; t < max_rope_len; ++t) {
         for (int j = 0; j < half_dim; ++j) {
-            float freq = 1.0f / std::pow(10000.0f, (2.0f * j) / (float)head_dim);
+            float denom = (head_dim > 0) ? (float)head_dim : 1.0f;
+            float freq = 1.0f / std::pow(10000.0f, (2.0f * j) / denom);
             float angle = t * freq;
             h_cos[t * half_dim + j] = std::cos(angle);
             h_sin[t * half_dim + j] = std::sin(angle);
