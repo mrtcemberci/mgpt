@@ -284,6 +284,67 @@ Go! A should lieve at your ba hon Brunt,
 I come my scarted but to
 ------------------------------------------------------------
 
+With T=0.7 and K=10
+
+KING RICHARD: Speak youKill; ford for a king
+To lovEyour own paces,
+Bardintune will requit forbout of York
+To before joy; for her Camillo can;
+Shall eyes him disder my land?'ll me, Clarences
+To depose: brother we that stigpose
+Pece needutince he plains out that he hath affinxess,
+One an and, 'erd put ity, halfly,
+Be interinghaught time, Still. Romey, diss?
+That's heart, hury, but is othere.
+
+FRIAR OVOLURes OMhat's hblant:
+What sure, mother, a reservanting of wall.
+
+Shaor:
+Signi' hars ags, and I cheek's ppears,
+Tis as thou in simateld; and eedly disp,
+Thur? Bring soneseech bege now, yoners
+Biring heam bl eart: bless Peach toable quain:
+Are is this micked by monINGwinisted
+So did toe thee abin a night.
+Well, but aither? we me, they was, usin the with
+With that scuty the mastere with his face,
+And my fellow cound wans and a can pered hap misin.
+
+CAMus:
+No, thou crin the heart hastands of boody fewell be sight.
+Tell, brothlen ifevenupon me dayINIUS:
+Withald, we word tears
+From them, and degive me to be to thee:
+So wear the whole, his own chee
+And to thy lord to aold a vire: warry reams
+I am shapatty pare and power, ourze of the minct
+This good cound purpose.
+
+Second Servingman:
+'Tis not came as he shall ken wors,
+Which hadomarET doth begUCKINGHovery never appear thee-may to depreckemses,
+That bnilds your here and attread?
+
+Putior XEN:
+Marey, as the swears oftle.
+
+First MAusicient lone spo;
+To brince too a grave melemy lords; years and fair me
+To my law such pery haong art at here!
+Bear Good to the sonle!
+
+AAUFirst Servant:
+I will? one anion here he migh in hears of the staring
+Gake, oo, found and mewere ive.
+
+MAll:
+Why, 'tis tell been proted we be formemiof a vison:
+The whiest of my laughtered ORI,
+The stays the tootarto righ wall ite
+Which he is plexfor this gosound less are a
+------------------------------------------------------------
+
 # TODO:
 
 Implement Tensor on the GPU (CUDA)
