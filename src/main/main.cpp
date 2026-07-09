@@ -66,7 +66,7 @@ float evaluate_loss(GPT& model, const std::vector<int>& val_data,
 
 //  Autoregressive text generation sample from trained model
 std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& prompt, 
-                          int max_new_tokens, std::mt19937& rng) {
+                          int max_new_tokens, float temperature, std::mt19937& rng) {
     std::vector<int> tokens = tokenizer.encode(prompt);
     
     for (int step = 0; step < max_new_tokens; ++step) {
@@ -93,6 +93,12 @@ std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& p
         // Get softmax probabilities for the last time step
         int last_t_offset = (seq_len - 1) * model.config.vocab_size;
         
+        // Apply Temperature Scaling
+        float temp = (temperature < 1e-4f) ? 1e-4f : temperature;
+        for (int v = 0; v < model.config.vocab_size; ++v) {
+            logits_host[last_t_offset + v] /= temp;
+        }
+
         // Find max logit for stable softmax
         float max_logit = -1e15f;
         for (int v = 0; v < model.config.vocab_size; ++v) {
@@ -141,6 +147,7 @@ int main(int argc, char** argv) {
     int batch_size = 16;
     int max_seq_len = 64;
     int target_vocab_size = 512;
+    float temperature = 0.8f;
 
     int grad_accum_steps = 1;
 
@@ -164,6 +171,7 @@ int main(int argc, char** argv) {
                       << "  -f, --file <path>         Path to model weights file (.bin) (default: shakespeare_gpt.bin)\n"
                       << "  -d, --data <path>         Path to training dataset (default: input.txt)\n"
                       << "  -v, --vocab <int>         Target BPE vocabulary size (default: 512)\n"
+                      << "  -T, --temp <float>        Sampling temperature for text generation (default: 0.8)\n"
                       << "  -p, --prompt <str>        Text generation prompt (default: \"To be or not to be\")\n"
                       << "  -n, --tokens <int>        Number of characters to generate (default: 500)\n"
                       << "  -s, --steps <int>         Number of training steps (default: 1000)\n"
@@ -175,7 +183,7 @@ int main(int argc, char** argv) {
                       << "  -h, --help                Show this help message and exit\n\n"
                       << "Examples:\n"
                       << "  mgpt -t -g -v=256 -f=\"my_model.bin\" -s=2000 -l=6 -b=64 -w=128\n"
-                      << "  mgpt -i -g -f=\"my_model.bin\" -p=\"O Romeo, Romeo!\" -n=1000\n";
+                      << "  mgpt -i -g -T=0.7 -f=\"my_model.bin\" -p=\"O Romeo, Romeo!\" -n=1000\n";
             return 0;
         }
         if (arg == "-t" || arg == "--train") { mode_train = true; mode_infer_only = false; continue; }
@@ -227,6 +235,10 @@ int main(int argc, char** argv) {
         if (arg == "-v" || arg == "--vocab") { if (i + 1 < argc) target_vocab_size = std::stoi(argv[++i]); continue; }
         if (arg.find("-v=") == 0) { target_vocab_size = std::stoi(arg.substr(3)); continue; }
         if (arg.find("--vocab=") == 0) { target_vocab_size = std::stoi(arg.substr(8)); continue; }
+
+        if (arg == "-T" || arg == "--temp") { if (i + 1 < argc) temperature = std::stof(argv[++i]); continue; }
+        if (arg.find("-T=") == 0) { temperature = std::stof(arg.substr(3)); continue; }
+        if (arg.find("--temp=") == 0) { temperature = std::stof(arg.substr(7)); continue; }
     }
 
     strip_quotes(weights_path);
@@ -428,8 +440,8 @@ int main(int argc, char** argv) {
         model.save_weights_bin(weights_path);
     }
 
-    std::cout << "\n--- 📜 Text Generation Sample (Prompt: \"" << prompt << "\") ---\n";
-    std::string generated = generate_text(model, tokenizer, prompt, max_tokens, rng);
+    std::cout << "\n--- 📜 Text Generation Sample (Prompt: \"" << prompt << "\" | Temp: " << temperature << ") ---\n";
+    std::string generated = generate_text(model, tokenizer, prompt, max_tokens, temperature, rng);
     std::cout << generated << "\n";
     std::cout << "------------------------------------------------------------\n\n";
 
