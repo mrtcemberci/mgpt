@@ -5,8 +5,9 @@
 #include <random>
 #include <iomanip>
 #include <chrono>
-#include <cmath>
 #include "utils/Tokenizer.h"
+#include "utils/CharacterTokenizer.h"
+#include "utils/BytePairEncodingTokenizer.h"
 #include "neuralnetwork/GPT.h"
 #include "neuralnetwork/optimisers/AdamWOptimiser.h"
 #include "utils/cuda_ops.h"
@@ -124,7 +125,7 @@ std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& p
 int main(int argc, char** argv) {
     try {
         std::cout << "============================================================\n";
-    std::cout << "      🚀 MGPT: CHARACTER-LEVEL GPT TRAINING ENGINE 🚀       \n";
+    std::cout << "      🚀 MGPT: BPE TOKENIZED GPT TRAINING ENGINE 🚀       \n";
     std::cout << "============================================================\n\n";
 
     bool mode_train = true;  // default to train if neither -t nor -i specified
@@ -139,6 +140,7 @@ int main(int argc, char** argv) {
     int embed_dim = 128;
     int batch_size = 16;
     int max_seq_len = 64;
+    int target_vocab_size = 512;
 
     int grad_accum_steps = 1;
 
@@ -161,6 +163,7 @@ int main(int argc, char** argv) {
                       << "      --no-checkpointing    Disable gradient/activation checkpointing\n"
                       << "  -f, --file <path>         Path to model weights file (.bin) (default: shakespeare_gpt.bin)\n"
                       << "  -d, --data <path>         Path to training dataset (default: input.txt)\n"
+                      << "  -v, --vocab <int>         Target BPE vocabulary size (default: 512)\n"
                       << "  -p, --prompt <str>        Text generation prompt (default: \"To be or not to be\")\n"
                       << "  -n, --tokens <int>        Number of characters to generate (default: 500)\n"
                       << "  -s, --steps <int>         Number of training steps (default: 1000)\n"
@@ -171,7 +174,7 @@ int main(int argc, char** argv) {
                       << "  -a, --accumulate <int>    Gradient accumulation steps (default: 1)\n"
                       << "  -h, --help                Show this help message and exit\n\n"
                       << "Examples:\n"
-                      << "  mgpt -t -g -f=\"my_model.bin\" -s=2000 -l=6 -b=64 -w=128\n"
+                      << "  mgpt -t -g -v=256 -f=\"my_model.bin\" -s=2000 -l=6 -b=64 -w=128\n"
                       << "  mgpt -i -g -f=\"my_model.bin\" -p=\"O Romeo, Romeo!\" -n=1000\n";
             return 0;
         }
@@ -220,6 +223,10 @@ int main(int argc, char** argv) {
         if (arg == "-w" || arg == "--window") { if (i + 1 < argc) max_seq_len = std::stoi(argv[++i]); continue; }
         if (arg.find("-w=") == 0) { max_seq_len = std::stoi(arg.substr(3)); continue; }
         if (arg.find("--window=") == 0) { max_seq_len = std::stoi(arg.substr(9)); continue; }
+
+        if (arg == "-v" || arg == "--vocab") { if (i + 1 < argc) target_vocab_size = std::stoi(argv[++i]); continue; }
+        if (arg.find("-v=") == 0) { target_vocab_size = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--vocab=") == 0) { target_vocab_size = std::stoi(arg.substr(8)); continue; }
     }
 
     strip_quotes(weights_path);
@@ -241,11 +248,12 @@ int main(int argc, char** argv) {
     test_file.close();
     std::cout << "[1/6] Using dataset at: " << data_path << "\n";
 
-    // Tokenize and Build Vocabulary Dynamically
-    Tokenizer tokenizer;
+    // Tokenize and Build BPE Vocabulary Dynamically
+    BytePairEncodingTokenizer tokenizer(target_vocab_size);
     tokenizer.build_vocab_from_file(data_path);
     int vocab_size = (int)tokenizer.get_vocab_size();
-    std::cout << "[2/6] Dynamic Vocabulary Built! Vocab Size = " << vocab_size << " characters.\n";
+    std::cout << "[2/6] BPE Vocabulary Built! Target Vocab Size = " << target_vocab_size
+              << " | Actual Vocab Size = " << vocab_size << " tokens.\n";
 
     std::vector<int> full_data = tokenizer.load_and_encode(data_path);
     std::cout << "      Total Dataset Tokens: " << full_data.size() << "\n";

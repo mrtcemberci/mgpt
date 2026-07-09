@@ -1,10 +1,10 @@
-#include "Tokenizer.h"
+#include "CharacterTokenizer.h"
 
 #include <algorithm>
 #include <fstream>
 #include <iostream>
 
-void Tokenizer::build_vocab(const std::string& text) {
+void CharacterTokenizer::build_vocab(const std::string& text) {
     vocab.clear();
     char_to_int.clear();
     int_to_char.clear();
@@ -24,7 +24,7 @@ void Tokenizer::build_vocab(const std::string& text) {
     }
 }
 
-void Tokenizer::build_vocab_from_file(const std::string& filepath) {
+void CharacterTokenizer::build_vocab_from_file(const std::string& filepath) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
         std::cerr << "Error: Could not open file at " << filepath << "\n";
@@ -38,7 +38,7 @@ void Tokenizer::build_vocab_from_file(const std::string& filepath) {
     build_vocab(text);
 }
 
-std::vector<int> Tokenizer::load_and_encode(const std::string& filepath) {
+std::vector<int> CharacterTokenizer::load_and_encode(const std::string& filepath) {
     std::vector<int> encoded_data;
 
     std::ifstream file(filepath);
@@ -54,7 +54,7 @@ std::vector<int> Tokenizer::load_and_encode(const std::string& filepath) {
     return encode(text);
 }
 
-std::vector<int> Tokenizer::encode(const std::string& text) {
+std::vector<int> CharacterTokenizer::encode(const std::string& text) {
     if (vocab.empty()) {
         build_vocab(text);
     }
@@ -72,7 +72,7 @@ std::vector<int> Tokenizer::encode(const std::string& text) {
     return encoded_data;
 }
 
-std::string Tokenizer::decode(const std::vector<int>& encoded_data) {
+std::string CharacterTokenizer::decode(const std::vector<int>& encoded_data) {
     std::string decoded_data;
     decoded_data.reserve(encoded_data.size());
 
@@ -87,10 +87,10 @@ std::string Tokenizer::decode(const std::vector<int>& encoded_data) {
     return decoded_data;
 }
 
-size_t Tokenizer::get_vocab_size() const {
+size_t CharacterTokenizer::get_vocab_size() const {
     return vocab.size();
 }
 
-const std::vector<char>& Tokenizer::get_vocab() const {
+const std::vector<char>& CharacterTokenizer::get_vocab() const {
     return vocab;
 }
