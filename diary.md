@@ -428,14 +428,106 @@ WARWICK:
 I will not pute for a child my word:
 And if you sorrow to the king;
 
+I removed the absolute position embedding table and switched to a RoPE method for positioning, and the validation loss was around 3.4, with the following text produced
+T=0.8 K=15
 
+ROMEO:
+I think I say, that's the body and leave.
 
-# MILESTONE: Rotary Positional Embeddings (RoPE) Implemented
+LADY GREY:
+I have been so, and I may, my grace my
+signier's baw to-derving to him?
 
-- Completely excised absolute positional embeddings (`pos_emb`) from the GPT architecture.
-- Implemented CUDA kernel `apply_rope_cuda` and C++ fallback `Tensor::apply_rope_inplace` applying orthogonal 2D rotations ($q_0 \cos - q_1 \sin, q_1 \cos + q_0 \sin$) to consecutive channel pairs across batched heads.
-- Integrated RoPE in-place into `MultiHeadAttentionLayer::forward_into()` on $Q, K$ and `backward_into()` on $dQ, dK$.
-- Drastically reduced model memory footprint by eliminating dense positional embedding tables and scratchpad activation buffers.
+SICINIUS:
+By't,
+Not a watery and leave the troose.
+
+MENENIUS:
+They thrived to see him a premit you:
+Sthat I am a crambersy,
+To purn him to the duke in actions,
+Shap the warrant of his water'd in the patient,
+His carried sleeping captain of his house,
+She's appear and lady, and I fear
+And, whom air, and wife, and framness
+And better the law shall perfall you.
+
+Second Servingman:
+Is the king is nothing?
+
+BRUTUS:
+Sirrah, I am the people, and close of call,
+Which you shall not fear the witness of came,
+And could not on them for this fearful mind,
+To make the pupose to begy to perfection,
+And to begguediply to beged me:
+For his remeds, that, the bosom of Tybalt,
+Against my very part, indeed to her tried?
+
+KING RICHARD III:
+I'll be contrrefite my heart.
+
+KING RICHARD III:
+I'll not my wife.
+
+MENENIUS:
+Go he not, to your water:
+But, and dulls I will pardon.
+
+BRUTUS:
+One, my lord, I may say you have not.
+
+KING RICHARD III:
+Ay, I am a cased and perceive you,
+Then called for the people, the leann
+Of your gracious matter, I am relieve you are.
+
+RICHMOND:
+Ay, I am call the Juliety of the fearful hand,
+Sacy to-morrow, I'll be a wronger,
+Her mother the devil the greateral tears,
+Or I will diedy, and to pail me,
+Who souch'd with you.
+
+KING RICHARD III:
+Now, as it.
+
+CAMILLO:
+Yea,
+Is not the France of you?
+
+MIANLEY:
+Have you, that I have young the duke of me
+Well, siring, as I cannot being
+And banch you.
+
+BUCKINGHAM:
+What's head?
+
+POLIXENES:
+Beformenty!
+
+MENENIUS:
+It is my mother,
+I have bitch'd the senter of my wife,
+I think it is noble mates: though'st thou
+Twould you not the sound, and, and I have keeps
+To two the matter into my county,
+Being in the chamberal'd to case;
+And, and first weep tears and watering coldily!
+
+MENENIUS:
+I write, my lord.
+
+DUKE VINCENTIO:
+The sley of it!
+
+BAPTISTA:
+My lord, before, I'll change, sir; my wife?
+
+JULIET:
+No, thou hast for thy name!
+
 
 # NEXT STEPS & TODO:
 - Implement dataset sharding / binary shard loading (`.bin` files) for large datasets (2GB+ TinyStories) with invisible model continuation / `--resume` checkpoints.
