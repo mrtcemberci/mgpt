@@ -528,6 +528,16 @@ My lord, before, I'll change, sir; my wife?
 JULIET:
 No, thou hast for thy name!
 
+-----------------------------------------
+
+Training on the tiny stories snippet of 20MB with 4000 steps produced 2.35 ish loss and the following outputs.
+
+Once upon a time, the boy smelt really wet. He had a big smile on his face. He liked the view of the coral.
+At the end of the day, the boy was so tired that he was happy. He wanted to go back to the park. So, he ran as fast as he could. But no matter how hard she tried, he was so strong.
+
+The blonde girl and the rabbit. Every day, the rabbit would go to sleep and smile.
+One day, the bunny was feeling tired. He went to the forest to rest. He saw a big tree and he thought it would be fun to play on the tree. So the bunny hopped back to his tree and gave him a carrot.
+The bunny was very happy and gave the bunny a warm blanket. Then he went to have a picnic and it was so happy. He had a great day!
 
 # NEXT STEPS & TODO:
 - Implement dataset sharding / binary shard loading (`.bin` files) for large datasets (2GB+ TinyStories) with invisible model continuation / `--resume` checkpoints.
