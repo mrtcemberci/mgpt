@@ -494,7 +494,7 @@ int main(int argc, char** argv) {
             int current_global_step = start_step + step;
             float current_lr = calculate_lr(current_global_step, global_total_steps, learning_rate, learning_rate * 0.1f);
 
-            optimizer->set_lr(current_lr / (float)grad_accum_steps);
+            optimizer->set_lr(current_lr);
 
             auto step_start = std::chrono::high_resolution_clock::now();
 
