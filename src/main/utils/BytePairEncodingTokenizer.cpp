@@ -81,13 +81,9 @@ void BytePairEncodingTokenizer::build_vocab(const std::string& text) {
     ordered_merges.clear();
 
     std::vector<char> unique_chars;
-    for (char c : text) {
-        if (char_to_id.find(c) == char_to_id.end()) {
-            unique_chars.push_back(c);
-            char_to_id[c] = 0; // Temporary mark
-        }
+    for (int b = 0; b < 256; ++b) {
+        unique_chars.push_back((char)b);
     }
-    std::sort(unique_chars.begin(), unique_chars.end());
 
     for (char c : unique_chars) {
         char_to_id[c] = (int)id_to_token.size();
@@ -185,7 +181,10 @@ std::vector<int> BytePairEncodingTokenizer::encode(const std::string& text) {
         if (it != char_to_id.end()) {
             ids.push_back(it->second);
         } else {
-            std::cerr << "Warning: Character '" << c << "' not found in BPE vocabulary. Skipping.\n";
+            auto space_it = char_to_id.find(' ');
+            if (space_it != char_to_id.end()) {
+                ids.push_back(space_it->second);
+            }
         }
     }
 
