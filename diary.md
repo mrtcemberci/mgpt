@@ -543,6 +543,26 @@ The bunny was very happy and gave the bunny a warm blanket. Then he went to have
 
 Migrating GPT Model and Engine to CUDA GPU...
 Resuming Training Mode: Loading existing checkpoint from tinystories.bin...
+Successfully loaded GPT model weights from tinystories.bin (restored at completed step 3000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Starting Training Loop (AdamW, LR=0.001, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=3000 -> 6000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[3001/72000 (Shard 1/3000 |   4%)] LR:8.34e-04 Fwd:187ms Loss:137ms Opt:8ms | Step:506ms | Loss: 2.3385
+[3300/72000 (Shard 300/3000 |   4%)] LR:9.17e-04 Fwd:3ms Loss:160ms Opt:0ms | Step:539ms | Loss: 2.3270 | Val: 2.1570
+[3600/72000 (Shard 600/3000 |   5%)] LR:1.00e-03 Fwd:3ms Loss:159ms Opt:0ms | Step:540ms | Loss: 2.0127 | Val: 2.0779
+[3900/72000 (Shard 900/3000 |   5%)] LR:1.00e-03 Fwd:3ms Loss:159ms Opt:0ms | Step:538ms | Loss: 2.0747 | Val: 2.0078
+[4200/72000 (Shard 1200/3000 |   5%)] LR:1.00e-03 Fwd:3ms Loss:158ms Opt:0ms | Step:543ms | Loss: 1.9652 | Val: 1.9979
+[4500/72000 (Shard 1500/3000 |   6%)] LR:1.00e-03 Fwd:3ms Loss:158ms Opt:0ms | Step:539ms | Loss: 1.8309 | Val: 1.9426
+[4800/72000 (Shard 1800/3000 |   6%)] LR:9.99e-04 Fwd:3ms Loss:158ms Opt:0ms | Step:541ms | Loss: 1.9969 | Val: 1.8726
+[5100/72000 (Shard 2100/3000 |   7%)] LR:9.99e-04 Fwd:3ms Loss:158ms Opt:0ms | Step:538ms | Loss: 1.8542 | Val: 1.8378
+[5400/72000 (Shard 2400/3000 |   7%)] LR:9.98e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:541ms | Loss: 1.8363 | Val: 1.8782
+[5700/72000 (Shard 2700/3000 |   7%)] LR:9.98e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:539ms | Loss: 1.7907 | Val: 1.8464
+[6000/72000 (Shard 3000/3000 |   8%)] LR:9.97e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:540ms | Loss: 1.8937 | Val: 1.9429
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories.bin...
 Successfully loaded GPT model weights from tinystories.bin (restored at completed step 6000)!
 Uploading Train and Validation Datasets to GPU Memory...
 Starting Training Loop (AdamW, LR=0.001, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=6000 -> 9000/72000)...
@@ -560,6 +580,21 @@ Step       Progress & Timings                      Train Loss   Val Loss
 [8400/72000 (Shard 2400/3000 |  11%)] LR:9.89e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:539ms | Loss: 3.0228 | Val: 3.0936
 [8700/72000 (Shard 2700/3000 |  12%)] LR:9.88e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:542ms | Loss: 3.6631 | Val: 3.6165
 [9000/72000 (Shard 3000/3000 |  12%)] LR:9.86e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:539ms | Loss: 3.4204 | Val: 3.5227
+
+igrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories.bin...
+Successfully loaded GPT model weights from tinystories.bin (restored at completed step 9000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Starting Training Loop (AdamW, LR=0.001, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=9000 -> 12000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[9001/72000 (Shard 1/3000 |  12%)] LR:9.86e-04 Fwd:193ms Loss:121ms Opt:8ms | Step:501ms | Loss: 3.5416
+[9300/72000 (Shard 300/3000 |  12%)] LR:9.85e-04 Fwd:3ms Loss:158ms Opt:0ms | Step:541ms | Loss: 3.5292 | Val: 3.5369
+[9600/72000 (Shard 600/3000 |  13%)] LR:9.83e-04 Fwd:3ms Loss:160ms Opt:0ms | Step:539ms | Loss: 3.1079 | Val: 3.2108
+[9900/72000 (Shard 900/3000 |  13%)] LR:9.81e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:542ms | Loss: 3.2823 | Val: 3.2442
+[10200/72000 (Shard 1200/3000 |  14%)] LR:9.79e-04 Fwd:3ms Loss:158ms Opt:0ms | Step:539ms | Loss: 3.3543 | Val: 3.4565
+[10500/72000 (Shard 1500/3000 |  14%)] LR:9.78e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:542ms | Loss: nan
 
 # NEXT STEPS & TODO:
 - Implement dataset sharding / binary shard loading (`.bin` files) for large datasets (2GB+ TinyStories) with invisible model continuation / `--resume` checkpoints.
