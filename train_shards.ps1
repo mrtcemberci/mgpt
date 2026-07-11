@@ -19,6 +19,7 @@ param(
     [int]$Window = 256,
     [int]$Batch = 16,
     [int]$Accumulate = 2,
+    [int]$StartShard = 0,
     [string]$ExePath = ".\build_release\Release\mgpt.exe"
 )
 
@@ -42,14 +43,19 @@ if ($shards.Count -eq 0) {
     exit 1
 }
 
+if ($StartShard -lt 0 -or $StartShard -ge $shards.Count) {
+    Write-Error "Invalid StartShard index: $StartShard. Must be between 0 and $($shards.Count - 1)."
+    exit 1
+}
+
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "   MGPT MULTI-SHARD AUTOMATED PIPELINE (SHARD RECOVERY)    " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "Found $($shards.Count) shards in '$DataDir'" -ForegroundColor Green
+Write-Host "Found $($shards.Count) shards in '$DataDir' | Starting at Shard $StartShard" -ForegroundColor Green
 Write-Host "Model Config: ${Layers}L, ${Channels}C, ${Window}W | Batch: $Batch (Accum: $Accumulate) | LR: $LR" -ForegroundColor Green
 Write-Host "============================================================`n" -ForegroundColor Cyan
 
-for ($i = 0; $i -lt $shards.Count; $i++) {
+for ($i = $StartShard; $i -lt $shards.Count; $i++) {
     $shardFile = $shards[$i].FullName
     $shardName = $shards[$i].Name
     $idxStr = "{0:D2}" -f $i
@@ -80,8 +86,9 @@ for ($i = 0; $i -lt $shards.Count; $i++) {
     }
 
     if ($i -gt 0) {
-        # For shard 1 and above, copy the previous shard's checkpoint if current checkpoint doesn't exist yet
-        if (-not (Test-Path $currentBin)) {
+        # For shard 1 and above, initialize current checkpoint from previous completed shard
+        # If starting/restarting at $StartShard OR if current checkpoint does not exist yet, copy fresh from previous shard
+        if (($i -eq $StartShard) -or (-not (Test-Path $currentBin))) {
             if (-not (Test-Path $prevBin)) {
                 Write-Error "Previous shard checkpoint '$prevBin' missing! Cannot resume shard $idxStr."
                 exit 1
