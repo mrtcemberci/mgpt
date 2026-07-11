@@ -65,9 +65,9 @@ public:
 
     std::vector<Tensor*> get_parameters() override;
 
-    // Export & Import weights to raw binary .bin file for lightweight inference
-    void save_weights_bin(const std::string& filepath);
-    void load_weights_bin(const std::string& filepath);
+    // Export & Import weights to raw binary .bin file for lightweight inference and training resume
+    void save_weights_bin(const std::string& filepath, int completed_steps = 0);
+    int load_weights_bin(const std::string& filepath);
 };
 
 #endif //GPT_H

@@ -57,16 +57,20 @@ mgpt [options]
 | Short Flag | Long Flag | Description | Default Value |
 | :---: | :--- | :--- | :---: |
 | `-t` | `--train` | Run in **Training Mode** (trains model & saves checkpoint) | *Default* |
+| `-r` | `--resume` | Resume training from existing checkpoint weights & step progress header | `false` |
 | `-i` | `--infer` | Run in **Inference Mode** (loads checkpoint & generates text) | `false` |
 | `-g` | `--gpu` | Enable **CUDA GPU Acceleration** for training & generation | `false` |
 | `-k` | `--checkpointing` | Enable **Activation/Gradient Checkpointing** for memory efficiency | `true` |
 | | `--no-checkpointing` | Disable activation checkpointing (store all activations) | `false` |
 | `-f` | `--file <path>` | Path to save/load model binary checkpoint (`.bin`) | `"shakespeare_gpt.bin"` |
-| `-d` | `--data <path>` | Path to training text corpus file | `"input.txt"` |
+| `-d` | `--data <path>` | Path to training text corpus shard/file | `"input.txt"` |
+| | `--vocab-file <path>` | Path to master `.vocab.bin` dictionary for consistent multi-shard training | |
 | `-v` | `--vocab <int>` | Target BPE vocabulary size | `512` |
 | `-p` | `--prompt <str>` | Initial prompt string for autoregressive text generation | `"To be or not to be"` |
 | `-n` | `--tokens <int>` | Number of tokens/characters to generate | `500` |
-| `-s` | `--steps <int>` | Number of training optimization steps | `1000` |
+| `-s` | `--steps <int>` | Number of training optimization steps on current shard | `1000` |
+| | `--start-step <int>` | Explicitly override starting step counter when resuming | `0` |
+| | `--total-steps <int>` | Global total steps across all shards for continuous Cosine LR decay | `0` |
 | `-l` | `--layers <int>` | Number of Transformer blocks ($L$) | `4` |
 | `-c` | `--channels <int>` | Embedding channel dimension / hidden size ($C$) | `128` |
 | `-b` | `--batch <int>` | Micro-batch size per forward/backward pass ($B$) | `16` |
@@ -77,3 +81,16 @@ mgpt [options]
 | `-h` | `--help` | Display usage summary and exit | |
 
 ---
+
+## 🔥 Ready-to-Run Examples
+
+### 1. Multi-Shard Large Dataset Training Workflow (e.g. TinyStories)
+Train sequentially across dataset shards (`shard_00.txt`, `shard_01.txt`, ...) while sharing a master BPE vocabulary and continuous Cosine LR schedule:
+
+```powershell
+# Shard 00: Builds master vocabulary & trains steps 1 -> 2000 (out of 40,000 total)
+.\build_release\Release\mgpt.exe -t -g -v=4096 -d="shard_00.txt" -f="tinystories.bin" -s=2000 --total-steps=40000 -l=6 -c=384 -w=256 -b=32 -a=2
+
+# Shard 01: Automatically resumes from step 2000 -> 4000 using master vocabulary
+.\build_release\Release\mgpt.exe -t -g --resume -d="shard_01.txt" --vocab-file="shard_00.txt.vocab.bin" -f="tinystories.bin" -s=2000 --total-steps=40000 -l=6 -c=384 -w=256 -b=32 -a=2
+```

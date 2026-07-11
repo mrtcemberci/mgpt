@@ -153,12 +153,16 @@ int main(int argc, char** argv) {
     // Default values
     bool mode_train = true; 
     bool mode_infer_only = false;
+    bool mode_resume = false;
     bool use_gpu = false;
     std::string weights_path = "shakespeare_gpt.bin";
     std::string data_path = "input.txt";
+    std::string vocab_path = "";
     std::string prompt = "To be or not to be";
     int max_tokens = 500;
     int max_steps = 1000;
+    int start_step = 0;
+    int total_steps = 0;
     int num_layers = 4;
     int embed_dim = 128;
     int batch_size = 16;
@@ -182,18 +186,22 @@ int main(int argc, char** argv) {
             std::cout << "Usage: mgpt [options]\n"
                       << "Options:\n"
                       << "  -t, --train               Run in training mode (default)\n"
+                      << "  -r, --resume              Resume training from existing checkpoint weights & step counter\n"
                       << "  -i, --infer               Run in inference/generation mode (load weights without training)\n"
                       << "  -g, --gpu                 Run training and inference using CUDA GPU engine\n"
                       << "  -k, --checkpointing       Enable gradient/activation checkpointing (default: enabled)\n"
                       << "      --no-checkpointing    Disable gradient/activation checkpointing\n"
                       << "  -f, --file <path>         Path to model weights file (.bin) (default: shakespeare_gpt.bin)\n"
                       << "  -d, --data <path>         Path to training dataset (default: input.txt)\n"
+                      << "      --vocab-file <path>   Path to master .vocab.bin dictionary file for consistent sharded training\n"
                       << "  -v, --vocab <int>         Target BPE vocabulary size (default: 512)\n"
                       << "  -T, --temp <float>        Sampling temperature for text generation (default: 0.8)\n"
                       << "  -K, --topk <int>          Top-K nucleus filtering for generation (default: 15)\n"
                       << "  -p, --prompt <str>        Text generation prompt (default: \"To be or not to be\")\n"
                       << "  -n, --tokens <int>        Number of characters to generate (default: 500)\n"
-                      << "  -s, --steps <int>         Number of training steps (default: 1000)\n"
+                      << "  -s, --steps <int>         Number of training steps on current shard (default: 1000)\n"
+                      << "      --start-step <int>    Explicitly override starting step counter when resuming\n"
+                      << "      --total-steps <int>   Global total steps across all shards for continuous Cosine LR decay\n"
                       << "  -l, --layers <int>        Number of Transformer blocks (default: 4)\n"
                       << "  -c, --channels <int>      Embedding channel dimension (default: 128)\n"
                       << "  -b, --batch <int>         Training batch size (default: 16)\n"
@@ -202,10 +210,12 @@ int main(int argc, char** argv) {
                       << "  -h, --help                Show this help message and exit\n\n"
                       << "Examples:\n"
                       << "  mgpt -t -g -v=256 -f=\"my_model.bin\" -s=2000 -l=6 -b=64 -w=128\n"
+                      << "  mgpt -t -g --resume -d=\"shard_01.txt\" --vocab-file=\"shard_00.txt.vocab.bin\" -f=\"my_model.bin\" -s=2000 --total-steps=40000\n"
                       << "  mgpt -i -g -T=0.7 -f=\"my_model.bin\" -p=\"O Romeo, Romeo!\" -n=1000\n";
             return 0;
         }
         if (arg == "-t" || arg == "--train") { mode_train = true; mode_infer_only = false; continue; }
+        if (arg == "-r" || arg == "--resume") { mode_resume = true; mode_train = true; mode_infer_only = false; continue; }
         if (arg == "-i" || arg == "--infer") { mode_infer_only = true; mode_train = false; continue; }
         if (arg == "-g" || arg == "--gpu") { use_gpu = true; continue; }
         if (arg == "-k" || arg == "--checkpointing") { use_checkpointing = true; continue; }
@@ -219,6 +229,9 @@ int main(int argc, char** argv) {
         if (arg.find("-d=") == 0) { data_path = arg.substr(3); continue; }
         if (arg.find("--data=") == 0) { data_path = arg.substr(7); continue; }
 
+        if (arg == "--vocab-file") { if (i + 1 < argc) vocab_path = argv[++i]; continue; }
+        if (arg.find("--vocab-file=") == 0) { vocab_path = arg.substr(13); continue; }
+
         if (arg == "-p" || arg == "--prompt") { if (i + 1 < argc) prompt = argv[++i]; continue; }
         if (arg.find("-p=") == 0) { prompt = arg.substr(3); continue; }
         if (arg.find("--prompt=") == 0) { prompt = arg.substr(9); continue; }
@@ -230,6 +243,12 @@ int main(int argc, char** argv) {
         if (arg == "-s" || arg == "--steps") { if (i + 1 < argc) max_steps = std::stoi(argv[++i]); continue; }
         if (arg.find("-s=") == 0) { max_steps = std::stoi(arg.substr(3)); continue; }
         if (arg.find("--steps=") == 0) { max_steps = std::stoi(arg.substr(8)); continue; }
+
+        if (arg == "--start-step") { if (i + 1 < argc) start_step = std::stoi(argv[++i]); continue; }
+        if (arg.find("--start-step=") == 0) { start_step = std::stoi(arg.substr(13)); continue; }
+
+        if (arg == "--total-steps") { if (i + 1 < argc) total_steps = std::stoi(argv[++i]); continue; }
+        if (arg.find("--total-steps=") == 0) { total_steps = std::stoi(arg.substr(14)); continue; }
 
         if (arg == "-l" || arg == "--layers") { if (i + 1 < argc) num_layers = std::stoi(argv[++i]); continue; }
         if (arg.find("-l=") == 0) { num_layers = std::stoi(arg.substr(3)); continue; }
@@ -287,12 +306,15 @@ int main(int argc, char** argv) {
     Tokenizer& tokenizer = bpe_tokenizer;
 
     std::string tok_bin_path = data_path + ".tok.bin";
-    std::string vocab_bin_path = data_path + ".vocab.bin";
+    std::string vocab_bin_path = vocab_path.empty() ? (data_path + ".vocab.bin") : vocab_path;
     std::vector<int> full_data;
 
     std::ifstream tok_test(tok_bin_path, std::ios::binary);
     std::ifstream vocab_test(vocab_bin_path, std::ios::binary);
-    if (tok_test.is_open() && vocab_test.is_open() && tokenizer.load_vocab(vocab_bin_path)) {
+    bool vocab_loaded = vocab_test.is_open() && tokenizer.load_vocab(vocab_bin_path);
+    if (vocab_test.is_open()) vocab_test.close();
+
+    if (tok_test.is_open() && vocab_loaded) {
         int loaded_vocab_size = (int)tokenizer.get_vocab_size();
         std::cout << "Found cached binary dataset files:\n"
                   << "      -> Loaded Vocabulary Size = " << loaded_vocab_size << " tokens (" << vocab_bin_path << ")\n"
@@ -304,11 +326,25 @@ int main(int argc, char** argv) {
         full_data.resize(num_tokens);
         tok_test.read((char*)full_data.data(), file_bytes);
         tok_test.close();
-        vocab_test.close();
         std::cout << "      Total Dataset Tokens: " << full_data.size() << " (Loaded instantly from binary cache!)\n";
+    } else if (vocab_loaded) {
+        if (tok_test.is_open()) tok_test.close();
+        int loaded_vocab_size = (int)tokenizer.get_vocab_size();
+        std::cout << "Found master vocabulary file (" << vocab_bin_path << "): " 
+                  << loaded_vocab_size << " tokens.\n"
+                  << "      -> Encoding dataset shard " << data_path << " using master vocabulary...\n";
+        full_data = tokenizer.load_and_encode(data_path);
+        std::cout << "      Total Dataset Shard Tokens: " << full_data.size() << "\n";
+        std::cout << "      -> Caching raw encoded binary stream (" << (full_data.size() * sizeof(int)) / (1024 * 1024) 
+                  << " MB) to " << tok_bin_path << "...\n";
+        std::ofstream tok_out(tok_bin_path, std::ios::binary);
+        if (tok_out.is_open()) {
+            tok_out.write((const char*)full_data.data(), full_data.size() * sizeof(int));
+            tok_out.close();
+            std::cout << "      -> Successfully dumped raw encoded shard to " << tok_bin_path << "!\n";
+        }
     } else {
         if (tok_test.is_open()) tok_test.close();
-        if (vocab_test.is_open()) vocab_test.close();
 
         std::cout << "Binary cache not found. Building Vocabulary from " << data_path << "...\n";
         tokenizer.build_vocab_from_file(data_path);
@@ -389,6 +425,13 @@ int main(int argc, char** argv) {
         model.load_weights_bin(weights_path);
         if (use_gpu) model.to(target_dev);
     } else {
+        if (mode_resume) {
+            std::cout << "Resuming Training Mode: Loading existing checkpoint from " << weights_path << "...\n";
+            int loaded_steps = model.load_weights_bin(weights_path);
+            if (start_step == 0) start_step = loaded_steps;
+            if (use_gpu) model.to(target_dev);
+        }
+
         float learning_rate = 1e-3f;
         int eval_interval = std::max(1, max_steps / 10);
         int print_interval = std::max(1, max_steps / 10);
@@ -411,11 +454,14 @@ int main(int argc, char** argv) {
         Tensor logits({batch_size, config.max_seq_len, config.vocab_size}, 0.0f, target_dev);
         std::vector<Tensor*> params = model.get_parameters();
 
+        int global_total_steps = (total_steps > 0) ? total_steps : (start_step + max_steps);
+
         std::cout << "Starting Training Loop (AdamW, LR=" << learning_rate 
                   << ", Micro-Batch=" << batch_size
                   << ", Accum Steps=" << grad_accum_steps
                   << " [Effective Batch: " << (batch_size * grad_accum_steps) << "]"
-                  << ", Steps=" << max_steps << ")...\n";
+                  << ", Shard Steps=" << max_steps
+                  << ", Global Horizon=" << start_step << " -> " << (start_step + max_steps) << "/" << global_total_steps << ")...\n";
         std::cout << "------------------------------------------------------------\n";
         std::cout << "Step       Progress & Timings                      Train Loss   Val Loss\n";
         std::cout << "------------------------------------------------------------\n";
@@ -433,7 +479,8 @@ int main(int argc, char** argv) {
         auto start_time = std::chrono::high_resolution_clock::now();
 
         for (int step = 1; step <= max_steps; ++step) {
-            float current_lr = calculate_lr(step, max_steps, learning_rate, learning_rate * 0.1f);
+            int current_global_step = start_step + step;
+            float current_lr = calculate_lr(current_global_step, global_total_steps, learning_rate, learning_rate * 0.1f);
 
             optimizer->set_lr(current_lr / (float)grad_accum_steps);
 
@@ -478,8 +525,9 @@ int main(int argc, char** argv) {
                     val_loss = evaluate_loss(model, val_data, eval_steps, batch_size, config.max_seq_len, rng, target_dev, d_val_data);
                 }
 
-                int percent = (int)((step * 100.0) / max_steps);
-                std::cout << "[" << std::setw(3) << step << "/" << max_steps << " (" << std::setw(3) << percent << "%)] "
+                int percent = (int)((current_global_step * 100.0) / global_total_steps);
+                std::cout << "[" << std::setw(4) << current_global_step << "/" << global_total_steps 
+                          << " (Shard " << step << "/" << max_steps << " | " << std::setw(3) << percent << "%)] "
                           << "LR:" << std::scientific << std::setprecision(2) << current_lr << " "
                           << "Fwd:" << (int)total_fwd_ms << "ms Loss:" << (int)total_bwd_ms << "ms Opt:" << (int)opt_ms << "ms "
                           << "| Step:" << (int)step_ms << "ms | Loss: " 
@@ -500,7 +548,7 @@ int main(int argc, char** argv) {
         if (d_val_data) cuda_ops::free_int_memory(d_val_data);
 
         std::cout << "Exporting Trained Model to " << weights_path << "...\n";
-        model.save_weights_bin(weights_path);
+        model.save_weights_bin(weights_path, start_step + max_steps);
     }
 
     std::cout << "\n--- Text Generation Sample (Prompt: \"" << prompt << "\" | Temp: " << temperature << " | Top-K: " << top_k << ") ---\n";

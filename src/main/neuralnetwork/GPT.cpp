@@ -107,18 +107,19 @@ std::vector<Tensor*> GPT::get_parameters() {
     return params;
 }
 
-// Save & Load raw float weights to standard .bin format
-void GPT::save_weights_bin(const std::string& filepath) {
+// Save & Load raw float weights to standard .bin format with step progress header
+void GPT::save_weights_bin(const std::string& filepath, int completed_steps) {
     std::ofstream out(filepath, std::ios::binary);
     if (!out.is_open()) {
         std::cerr << "GPT::save_weights_bin: Could not open file " << filepath << " for writing!\n";
         exit(-1);
     }
-    // Write 4 integer header values
+    // Write 5 integer header values (including completed_steps)
     out.write((char*)&config.vocab_size, sizeof(int));
     out.write((char*)&config.max_seq_len, sizeof(int));
     out.write((char*)&config.embed_dim, sizeof(int));
     out.write((char*)&config.num_layers, sizeof(int));
+    out.write((char*)&completed_steps, sizeof(int));
 
     // Write all parameter vectors sequentially
     for (Tensor* param : get_parameters()) {
@@ -132,17 +133,21 @@ void GPT::save_weights_bin(const std::string& filepath) {
     }
     out.close();
     std::cout << "Successfully saved GPT model weights (" << get_parameters().size() 
-              << " parameter tensors) to " << filepath << "!\n";
+              << " parameter tensors, step " << completed_steps << ") to " << filepath << "!\n";
 }
 
-void GPT::load_weights_bin(const std::string& filepath) {
+int GPT::load_weights_bin(const std::string& filepath) {
     std::ifstream in(filepath, std::ios::binary);
     if (!in.is_open()) {
         std::cerr << "GPT::load_weights_bin: Could not open file " << filepath << " for reading!\n";
         exit(-1);
     }
+    in.seekg(0, std::ios::end);
+    size_t file_bytes = in.tellg();
+    in.seekg(0, std::ios::beg);
+
     // Read and verify compatibility header
-    int v_size = 0, seq_len = 0, e_dim = 0, n_layers = 0;
+    int v_size = 0, seq_len = 0, e_dim = 0, n_layers = 0, completed_steps = 0;
     in.read((char*)&v_size, sizeof(int));
     in.read((char*)&seq_len, sizeof(int));
     in.read((char*)&e_dim, sizeof(int));
@@ -157,6 +162,16 @@ void GPT::load_weights_bin(const std::string& filepath) {
         exit(-1);
     }
 
+    size_t expected_param_bytes = 0;
+    for (Tensor* param : get_parameters()) {
+        expected_param_bytes += param->size() * sizeof(float);
+    }
+
+    // Check if 5th header integer (completed_steps) exists in file
+    if (file_bytes >= 5 * sizeof(int) + expected_param_bytes) {
+        in.read((char*)&completed_steps, sizeof(int));
+    }
+
     // Read all parameter vectors sequentially
     for (Tensor* param : get_parameters()) {
         if (param->device == Device::CUDA) {
@@ -168,7 +183,9 @@ void GPT::load_weights_bin(const std::string& filepath) {
         }
     }
     in.close();
-    std::cout << "Successfully loaded GPT model weights from " << filepath << "!\n";
+    std::cout << "Successfully loaded GPT model weights from " << filepath 
+              << " (restored at completed step " << completed_steps << ")!\n";
+    return completed_steps;
 }
 
 void GPT::set_scratchpad(Scratchpad* pad) {
