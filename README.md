@@ -85,26 +85,33 @@ mgpt [options]
 ## 🔥 Ready-to-Run Examples
 
 ### 1. Multi-Shard Large Dataset Training Workflow (e.g. TinyStories)
-Train sequentially across dataset shards (`tinystories/shard_00.txt`, `tinystories/shard_01.txt`, ...) while sharing a master BPE vocabulary (`--vocab-file`) and continuous Cosine LR schedule (`--total-steps`):
+Train sequentially across dataset shards (`tinystories/shard_00.txt`, `tinystories/shard_01.txt`, ...) using a pre-defined existing vocabulary file (`--vocab-file`) and continuous Cosine LR schedule (`--total-steps`):
 
-#### Manual Shard-by-Shard Execution
+#### Training Shard 00 with a Pre-Defined Vocabulary File (`--vocab-file`)
+If you already have a pre-existing vocabulary file (`master_vocab.bin`), pass `--vocab-file` on Shard 00 so `mgpt` loads your existing dictionary instead of rebuilding it:
+
 ```powershell
-# Shard 00: Builds master vocabulary & trains steps 1 -> 3000 (out of 72,000 total)
-.\build_release\Release\mgpt.exe -t -g -v=4096 -d="tinystories/shard_00.txt" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
-
-# Shard 01: Resumes from step 3000 -> 6000 and encodes shard using master vocabulary
-.\build_release\Release\mgpt.exe -t -g --resume -d="tinystories/shard_01.txt" --vocab-file="tinystories/shard_00.txt.vocab.bin" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
+# Shard 00: Trains steps 1 -> 3000 using pre-existing vocabulary file
+.\build_release\Release\mgpt.exe -t -g --vocab-file="master_vocab.bin" -d="tinystories/shard_00.txt" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
 ```
 
-#### Automated Overnight Pipeline (PowerShell Loop)
-```powershell
-# 1. Start Shard 00 (initializes weights and creates master vocabulary)
-.\build_release\Release\mgpt.exe -t -g -v=4096 -d="tinystories/shard_00.txt" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
+*(Note: If `master_vocab.bin` does not exist yet, running Shard 00 without `--vocab-file` will automatically build and save it to `tinystories/shard_00.txt.vocab.bin`).*
 
-# 2. Automatically loop through Shards 01 to 23
-1..23 | ForEach-Object {
+#### Resuming on Subsequent Shards (`shard_01.txt` -> `shard_23.txt`)
+Use `--resume` and `--vocab-file` to smoothly continue step counting and Cosine LR decay:
+
+```powershell
+# Shard 01: Resumes weights & step count from step 3000 -> 6000
+.\build_release\Release\mgpt.exe -t -g --resume -d="tinystories/shard_01.txt" --vocab-file="master_vocab.bin" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
+```
+
+#### Automated Overnight Pipeline across all 24 Shards (Using Pre-Defined Vocab)
+```powershell
+# Loop through Shards 00 to 23 automatically
+0..23 | ForEach-Object {
     $idx = "{0:D2}" -f $_
-    Write-Host "=== Resuming Training on Shard $idx ===" -ForegroundColor Cyan
-    .\build_release\Release\mgpt.exe -t -g --resume -d="tinystories/shard_${idx}.txt" --vocab-file="tinystories/shard_00.txt.vocab.bin" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
+    $resumeFlag = if ($_ -gt 0) { "--resume" } else { "" }
+    Write-Host "=== Training on Shard $idx ===" -ForegroundColor Cyan
+    .\build_release\Release\mgpt.exe -t -g $resumeFlag -d="tinystories/shard_${idx}.txt" --vocab-file="master_vocab.bin" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
 }
 ```
