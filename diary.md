@@ -539,6 +539,28 @@ The blonde girl and the rabbit. Every day, the rabbit would go to sleep and smil
 One day, the bunny was feeling tired. He went to the forest to rest. He saw a big tree and he thought it would be fun to play on the tree. So the bunny hopped back to his tree and gave him a carrot.
 The bunny was very happy and gave the bunny a warm blanket. Then he went to have a picnic and it was so happy. He had a great day!
 
+--------------------------
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories.bin...
+Successfully loaded GPT model weights from tinystories.bin (restored at completed step 6000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Starting Training Loop (AdamW, LR=0.001, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=6000 -> 9000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[6001/72000 (Shard 1/3000 |   8%)] LR:9.97e-04 Fwd:191ms Loss:118ms Opt:8ms | Step:492ms | Loss: 1.9741
+[6300/72000 (Shard 300/3000 |   8%)] LR:9.97e-04 Fwd:3ms Loss:158ms Opt:0ms | Step:538ms | Loss: 1.9614 | Val: 1.8600
+[6600/72000 (Shard 600/3000 |   9%)] LR:9.96e-04 Fwd:3ms Loss:158ms Opt:0ms | Step:540ms | Loss: 2.1010 | Val: 2.1048
+[6900/72000 (Shard 900/3000 |   9%)] LR:9.95e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:538ms | Loss: 2.2186 | Val: 2.1925
+[7200/72000 (Shard 1200/3000 |  10%)] LR:9.94e-04 Fwd:3ms Loss:161ms Opt:0ms | Step:542ms | Loss: 2.2690 | Val: 2.4271
+[7500/72000 (Shard 1500/3000 |  10%)] LR:9.93e-04 Fwd:3ms Loss:158ms Opt:0ms | Step:538ms | Loss: 2.3863 | Val: 2.4103
+[7800/72000 (Shard 1800/3000 |  10%)] LR:9.92e-04 Fwd:3ms Loss:158ms Opt:0ms | Step:540ms | Loss: 2.4259 | Val: 2.5911
+[8100/72000 (Shard 2100/3000 |  11%)] LR:9.90e-04 Fwd:3ms Loss:160ms Opt:0ms | Step:538ms | Loss: 3.2283 | Val: 3.1923
+[8400/72000 (Shard 2400/3000 |  11%)] LR:9.89e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:539ms | Loss: 3.0228 | Val: 3.0936
+[8700/72000 (Shard 2700/3000 |  12%)] LR:9.88e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:542ms | Loss: 3.6631 | Val: 3.6165
+[9000/72000 (Shard 3000/3000 |  12%)] LR:9.86e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:539ms | Loss: 3.4204 | Val: 3.5227
+
 # NEXT STEPS & TODO:
 - Implement dataset sharding / binary shard loading (`.bin` files) for large datasets (2GB+ TinyStories) with invisible model continuation / `--resume` checkpoints.
 - Build Goku roleplay and Text-to-SQL commercial milestone bots.
