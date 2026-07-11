@@ -1,6 +1,23 @@
-# 🚀 MGPT: Character-Level GPT Training Engine in C++ & CUDA
+# C++ & CUDA Transformer Engine
 
-A high-performance, zero-allocation character-level Transformer/GPT engine built from scratch in modern C++ and CUDA. Zero Python dependencies, zero external bloat—just pure linear algebra and hardware-accelerated compute kernels.
+A state-of-the-art, zero-allocation autoregressive Transformer/GPT training and inference engine built from scratch in modern C++ and hardware-accelerated CUDA. Designed with zero external dependencies—pure linear algebra, custom autograd, memory scratchpad recycling, and modern LLM architectural features.
+
+---
+
+## Features
+
+### Architecture
+- **SwiGLU Activation Network**: Implements modern gated SwiGLU (`Swish(Gate(X)) ⊙ Up(X) -> Down`) MLP layers for enhanced representational capacity and faster convergence.
+- **Root Mean Square Normalization (RMSNorm)**: Lean, stable pre-attention and pre-MLP normalization (`RMSNormLayer`) with learnable $\gamma$ scale parameter.
+- **Causal Multi-Head Self-Attention (MHA)**: Full multi-head causal attention with query/key/value projection slicing and multi-head concatenation kernels.
+- **Byte Pair Encoding (BPE) & Character Tokenizers**: Built-in BPE tokenizer (`BytePairEncodingTokenizer`) with configurable vocabulary size (`--vocab`), alongside a polymorphic `Tokenizer` interface supporting raw character-level tokenization.
+
+### Memory & Hardware Acceleration
+- **Zero-Allocation GPU Scratchpad**: Reuses pre-allocated temporary memory buffers (`Scratchpad`) across forward and backward passes to eliminate runtime CUDA memory allocations.
+- **Activation / Gradient Checkpointing**: Recomputes intermediate layer activations during backpropagation (`-k` / `--checkpointing`), drastically reducing peak GPU memory usage for deep models.
+- **Gradient Accumulation**: Supports multi-step micro-batch gradient accumulation (`-a` / `--accumulate`) to train with massive effective batch sizes on consumer GPUs.
+- **Dual CUDA & CPU Backends**: Highly optimized CUDA kernels (`cuda_ops.cu`) with clean CPU C++ fallback stubs (`#else`) allowing builds and execution on any platform.
+- **AdamW Optimizer**: Built-in fused AdamW optimizer with decoupled weight decay and momentum tracking.
 
 ---
 
@@ -9,23 +26,23 @@ A high-performance, zero-allocation character-level Transformer/GPT engine built
 ### Prerequisites
 1. **Microsoft Visual Studio Community 2022** (with *"Desktop development with C++"* workload).
 2. **NVIDIA CUDA Toolkit** (v12.x or v13.x installed *after* Visual Studio).
-3. **CMake** (included with Visual Studio or standalone).
+3. **CMake** 3.20+.
 
 ### Build Command
-Open PowerShell in the root directory of the repository and run:
+Open PowerShell in the root directory of the repository and compile using CMake:
 
 ```powershell
 # Set your CUDA Toolkit directory (adjust v13.3 to match your installed version, e.g. v12.6)
 $env:CudaToolkitDir="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\"
 
-# Configure and compile using CMake and MSBuild in Release mode
-cmake --build build_msvc --config Release --target mgpt
+# Configure and compile using CMake in Release mode
+cmake --build build_release --config Release --target mgpt
 
 # Add CUDA binaries to your PowerShell PATH
 $env:PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\bin\x64;" + $env:PATH
 ```
 
-The compiled binary will be located at: `.\build_msvc\Release\mgpt.exe`
+Compiled binary output: `.\build_release\Release\mgpt.exe`
 
 ---
 
@@ -35,39 +52,28 @@ The compiled binary will be located at: `.\build_msvc\Release\mgpt.exe`
 mgpt [options]
 ```
 
-### Usage Flags & Configurations
+### Complete CLI Flags & Options
 
-| Flag | Long Flag | Description | Default Value |
+| Short Flag | Long Flag | Description | Default Value |
 | :---: | :--- | :--- | :---: |
-| `-t` | `--train` | Run in **Training Mode** (trains model & saves weights) | *Default* |
-| `-i` | `--infer` | Run in **Inference Mode** (loads weights & generates text without training) | `false` |
-| `-g` | `--gpu` | Enable **CUDA GPU Acceleration** for training and inference | `false` |
-| `-f` | `--file <path>` | Path to save/load model weights binary file (`.bin`) | `"shakespeare_gpt.bin"` |
-| `-d` | `--data <path>` | Path to training dataset text file | `"input.txt"` |
-| `-p` | `--prompt <str>` | Prompt string for autoregressive text generation | `"To be or not to be"` |
+| `-t` | `--train` | Run in **Training Mode** (trains model & saves checkpoint) | *Default* |
+| `-i` | `--infer` | Run in **Inference Mode** (loads checkpoint & generates text) | `false` |
+| `-g` | `--gpu` | Enable **CUDA GPU Acceleration** for training & generation | `false` |
+| `-k` | `--checkpointing` | Enable **Activation/Gradient Checkpointing** for memory efficiency | `true` |
+| | `--no-checkpointing` | Disable activation checkpointing (store all activations) | `false` |
+| `-f` | `--file <path>` | Path to save/load model binary checkpoint (`.bin`) | `"shakespeare_gpt.bin"` |
+| `-d` | `--data <path>` | Path to training text corpus file | `"input.txt"` |
+| `-v` | `--vocab <int>` | Target BPE vocabulary size | `512` |
+| `-p` | `--prompt <str>` | Initial prompt string for autoregressive text generation | `"To be or not to be"` |
 | `-n` | `--tokens <int>` | Number of tokens/characters to generate | `500` |
 | `-s` | `--steps <int>` | Number of training optimization steps | `1000` |
 | `-l` | `--layers <int>` | Number of Transformer blocks ($L$) | `4` |
 | `-c` | `--channels <int>` | Embedding channel dimension / hidden size ($C$) | `128` |
-| `-b` | `--batch <int>` | Training batch size ($B$) | `16` |
+| `-b` | `--batch <int>` | Micro-batch size per forward/backward pass ($B$) | `16` |
 | `-w` | `--window <int>` | Context window / sequence length ($T$) | `64` |
-| `-h` | `--help` | Display usage instructions and exit | |
+| `-a` | `--accumulate <int>` | Number of gradient accumulation steps | `1` |
+| `-T` | `--temp <float>` | Sampling temperature for text generation | `0.8` |
+| `-K` | `--topk <int>` | Top-K nucleus filtering for generation | `15` |
+| `-h` | `--help` | Display usage summary and exit | |
 
 ---
-
-## 🔥 Ready-to-Run Commands
-
-### 1. The Full Shakespeare Training Command (Recommended for RTX 3070 / RTX 4080)
-Builds and trains a 6-layer, 384-channel GPT model on `input.txt` for 5,000 steps using GPU acceleration, saves the checkpoint to `shakespeare_gpt.bin`, and generates a 1,000-character sample prompt:
-
-```powershell
-$env:CudaToolkitDir="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\"; cmake --build build_msvc --config Release --target mgpt; $env:PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\bin\x64;" + $env:PATH; .\build_msvc\Release\mgpt.exe -t -g -f="shakespeare_gpt.bin" -s=5000 -l=6 -c=384 -w=256 -b=64 -p="ROMEO:" -n=1000
-```
-
-### 2. Generate Text Only (Inference Mode)
-Load your trained `shakespeare_gpt.bin` checkpoint and generate dialogue without re-training:
-
-```powershell
-.\build_msvc\Release\mgpt.exe -i -g -f="shakespeare_gpt.bin" -p="O Romeo, Romeo! wherefore art thou" -n=1000
-```
-
