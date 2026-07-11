@@ -174,36 +174,61 @@ std::vector<int> BytePairEncodingTokenizer::load_and_encode(const std::string& f
 }
 
 std::vector<int> BytePairEncodingTokenizer::encode(const std::string& text) {
-    std::vector<int> ids;
-    ids.reserve(text.size());
-    for (char c : text) {
-        auto it = char_to_id.find(c);
-        if (it != char_to_id.end()) {
-            ids.push_back(it->second);
-        } else {
-            auto space_it = char_to_id.find(' ');
-            if (space_it != char_to_id.end()) {
-                ids.push_back(space_it->second);
-            }
-        }
-    }
+    std::vector<int> final_ids;
+    final_ids.reserve(text.size());
 
-    for (const auto& rule : ordered_merges) {
-        std::vector<int> next_ids;
-        next_ids.reserve(ids.size());
-        for (size_t i = 0; i < ids.size(); ++i) {
-            if (i + 1 < ids.size() && ids[i] == rule.left && ids[i + 1] == rule.right &&
-                can_merge(id_to_token[ids[i]], id_to_token[ids[i + 1]])) {
-                next_ids.push_back(rule.new_id);
-                i++;
+    size_t start = 0;
+    while (start < text.size()) {
+        size_t end = text.find('\n', start);
+        if (end == std::string::npos) end = text.size();
+        else end += 1; // Include newline character
+
+        std::string line = text.substr(start, end - start);
+        start = end;
+
+        std::vector<int> ids;
+        ids.reserve(line.size());
+        for (char c : line) {
+            auto it = char_to_id.find(c);
+            if (it != char_to_id.end()) {
+                ids.push_back(it->second);
             } else {
-                next_ids.push_back(ids[i]);
+                auto space_it = char_to_id.find(' ');
+                if (space_it != char_to_id.end()) {
+                    ids.push_back(space_it->second);
+                }
             }
         }
-        ids = std::move(next_ids);
+
+        for (const auto& rule : ordered_merges) {
+            bool merged_any = false;
+            for (size_t i = 0; i + 1 < ids.size(); ++i) {
+                if (ids[i] == rule.left && ids[i + 1] == rule.right &&
+                    can_merge(id_to_token[ids[i]], id_to_token[ids[i + 1]])) {
+                    merged_any = true;
+                    break;
+                }
+            }
+            if (!merged_any) continue;
+
+            std::vector<int> next_ids;
+            next_ids.reserve(ids.size());
+            for (size_t i = 0; i < ids.size(); ++i) {
+                if (i + 1 < ids.size() && ids[i] == rule.left && ids[i + 1] == rule.right &&
+                    can_merge(id_to_token[ids[i]], id_to_token[ids[i + 1]])) {
+                    next_ids.push_back(rule.new_id);
+                    i++;
+                } else {
+                    next_ids.push_back(ids[i]);
+                }
+            }
+            ids = std::move(next_ids);
+        }
+
+        final_ids.insert(final_ids.end(), ids.begin(), ids.end());
     }
 
-    return ids;
+    return final_ids;
 }
 
 std::string BytePairEncodingTokenizer::decode(const std::vector<int>& encoded_data) {
