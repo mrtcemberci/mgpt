@@ -85,12 +85,26 @@ mgpt [options]
 ## 🔥 Ready-to-Run Examples
 
 ### 1. Multi-Shard Large Dataset Training Workflow (e.g. TinyStories)
-Train sequentially across dataset shards (`shard_00.txt`, `shard_01.txt`, ...) while sharing a master BPE vocabulary and continuous Cosine LR schedule:
+Train sequentially across dataset shards (`tinystories/shard_00.txt`, `tinystories/shard_01.txt`, ...) while sharing a master BPE vocabulary (`--vocab-file`) and continuous Cosine LR schedule (`--total-steps`):
 
+#### Manual Shard-by-Shard Execution
 ```powershell
-# Shard 00: Builds master vocabulary & trains steps 1 -> 2000 (out of 40,000 total)
-.\build_release\Release\mgpt.exe -t -g -v=4096 -d="shard_00.txt" -f="tinystories.bin" -s=2000 --total-steps=40000 -l=6 -c=384 -w=256 -b=32 -a=2
+# Shard 00: Builds master vocabulary & trains steps 1 -> 3000 (out of 72,000 total)
+.\build_release\Release\mgpt.exe -t -g -v=4096 -d="tinystories/shard_00.txt" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
 
-# Shard 01: Automatically resumes from step 2000 -> 4000 using master vocabulary
-.\build_release\Release\mgpt.exe -t -g --resume -d="shard_01.txt" --vocab-file="shard_00.txt.vocab.bin" -f="tinystories.bin" -s=2000 --total-steps=40000 -l=6 -c=384 -w=256 -b=32 -a=2
+# Shard 01: Resumes from step 3000 -> 6000 and encodes shard using master vocabulary
+.\build_release\Release\mgpt.exe -t -g --resume -d="tinystories/shard_01.txt" --vocab-file="tinystories/shard_00.txt.vocab.bin" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
+```
+
+#### Automated Overnight Pipeline (PowerShell Loop)
+```powershell
+# 1. Start Shard 00 (initializes weights and creates master vocabulary)
+.\build_release\Release\mgpt.exe -t -g -v=4096 -d="tinystories/shard_00.txt" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
+
+# 2. Automatically loop through Shards 01 to 23
+1..23 | ForEach-Object {
+    $idx = "{0:D2}" -f $_
+    Write-Host "=== Resuming Training on Shard $idx ===" -ForegroundColor Cyan
+    .\build_release\Release\mgpt.exe -t -g --resume -d="tinystories/shard_${idx}.txt" --vocab-file="tinystories/shard_00.txt.vocab.bin" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
+}
 ```

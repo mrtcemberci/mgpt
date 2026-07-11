@@ -285,6 +285,7 @@ int main(int argc, char** argv) {
 
     strip_quotes(weights_path);
     strip_quotes(data_path);
+    strip_quotes(vocab_path);
     strip_quotes(prompt);
 
     // Locate dataset
@@ -313,6 +314,11 @@ int main(int argc, char** argv) {
     std::ifstream vocab_test(vocab_bin_path, std::ios::binary);
     bool vocab_loaded = vocab_test.is_open() && tokenizer.load_vocab(vocab_bin_path);
     if (vocab_test.is_open()) vocab_test.close();
+
+    if (!vocab_path.empty() && !vocab_loaded) {
+        std::cerr << "[WARNING]: Specified master vocabulary file '" << vocab_bin_path 
+                  << "' could not be opened or loaded! Falling back to building vocabulary...\n";
+    }
 
     if (tok_test.is_open() && vocab_loaded) {
         int loaded_vocab_size = (int)tokenizer.get_vocab_size();
