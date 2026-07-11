@@ -757,6 +757,41 @@ void Tensor::layer_norm_into(int channels, const Tensor& scale, const Tensor& sh
     }
 }
 
+void Tensor::rms_norm_into(int channels, const Tensor& scale, float eps, Tensor& out_rsqrt, Tensor& out_x_hat, Tensor& output) const {
+    std::vector<int> rsqrt_shape = shape;
+    rsqrt_shape.back() = 1;
+    if (out_rsqrt.shape != rsqrt_shape || out_rsqrt.device != device || (!out_rsqrt.cuda_data && device == Device::CUDA)) {
+        out_rsqrt = Tensor(rsqrt_shape, 0.0f, device);
+    }
+    if (out_x_hat.shape != shape || out_x_hat.device != device || (!out_x_hat.cuda_data && device == Device::CUDA)) {
+        out_x_hat = Tensor(shape, 0.0f, device);
+    }
+    if (output.shape != shape || output.device != device || (!output.cuda_data && device == Device::CUDA)) {
+        output = Tensor(shape, 0.0f, device);
+    }
+    int total_tokens = (int)(size() / channels);
+    if (device == Device::CUDA) {
+        cuda_ops::rms_norm(get_data_ptr(), scale.get_data_ptr(), eps, output.get_data_ptr(), out_rsqrt.get_data_ptr(), out_x_hat.get_data_ptr(), total_tokens, channels);
+    } else {
+        for (int i = 0; i < total_tokens; ++i) {
+            const float* x_ptr = data.data() + i * channels;
+            float* rsqrt_ptr = out_rsqrt.data.data() + i;
+            float* x_hat_ptr = out_x_hat.data.data() + i * channels;
+            float* out_ptr = output.data.data() + i * channels;
+
+            float ms_sum = 0.0f;
+            for (int c = 0; c < channels; ++c) ms_sum += x_ptr[c] * x_ptr[c];
+            float r = 1.0f / std::sqrt(ms_sum / channels + eps);
+            *rsqrt_ptr = r;
+            for (int c = 0; c < channels; ++c) {
+                float norm = x_ptr[c] * r;
+                x_hat_ptr[c] = norm;
+                out_ptr[c] = norm * scale.data[c];
+            }
+        }
+    }
+}
+
 Tensor Tensor::layer_norm_backward(const Tensor& dout, const Tensor& x_hat, Tensor& scale, Tensor& shift, const Tensor& mean, const Tensor& var, float eps) const {
     if (dout.shape != shape) {
         std::cerr << "layer_norm_backward: dout shape mismatch!" << std::endl;
@@ -1428,6 +1463,35 @@ void Tensor::layer_norm_backward_into(const Tensor& dout, const Tensor& x_hat, T
     }
 }
 
+void Tensor::rms_norm_backward_into(const Tensor& dout, const Tensor& x_hat, Tensor& scale, const Tensor& rsqrt, Tensor& dx) const {
+    if (dx.shape != shape || dx.device != device || (!dx.cuda_data && device == Device::CUDA)) {
+        dx = Tensor(shape, 0.0f, device);
+    }
+    int channels = shape.back();
+    int total_tokens = (int)(size() / channels);
+    if (device == Device::CUDA) {
+        cuda_ops::rms_norm_backward(dout.get_data_ptr(), x_hat.get_data_ptr(), scale.get_data_ptr(), scale.get_grad_ptr(), rsqrt.get_data_ptr(), dx.get_data_ptr(), total_tokens, channels);
+    } else {
+        for (int i = 0; i < total_tokens; ++i) {
+            const float* dout_ptr = dout.data.data() + i * channels;
+            const float* x_hat_ptr = x_hat.data.data() + i * channels;
+            float* dx_ptr = dx.data.data() + i * channels;
+            float r = rsqrt.data[i];
+
+            float sum_dx_hat_xhat = 0.0f;
+            for (int c = 0; c < channels; ++c) {
+                float dx_hat_c = dout_ptr[c] * scale.data[c];
+                scale.grad[c] += dout_ptr[c] * x_hat_ptr[c];
+                sum_dx_hat_xhat += dx_hat_c * x_hat_ptr[c];
+            }
+            for (int c = 0; c < channels; ++c) {
+                float dx_hat_c = dout_ptr[c] * scale.data[c];
+                dx_ptr[c] = r * (dx_hat_c - x_hat_ptr[c] * sum_dx_hat_xhat / channels);
+            }
+        }
+    }
+}
+
 void Tensor::gelu_backward_into(const Tensor& dout, Tensor& d_gelu_workspace, Tensor& result) const {
     if (d_gelu_workspace.shape != shape || d_gelu_workspace.device != device || (!d_gelu_workspace.cuda_data && device == Device::CUDA)) {
         d_gelu_workspace = Tensor(shape, 0.0f, device);
@@ -1624,6 +1688,75 @@ void Tensor::apply_rope_inplace(Tensor& Q_or_K,
                 }
             }
         }
+}
 
+void Tensor::pairwise_mult_into(const Tensor& b, Tensor& result) const {
+    assert(this->shape == b.shape && "mult_into error, input dimensions do not match.");
+    assert(b.device == this->device && "mult_into error, inputs not on same device.");
 
+    if (result.shape != this->shape || result.device != this->device ||
+        (!result.cuda_data && this->device == Device::CUDA)) {
+        result = Tensor(this->shape, 0.0f, this->device);
     }
+
+    size_t N = this->size();
+
+    if (this->device == Device::CUDA) {
+        cuda_ops::pairwise_mult_into(this->cuda_data, b.cuda_data, result.cuda_data, N);
+    } else {
+        for (size_t i = 0; i < N; i++) {
+            result.data[i] = this->data[i] * b.data[i];
+        }
+    }
+}
+
+void Tensor::swish_inplace() {
+    size_t N = this->size();
+
+    if (this->device == Device::CUDA) {
+        cuda_ops::swish_inplace(this->cuda_data, N);
+    } else {
+        for (size_t i = 0; i < N; i++) {
+            float x = this->data[i];
+            // Sigmoid: 1.0f / (1.0f + exp(-x))
+            float sigmoid = 1.0f / (1.0f + std::exp(-x)); 
+            this->data[i] = x * sigmoid;
+        }
+    }
+}
+
+void Tensor::swish_into(Tensor& result) const {
+    if (result.shape != this->shape || result.device != this->device ||
+        (!result.cuda_data && this->device == Device::CUDA)) {
+        result = Tensor(this->shape, 0.0f, this->device);
+    }
+    size_t N = this->size();
+    if (this->device == Device::CUDA) {
+        cuda_ops::swish_into(this->cuda_data, result.cuda_data, N);
+    } else {
+        for (size_t i = 0; i < N; i++) {
+            float x = this->data[i];
+            float sigmoid = 1.0f / (1.0f + std::exp(-x));
+            result.data[i] = x * sigmoid;
+        }
+    }
+}
+
+void Tensor::swish_backward_into(const Tensor& x, const Tensor& dout, Tensor& result) {
+    if (result.shape != x.shape || result.device != x.device ||
+        (!result.cuda_data && x.device == Device::CUDA)) {
+        result = Tensor(x.shape, 0.0f, x.device);
+    }
+    size_t N = x.size();
+    if (x.device == Device::CUDA) {
+        cuda_ops::swish_backward_into(x.cuda_data, dout.cuda_data, result.cuda_data, N);
+    } else {
+        for (size_t i = 0; i < N; i++) {
+            float xi = x.data[i];
+            float sig = 1.0f / (1.0f + std::exp(-xi));
+            // swish'(x) = sigmoid(x) * (1 + x * (1 - sigmoid(x)))
+            float swish_grad = sig * (1.0f + xi * (1.0f - sig));
+            result.data[i] = dout.data[i] * swish_grad;
+        }
+    }
+}

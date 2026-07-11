@@ -147,10 +147,11 @@ std::string generate_text(GPT& model, Tokenizer& tokenizer, const std::string& p
 int main(int argc, char** argv) {
     try {
         std::cout << "============================================================\n";
-    std::cout << "      🚀 MGPT: BPE TOKENIZED GPT TRAINING ENGINE 🚀       \n";
+    std::cout << "      MGPT BOOTING UP...      \n";
     std::cout << "============================================================\n\n";
 
-    bool mode_train = true;  // default to train if neither -t nor -i specified
+    // Default values
+    bool mode_train = true; 
     bool mode_infer_only = false;
     bool use_gpu = false;
     std::string weights_path = "shakespeare_gpt.bin";
@@ -173,7 +174,7 @@ int main(int argc, char** argv) {
             s = s.substr(1, s.length() - 2);
         }
     };
-    bool use_checkpointing = true; // Enabled by default to maximize VRAM efficiency
+    bool use_checkpointing = true; // Enabled by default
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -280,7 +281,7 @@ int main(int argc, char** argv) {
         }
     }
     test_file.close();
-    std::cout << "[1/6] Using dataset at: " << data_path << "\n";
+    std::cout << "Using dataset at: " << data_path << "\n";
 
     BytePairEncodingTokenizer bpe_tokenizer(target_vocab_size);
     Tokenizer& tokenizer = bpe_tokenizer;
@@ -293,7 +294,7 @@ int main(int argc, char** argv) {
     std::ifstream vocab_test(vocab_bin_path, std::ios::binary);
     if (tok_test.is_open() && vocab_test.is_open() && tokenizer.load_vocab(vocab_bin_path)) {
         int loaded_vocab_size = (int)tokenizer.get_vocab_size();
-        std::cout << "[2/6] Found cached binary dataset files:\n"
+        std::cout << "Found cached binary dataset files:\n"
                   << "      -> Loaded Vocabulary Size = " << loaded_vocab_size << " tokens (" << vocab_bin_path << ")\n"
                   << "      -> Loading pre-encoded token stream from " << tok_bin_path << "...\n";
         tok_test.seekg(0, std::ios::end);
@@ -309,7 +310,7 @@ int main(int argc, char** argv) {
         if (tok_test.is_open()) tok_test.close();
         if (vocab_test.is_open()) vocab_test.close();
 
-        std::cout << "[2/6] Binary cache not found. Building Vocabulary from " << data_path << "...\n";
+        std::cout << "Binary cache not found. Building Vocabulary from " << data_path << "...\n";
         tokenizer.build_vocab_from_file(data_path);
         int built_vocab_size = (int)tokenizer.get_vocab_size();
         std::cout << "      -> Vocabulary Built! Actual Vocab Size = " << built_vocab_size << " tokens.\n";
@@ -338,11 +339,11 @@ int main(int argc, char** argv) {
         size_t split_idx = (size_t)(full_data.size() * 0.9);
         train_data.assign(full_data.begin(), full_data.begin() + split_idx);
         val_data.assign(full_data.begin() + split_idx, full_data.end());
-        std::cout << "[3/6] Industry Standard Train/Val Split (90/10):\n"
+        std::cout << "Train/Val Split (90/10):\n"
                   << "      -> Training Tokens:   " << train_data.size() << "\n"
                   << "      -> Validation Tokens: " << val_data.size() << "\n\n";
     } else {
-        std::cout << "[3/6] Inference Mode Selected (Skipping Train/Val Split)\n\n";
+        std::cout << "Inference Mode Selected (Skipping Train/Val Split)\n\n";
     }
 
     // Configure & Instantiate GPT Model Architecture
@@ -359,7 +360,7 @@ int main(int argc, char** argv) {
     for (Tensor* param : model.get_parameters()) {
         total_params += param->size();
     }
-    std::cout << "[4/6] Instantiated GPT Model Architecture:\n"
+    std::cout << "Instantiated GPT Model Architecture:\n"
               << "      -> Vocab Size:    " << config.vocab_size << "\n"
               << "      -> Max Seq Len:   " << config.max_seq_len << "\n"
               << "      -> Embed Dim:     " << config.embed_dim << "\n"
@@ -369,7 +370,7 @@ int main(int argc, char** argv) {
               << (total_params * sizeof(float)) / 1024 << " KB)\n\n";
 
     // Training or Inference Execution
-    std::mt19937 rng(42); // Seeded for reproducibility
+    std::mt19937 rng(67);
 
     Device target_dev = use_gpu ? Device::CUDA : Device::CPU;
     if (use_gpu) {
@@ -378,13 +379,13 @@ int main(int argc, char** argv) {
         std::cerr << "Please rebuild with CMake option -DUSE_CUDA=ON.\n";
         return -1;
 #endif
-        std::cout << "[4.5/6] Migrating GPT Model and Engine to CUDA GPU...\n";
+        std::cout << "Migrating GPT Model and Engine to CUDA GPU...\n";
         model.to(target_dev);
         model.init_scratchpad(256 * 1024 * 1024); // 256M floats (1 GB CUDA memory arena)
     }
 
     if (mode_infer_only) {
-        std::cout << "[5/6] Loading Trained Model Weights from " << weights_path << "...\n";
+        std::cout << "Loading Trained Model Weights from " << weights_path << "...\n";
         model.load_weights_bin(weights_path);
         if (use_gpu) model.to(target_dev);
     } else {
@@ -398,7 +399,7 @@ int main(int argc, char** argv) {
         int* d_train_data = nullptr;
         int* d_val_data = nullptr;
         if (target_dev == Device::CUDA) {
-            std::cout << "[4.8/6] Uploading Train and Validation Datasets to GPU Memory...\n";
+            std::cout << "Uploading Train and Validation Datasets to GPU Memory...\n";
             cuda_ops::allocate_int_memory(&d_train_data, train_data.size());
             cuda_ops::copy_int_host_to_device(d_train_data, train_data.data(), train_data.size());
             cuda_ops::allocate_int_memory(&d_val_data, val_data.size());
@@ -410,7 +411,7 @@ int main(int argc, char** argv) {
         Tensor logits({batch_size, config.max_seq_len, config.vocab_size}, 0.0f, target_dev);
         std::vector<Tensor*> params = model.get_parameters();
 
-        std::cout << "[5/6] Starting Training Loop (AdamW, LR=" << learning_rate 
+        std::cout << "Starting Training Loop (AdamW, LR=" << learning_rate 
                   << ", Micro-Batch=" << batch_size
                   << ", Accum Steps=" << grad_accum_steps
                   << " [Effective Batch: " << (batch_size * grad_accum_steps) << "]"
@@ -493,16 +494,16 @@ int main(int argc, char** argv) {
         auto end_time = std::chrono::high_resolution_clock::now();
         double total_sec = std::chrono::duration<double>(end_time - start_time).count();
         std::cout << "------------------------------------------------------------\n";
-        std::cout << "✅ Training Complete! Total Duration: " << std::fixed << std::setprecision(2) << total_sec << " seconds.\n\n";
+        std::cout << "Training Complete! Total Duration: " << std::fixed << std::setprecision(2) << total_sec << " seconds.\n\n";
 
         if (d_train_data) cuda_ops::free_int_memory(d_train_data);
         if (d_val_data) cuda_ops::free_int_memory(d_val_data);
 
-        std::cout << "[6/6] Exporting Trained Model to " << weights_path << "...\n";
+        std::cout << "Exporting Trained Model to " << weights_path << "...\n";
         model.save_weights_bin(weights_path);
     }
 
-    std::cout << "\n--- 📜 Text Generation Sample (Prompt: \"" << prompt << "\" | Temp: " << temperature << " | Top-K: " << top_k << ") ---\n";
+    std::cout << "\n--- Text Generation Sample (Prompt: \"" << prompt << "\" | Temp: " << temperature << " | Top-K: " << top_k << ") ---\n";
     std::string generated = generate_text(model, tokenizer, prompt, max_tokens, temperature, top_k, rng);
     std::cout << generated << "\n";
     std::cout << "------------------------------------------------------------\n\n";

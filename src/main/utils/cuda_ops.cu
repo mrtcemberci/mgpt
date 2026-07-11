@@ -483,6 +483,81 @@ namespace cuda_ops {
         CHECK_CUDA(cudaGetLastError());
     }
 
+    __global__ void rms_norm_kernel(const float* x, const float* scale, float eps, float* out, float* rsqrt, float* x_hat, int total_tokens, int channels) {
+        int tok = blockIdx.x * blockDim.x + threadIdx.x;
+        if (tok < total_tokens) {
+            const float* x_tok = x + tok * channels;
+            float* out_tok = out + tok * channels;
+            float* x_hat_tok = x_hat + tok * channels;
+
+            float ms_sum = 0.0f;
+            for (int c = 0; c < channels; ++c) {
+                float val = x_tok[c];
+                ms_sum += val * val;
+            }
+            float ms = ms_sum / channels;
+            float r = 1.0f / sqrtf(ms + eps);
+            rsqrt[tok] = r;
+
+            for (int c = 0; c < channels; ++c) {
+                float norm = x_tok[c] * r;
+                x_hat_tok[c] = norm;
+                out_tok[c] = norm * scale[c];
+            }
+        }
+    }
+
+    void rms_norm(const float* x, const float* scale, float eps, float* out, float* rsqrt, float* x_hat, int total_tokens, int channels) {
+        if (total_tokens == 0 || channels == 0) return;
+        int threads = 256;
+        int blocks = (total_tokens + threads - 1) / threads;
+        rms_norm_kernel<<<blocks, threads>>>(x, scale, eps, out, rsqrt, x_hat, total_tokens, channels);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+    __global__ void rms_norm_backward_dx_kernel(const float* dout, const float* x_hat, const float* scale, const float* rsqrt, float* dx, int total_tokens, int channels) {
+        int tok = blockIdx.x * blockDim.x + threadIdx.x;
+        if (tok < total_tokens) {
+            const float* dout_tok = dout + tok * channels;
+            const float* x_hat_tok = x_hat + tok * channels;
+            float* dx_tok = dx + tok * channels;
+            float r = rsqrt[tok];
+
+            float sum_dx_hat_xhat = 0.0f;
+            for (int c = 0; c < channels; ++c) {
+                float dx_hat_c = dout_tok[c] * scale[c];
+                sum_dx_hat_xhat += dx_hat_c * x_hat_tok[c];
+            }
+
+            for (int c = 0; c < channels; ++c) {
+                float dx_hat_c = dout_tok[c] * scale[c];
+                dx_tok[c] = r * (dx_hat_c - x_hat_tok[c] * sum_dx_hat_xhat / channels);
+            }
+        }
+    }
+
+    __global__ void rms_norm_backward_params_kernel(const float* dout, const float* x_hat, float* scale_grad, int total_tokens, int channels) {
+        int c = blockIdx.x * blockDim.x + threadIdx.x;
+        if (c < channels) {
+            float sg = 0.0f;
+            for (int tok = 0; tok < total_tokens; ++tok) {
+                float d = dout[tok * channels + c];
+                sg += d * x_hat[tok * channels + c];
+            }
+            scale_grad[c] += sg;
+        }
+    }
+
+    void rms_norm_backward(const float* dout, const float* x_hat, const float* scale, float* scale_grad, const float* rsqrt, float* dx, int total_tokens, int channels) {
+        if (total_tokens == 0 || channels == 0) return;
+        int threads = 256;
+        int blocks = (total_tokens + threads - 1) / threads;
+        rms_norm_backward_dx_kernel<<<blocks, threads>>>(dout, x_hat, scale, rsqrt, dx, total_tokens, channels);
+        int param_blocks = (channels + threads - 1) / threads;
+        rms_norm_backward_params_kernel<<<param_blocks, threads>>>(dout, x_hat, scale_grad, total_tokens, channels);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
     __global__ void embedding_lookup_kernel(const float* table, const float* input, float* output, int total_tokens, int embed_dim, int table_size) {
         int tok = blockIdx.x * blockDim.x + threadIdx.x;
         if (tok < total_tokens) {
@@ -966,6 +1041,77 @@ namespace cuda_ops {
         CHECK_CUDA(cudaGetLastError());
     }
 
+    __global__ void pairwise_mult_into_kernel(const float* a, const float* b, float* result, int N) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+        if (idx >= N) return;
+
+        result[idx] = a[idx] * b[idx];
+    } 
+
+    void pairwise_mult_into(const float* a, const float* b, float* result, int N) {
+
+        int threads = 256; 
+        int blocks = (N + threads - 1) / threads;
+
+        pairwise_mult_into_kernel<<<blocks,threads>>>(a,b,result,N);
+
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+    __global__ void swish_inplace_kernel(float* a, int N) {
+
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+        if (idx >= N) return;
+
+        float x = a[idx];
+
+        a[idx] = x / (1.0f + expf(-x));
+
+    }
+
+    void swish_inplace(float* a, int N) {
+        int threads = 256;
+        int blocks = (N + threads - 1) / threads;
+
+        swish_inplace_kernel<<<blocks,threads>>>(a,N);
+
+        CHECK_CUDA(cudaGetLastError());
+
+    }
+
+    __global__ void swish_into_kernel(const float* x, float* result, int N) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx >= N) return;
+        float xi = x[idx];
+        result[idx] = xi / (1.0f + expf(-xi));
+    }
+
+    void swish_into(const float* x, float* result, int N) {
+        int threads = 256;
+        int blocks = (N + threads - 1) / threads;
+        swish_into_kernel<<<blocks, threads>>>(x, result, N);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+    __global__ void swish_backward_into_kernel(const float* x, const float* dout, float* result, int N) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx >= N) return;
+        float xi = x[idx];
+        float sig = 1.0f / (1.0f + expf(-xi));
+        // swish'(x) = sigmoid(x) * (1 + x * (1 - sigmoid(x)))
+        float swish_grad = sig * (1.0f + xi * (1.0f - sig));
+        result[idx] = dout[idx] * swish_grad;
+    }
+
+    void swish_backward_into(const float* x, const float* dout, float* result, int N) {
+        int threads = 256;
+        int blocks = (N + threads - 1) / threads;
+        swish_backward_into_kernel<<<blocks, threads>>>(x, dout, result, N);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
 } // namespace cuda_ops
 
 #else // !USE_CUDA
@@ -995,6 +1141,8 @@ namespace cuda_ops {
     void softmax_backward(const float*, const float*, float*, int, int) {}
     void layer_norm(const float*, const float*, const float*, float*, float*, float, int, int) {}
     void layer_norm_backward(const float*, const float*, const float*, float*, float*, const float*, float, float*, int, int) {}
+    void rms_norm(const float*, const float*, float, float*, float*, float*, int, int) {}
+    void rms_norm_backward(const float*, const float*, const float*, float*, const float*, float*, int, int) {}
     void embedding_lookup(const float*, const float*, float*, int, int, int) {}
     void embedding_backward(const float*, const float*, float*, int, int, int) {}
     void sgd_step(float*, const float*, float, float, size_t) {}
@@ -1019,6 +1167,10 @@ namespace cuda_ops {
                                    float* sin_table, 
                                    int B, int num_heads, int T, int head_dim, 
                                    bool forward) {}
+    void pairwise_mult_into(const float* a, const float* b, float* result, int N) {}
+    void swish_inplace(float* a, int N) {}
+    void swish_into(const float* x, float* result, int N) {}
+    void swish_backward_into(const float* x, const float* dout, float* result, int N) {}
 }
 
 #endif // USE_CUDA

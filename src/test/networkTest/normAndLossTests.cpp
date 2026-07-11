@@ -1,4 +1,5 @@
 #include "LayerNormLayer.h"
+#include "RMSNormLayer.h"
 #include "CrossEntropyLossLayer.h"
 #include "Tensor.h"
 #include <iostream>
@@ -224,6 +225,66 @@ int main() {
     test_layernorm_gradcheck();
     test_crossentropy_forward();
     test_crossentropy_gradcheck();
+
+    // RMSNorm tests
+    std::cout << "Running Test 6: RMSNorm Forward Pass Sanity Check..." << std::endl;
+    {
+        int B = 2, T = 3, C = 4;
+        RMSNormLayer norm(C, 1e-5f);
+        Tensor X({B, T, C}, 0.0f);
+        for (size_t i = 0; i < X.size(); ++i) X.data[i] = ((float)(i % 7) - 3.0f) * 2.0f;
+        Tensor Y = norm.forward(X);
+        for (int i = 0; i < B * T; ++i) {
+            float ms_sum = 0.0f;
+            for (int j = 0; j < C; ++j) ms_sum += Y.data[i * C + j] * Y.data[i * C + j];
+            float rms = std::sqrt(ms_sum / C);
+            assert(std::abs(rms - 1.0f) < 1e-3f);
+        }
+        std::cout << "  -> RMSNorm unit root-mean-square verified! ✅\n";
+    }
+
+    std::cout << "Running Test 7: RMSNorm Finite Difference Numerical Gradcheck..." << std::endl;
+    {
+        int B = 2, T = 2, C = 3;
+        RMSNormLayer norm(C, 1e-5f);
+        for (int j = 0; j < C; ++j) norm.scale.data[j] = 0.5f * (float)(j + 1);
+        Tensor X({B, T, C}, 0.0f);
+        for (size_t i = 0; i < X.size(); ++i) X.data[i] = ((float)(i % 5) - 2.0f) * 0.4f;
+        Tensor Target({B, T, C}, 0.0f);
+        for (size_t i = 0; i < Target.size(); ++i) Target.data[i] = ((float)(i % 3) - 1.0f) * 0.3f;
+
+        norm.scale.zero_grad();
+        Tensor Y = norm.forward(X);
+        Tensor dY = compute_mse_grad(Y, Target);
+        Tensor dX_analytic = norm.backward(dY);
+
+        float eps = 5e-3f;
+        std::cout << "  Checking RMSNorm scale (gamma) gradients...";
+        for (int j = 0; j < C; ++j) {
+            float orig = norm.scale.data[j];
+            norm.scale.data[j] = orig + eps;
+            float loss_plus = compute_mse_loss(norm.forward(X), Target);
+            norm.scale.data[j] = orig - eps;
+            float loss_minus = compute_mse_loss(norm.forward(X), Target);
+            norm.scale.data[j] = orig;
+            float num_grad = (loss_plus - loss_minus) / (2.0f * eps);
+            assert(check_grad_close(norm.scale.grad[j], num_grad));
+        }
+        std::cout << " Passed! ✅\n";
+
+        std::cout << "  Checking RMSNorm input dX gradients...";
+        for (size_t i = 0; i < X.size(); ++i) {
+            float orig = X.data[i];
+            X.data[i] = orig + eps;
+            float loss_plus = compute_mse_loss(norm.forward(X), Target);
+            X.data[i] = orig - eps;
+            float loss_minus = compute_mse_loss(norm.forward(X), Target);
+            X.data[i] = orig;
+            float num_grad = (loss_plus - loss_minus) / (2.0f * eps);
+            assert(check_grad_close(dX_analytic.data[i], num_grad));
+        }
+        std::cout << " Passed! ✅\n";
+    }
 
     std::cout << "\n============================================================\n";
     std::cout << " 🚀 SPRINT 2 COMPLETE! ALL NORM & LOSS TESTS PASSED! 🚀\n";

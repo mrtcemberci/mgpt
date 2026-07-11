@@ -9,13 +9,14 @@ enum class Device {
     CUDA
 };
 
+// Tensor class uses a vector<float> when in CPU mode and float* when in CUDA mode.
 class Tensor {
 private:
     Tensor applyOperation(const Tensor& other, const std::function<float(float, float)>& operation) const;
     void matmul2d_raw(const float* A, const float* B, float* C, int M, int K, int N) const;
 public:
     Device device = Device::CPU;
-    bool is_owning = true;    // True if Tensor owns its buffer; false if wrapping a Scratchpad view
+    bool is_owning = true;    // True if Tensor owns its buffer; false if wrapping a Scratchpad view, used within the destructor
     std::vector<float> data;  // Parameter values or activation values (CPU)
     std::vector<float> grad;  // Accumulated calculus gradients (CPU)
     float* cuda_data = nullptr; // GPU memory pointer when device == Device::CUDA
@@ -60,36 +61,37 @@ public:
     Tensor operator-(float scalar) const;
     Tensor operator*(float scalar) const;
 
-    // Pattern Family 1: Parameter Updates & Gradient Accumulation
+    // Parameter Updates & Gradient Accumulation
     void add_grad(const Tensor& dgrad);
     Tensor sum_rows() const;
     void sgd_step(float lr);
     void adamw_step(Tensor& m, Tensor& v, float lr, float beta1, float beta2, float eps, float weight_decay, int t);
 
-    // Pattern Family 2: Normalization & Statistics
+    // Normalization & Statistics
     Tensor layer_norm(int channels, const Tensor& scale, const Tensor& shift, float eps, Tensor& out_mean, Tensor& out_var, Tensor& out_x_hat) const;
     void layer_norm_into(int channels, const Tensor& scale, const Tensor& shift, float eps, Tensor& out_mean, Tensor& out_var, Tensor& out_x_hat, Tensor& output) const;
+    void rms_norm_into(int channels, const Tensor& scale, float eps, Tensor& out_rsqrt, Tensor& out_x_hat, Tensor& output) const;
     Tensor layer_norm_backward(const Tensor& dout, const Tensor& x_hat, Tensor& scale, Tensor& shift, const Tensor& mean, const Tensor& var, float eps) const;
 
-    // Pattern Family 3: Probability Distributions (Softmax & Cross-Entropy)
+    // Probability Distributions (Softmax & Cross-Entropy)
     Tensor softmax(int dim = -1) const;
     Tensor softmax_backward(const Tensor& dout) const;
     float cross_entropy_loss(const std::vector<int>& targets, Tensor& out_probs) const;
     Tensor cross_entropy_backward(const std::vector<int>& targets) const;
 
-    // Pattern Family 4: Causal Attention Masking
+    // Causal Attention Masking
     void causal_mask();
 
-    // Pattern Family 5: Table Lookups & Indexing
+    // Table Lookups & Indexing
     Tensor embedding_lookup(const Tensor& input_ids) const;
     void embedding_backward(const Tensor& dout, const Tensor& input_ids);
 
-    // Pattern Family 6: Hardware-Accelerated Activations
+    // Hardware-Accelerated Activations
     Tensor gelu() const;
     void gelu_into(Tensor& result) const;
     Tensor gelu_backward(const Tensor& dout) const;
 
-    // Pattern Family 7: Multi-Head Attention Helpers (Channel Concat / Split)
+    // Multi-Head Attention Helpers (Channel Concat / Split)
     static Tensor concat_channels(const std::vector<Tensor>& head_tensors);
     static std::vector<Tensor> split_channels(const Tensor& tensor, int num_heads);
     static std::vector<Tensor> slice_qkv(const Tensor& qkv, int channels);
@@ -97,6 +99,10 @@ public:
 
     // Workspace pre-allocation and zero-overhead execution helpers
     void matmul_into(const Tensor& other, Tensor& result) const;
+    void pairwise_mult_into(const Tensor& b, Tensor& result) const;
+    void swish_inplace();
+    void swish_into(Tensor& result) const;
+    static void swish_backward_into(const Tensor& x, const Tensor& dout, Tensor& result);
     void transpose_into(int dim1, int dim2, Tensor& result) const;
     void softmax_into(int dim, Tensor& result) const;
     void add_broadcast_in_place(const Tensor& other);
@@ -109,6 +115,7 @@ public:
     void reshape_into(const std::vector<int>& new_shape, Tensor& result) const;
     void softmax_backward_into(const Tensor& dout, Tensor& dx) const;
     void layer_norm_backward_into(const Tensor& dout, const Tensor& x_hat, Tensor& scale, Tensor& shift, const Tensor& var, float eps, Tensor& dx) const;
+    void rms_norm_backward_into(const Tensor& dout, const Tensor& x_hat, Tensor& scale, const Tensor& rsqrt, Tensor& dx) const;
     void gelu_backward_into(const Tensor& dout, Tensor& d_gelu_workspace, Tensor& result) const;
     static void concat_qkv_grad_into(const Tensor& dq, const Tensor& dk, const Tensor& dv, Tensor& result);
     static void permute_qkv_to_heads(const Tensor& qkv_all, Tensor& q, Tensor& k, Tensor& v, int B, int T, int num_heads, int head_dim);
@@ -118,7 +125,6 @@ public:
     void embedding_lookup_into(const Tensor& input_ids, Tensor& output) const;
     float cross_entropy_loss_into(const Tensor& targets, Tensor& out_probs) const;
     void cross_entropy_backward_into(const Tensor& targets, Tensor& result) const;
-
     static void apply_rope_inplace(Tensor& Q_or_K, 
                                    const Tensor& cos_table, 
                                    const Tensor& sin_table, 

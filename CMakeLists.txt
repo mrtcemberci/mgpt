@@ -38,6 +38,8 @@ add_executable(mgpt src/main/main.cpp src/main/utils/CharacterTokenizer.cpp src/
         src/main/neuralnetwork/layers/GELULayer.cpp
         src/main/neuralnetwork/layers/LayerNormLayer.cpp
         src/main/neuralnetwork/layers/LayerNormLayer.h
+        src/main/neuralnetwork/layers/RMSNormLayer.cpp
+        src/main/neuralnetwork/layers/RMSNormLayer.h
         src/main/neuralnetwork/layers/CrossEntropyLossLayer.cpp
         src/main/neuralnetwork/layers/CrossEntropyLossLayer.h
         src/main/neuralnetwork/layers/EmbeddingLayer.cpp
@@ -57,12 +59,12 @@ add_executable(utils_tests src/test/utilsTest/tokenizerTests.cpp src/main/utils/
 add_executable(scratchpad_tests src/test/utilsTest/scratchpadTests.cpp ${TENSOR_SOURCES})
 add_executable(tensor_tests src/test/utilsTest/tensorTests.cpp ${TENSOR_SOURCES})
 add_executable(mlp_tests src/test/networkTest/mlpTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp src/main/neuralnetwork/layers/GELULayer.cpp)
-add_executable(norm_loss_tests src/test/networkTest/normAndLossTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LayerNormLayer.cpp src/main/neuralnetwork/layers/CrossEntropyLossLayer.cpp)
+add_executable(norm_loss_tests src/test/networkTest/normAndLossTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LayerNormLayer.cpp src/main/neuralnetwork/layers/RMSNormLayer.cpp src/main/neuralnetwork/layers/CrossEntropyLossLayer.cpp)
 add_executable(embedding_tests src/test/networkTest/embeddingTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/EmbeddingLayer.cpp)
 add_executable(attention_tests src/test/networkTest/attentionTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp src/main/neuralnetwork/layers/SingleHeadAttentionLayer.cpp src/main/neuralnetwork/layers/MultiHeadAttentionLayer.cpp
         src/main/utils/CharacterTokenizer.h)
 add_executable(optimiser_tests src/test/networkTest/optimiserTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp)
-add_executable(gpt_tests src/test/networkTest/gptTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp src/main/neuralnetwork/layers/GELULayer.cpp src/main/neuralnetwork/layers/LayerNormLayer.cpp src/main/neuralnetwork/layers/CrossEntropyLossLayer.cpp src/main/neuralnetwork/layers/EmbeddingLayer.cpp src/main/neuralnetwork/layers/SingleHeadAttentionLayer.cpp src/main/neuralnetwork/layers/MultiHeadAttentionLayer.cpp src/main/neuralnetwork/layers/TransformerBlock.cpp src/main/neuralnetwork/GPT.cpp)
+add_executable(gpt_tests src/test/networkTest/gptTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp src/main/neuralnetwork/layers/GELULayer.cpp src/main/neuralnetwork/layers/LayerNormLayer.cpp src/main/neuralnetwork/layers/RMSNormLayer.cpp src/main/neuralnetwork/layers/CrossEntropyLossLayer.cpp src/main/neuralnetwork/layers/EmbeddingLayer.cpp src/main/neuralnetwork/layers/SingleHeadAttentionLayer.cpp src/main/neuralnetwork/layers/MultiHeadAttentionLayer.cpp src/main/neuralnetwork/layers/TransformerBlock.cpp src/main/neuralnetwork/GPT.cpp)
 add_test(NAME utils_tests COMMAND utils_tests)
 add_test(NAME scratchpad_tests COMMAND scratchpad_tests)
 add_test(NAME tensor_tests COMMAND tensor_tests)

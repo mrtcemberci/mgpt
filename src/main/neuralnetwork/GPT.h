@@ -14,13 +14,14 @@
 #include <iostream>
 #include <fstream>
 
+// Default values
 struct GPTConfig {
-    int vocab_size = 65;   // ~65 unique ASCII characters in Shakespeare text
-    int max_seq_len = 256; // Context window size T = 256 (allows attending across lines and dialogue turns)
-    int embed_dim = 384;   // Channel dimension C = 384 (high representational capacity for character grammar)
-    int num_layers = 6;    // 6 sequential Transformer blocks (hierarchical feature learning)
-    int num_heads = 6;     // 6 parallel attention heads (each head size = 384 / 6 = 64)
-    bool use_gradient_checkpointing = true; // Block-level activation checkpointing (trades ~25% compute for ~80% less activation VRAM)
+    int vocab_size = 65;
+    int max_seq_len = 256;
+    int embed_dim = 384;
+    int num_layers = 6;
+    int num_heads = 6;     
+    bool use_gradient_checkpointing = true; 
 };
 
 class GPT : public Layer {

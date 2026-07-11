@@ -70,7 +70,7 @@ void GPT::backward_into(const Tensor& d_logits, Tensor& din) {
     }
     for (int i = (int)blocks.size() - 1; i >= 0; --i) {
         if (config.use_gradient_checkpointing) {
-            // Recompute Block i's forward activations from its saved input just-in-time before backprop!
+            // Recompute Block i's forward activations from its saved input
             blocks[i]->forward_into(blocks[i]->cached_input, blocks[i]->cached_out);
         }
 

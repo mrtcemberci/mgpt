@@ -39,6 +39,9 @@ namespace cuda_ops {
     void layer_norm(const float* x, const float* scale, const float* shift, float eps, float* out, float* mean, float* var, float* x_hat, int total_tokens, int channels);
     void layer_norm_backward(const float* dout, const float* x_hat, const float* scale, float* scale_grad, float* shift_grad, const float* var, float eps, float* dx, int total_tokens, int channels);
     
+    void rms_norm(const float* x, const float* scale, float eps, float* out, float* rsqrt, float* x_hat, int total_tokens, int channels);
+    void rms_norm_backward(const float* dout, const float* x_hat, const float* scale, float* scale_grad, const float* rsqrt, float* dx, int total_tokens, int channels);
+    
     void embedding_lookup(const float* table, const float* input, float* output, int total_tokens, int embed_dim, int table_size);
     void embedding_backward(const float* dout, const float* input, float* table_grad, int total_tokens, int embed_dim, int table_size);
     
@@ -73,6 +76,11 @@ namespace cuda_ops {
                                    float* sin_table, 
                                    int B, int num_heads, int T, int head_dim, 
                                    bool forward);
+    
+    void pairwise_mult_into(const float* a, const float* b, float* result, int N);
+    void swish_inplace(float* a, int N);
+    void swish_into(const float* x, float* result, int N);
+    void swish_backward_into(const float* x, const float* dout, float* result, int N);
 }
 
 #endif // CUDA_OPS_H
