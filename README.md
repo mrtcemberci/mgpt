@@ -76,6 +76,7 @@ mgpt [options]
 | `-b` | `--batch <int>` | Micro-batch size per forward/backward pass ($B$) | `16` |
 | `-w` | `--window <int>` | Context window / sequence length ($T$) | `64` |
 | `-a` | `--accumulate <int>` | Number of gradient accumulation steps | `1` |
+| `-e` | `--lr <float>` | Initial / peak learning rate for AdamW optimizer | `0.0003` |
 | `-T` | `--temp <float>` | Sampling temperature for text generation | `0.8` |
 | `-K` | `--topk <int>` | Top-K nucleus filtering for generation | `15` |
 | `-h` | `--help` | Display usage summary and exit | |
@@ -91,18 +92,18 @@ Train sequentially across dataset shards (`tinystories/shard_00.txt`, `tinystori
 If you already have a pre-existing vocabulary file (`master_vocab.bin`), pass `--vocab-file` on Shard 00 so `mgpt` loads your existing dictionary instead of rebuilding it:
 
 ```powershell
-# Shard 00: Trains steps 1 -> 3000 using pre-existing vocabulary file
-.\build_release\Release\mgpt.exe -t -g --vocab-file="master_vocab.bin" -d="tinystories/shard_00.txt" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
+# Shard 00: Trains steps 1 -> 3000 using pre-existing vocabulary file and stable learning rate
+.\build_release\Release\mgpt.exe -t -g --vocab-file="master_vocab.bin" -d="tinystories/shard_00.txt" -f="tinystories.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
 ```
 
 *(Note: If `master_vocab.bin` does not exist yet, running Shard 00 without `--vocab-file` will automatically build and save it to `tinystories/shard_00.txt.vocab.bin`).*
 
 #### Resuming on Subsequent Shards (`shard_01.txt` -> `shard_23.txt`)
-Use `--resume` and `--vocab-file` to smoothly continue step counting and Cosine LR decay:
+Use `--resume`, `--vocab-file`, and `--lr` to smoothly continue step counting and Cosine LR decay:
 
 ```powershell
 # Shard 01: Resumes weights & step count from step 3000 -> 6000
-.\build_release\Release\mgpt.exe -t -g --resume -d="tinystories/shard_01.txt" --vocab-file="master_vocab.bin" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
+.\build_release\Release\mgpt.exe -t -g --resume -d="tinystories/shard_01.txt" --vocab-file="master_vocab.bin" -f="tinystories.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
 ```
 
 #### Automated Overnight Pipeline across all 24 Shards (Using Pre-Defined Vocab)

@@ -170,6 +170,7 @@ int main(int argc, char** argv) {
     int target_vocab_size = 512;
     float temperature = 0.8f;
     int top_k = 15;
+    float learning_rate = 3e-4f; // Default starting learning rate
 
     int grad_accum_steps = 1;
 
@@ -207,6 +208,7 @@ int main(int argc, char** argv) {
                       << "  -b, --batch <int>         Training batch size (default: 16)\n"
                       << "  -w, --window <int>        Context window / sequence length (default: 64)\n"
                       << "  -a, --accumulate <int>    Gradient accumulation steps (default: 1)\n"
+                      << "  -e, -lr, --lr <float>     Initial/peak learning rate (default: 0.0003)\n"
                       << "  -h, --help                Show this help message and exit\n\n"
                       << "Examples:\n"
                       << "  mgpt -t -g -v=256 -f=\"my_model.bin\" -s=2000 -l=6 -b=64 -w=128\n"
@@ -281,6 +283,11 @@ int main(int argc, char** argv) {
         if (arg == "-K" || arg == "--topk") { if (i + 1 < argc) top_k = std::stoi(argv[++i]); continue; }
         if (arg.find("-K=") == 0) { top_k = std::stoi(arg.substr(3)); continue; }
         if (arg.find("--topk=") == 0) { top_k = std::stoi(arg.substr(7)); continue; }
+
+        if (arg == "-lr" || arg == "--lr" || arg == "-e") { if (i + 1 < argc) learning_rate = std::stof(argv[++i]); continue; }
+        if (arg.find("-lr=") == 0) { learning_rate = std::stof(arg.substr(4)); continue; }
+        if (arg.find("--lr=") == 0) { learning_rate = std::stof(arg.substr(5)); continue; }
+        if (arg.find("-e=") == 0) { learning_rate = std::stof(arg.substr(3)); continue; }
     }
 
     strip_quotes(weights_path);
@@ -438,7 +445,6 @@ int main(int argc, char** argv) {
             if (use_gpu) model.to(target_dev);
         }
 
-        float learning_rate = 1e-3f;
         int eval_interval = std::max(1, max_steps / 10);
         int print_interval = std::max(1, max_steps / 10);
         int eval_steps = 10;
@@ -518,6 +524,34 @@ int main(int argc, char** argv) {
             float train_loss = accum_train_loss / (float)grad_accum_steps;
 
             auto opt_start = std::chrono::high_resolution_clock::now();
+            float max_grad_norm = 1.0f;
+            double total_sq_norm = 0.0;
+            for (Tensor* param : params) {
+                if (!param) continue;
+                if (param->device == Device::CUDA) {
+                    total_sq_norm += (double)cuda_ops::sum_squares(param->get_grad_ptr(), (int)param->size());
+                } else {
+                    const float* gptr = param->get_grad_ptr();
+                    for (size_t i = 0; i < param->size(); ++i) {
+                        total_sq_norm += (double)gptr[i] * gptr[i];
+                    }
+                }
+            }
+            float total_norm = (float)std::sqrt(total_sq_norm);
+            if (total_norm > max_grad_norm) {
+                float scale = max_grad_norm / (total_norm + 1e-6f);
+                for (Tensor* param : params) {
+                    if (!param) continue;
+                    if (param->device == Device::CUDA) {
+                        cuda_ops::scale_inplace(param->get_grad_ptr(), scale, (int)param->size());
+                    } else {
+                        float* gptr = param->get_grad_ptr();
+                        for (size_t i = 0; i < param->size(); ++i) {
+                            gptr[i] *= scale;
+                        }
+                    }
+                }
+            }
             optimizer->step(params);
             auto opt_end = std::chrono::high_resolution_clock::now();
             double opt_ms = std::chrono::duration<double, std::milli>(opt_end - opt_start).count();

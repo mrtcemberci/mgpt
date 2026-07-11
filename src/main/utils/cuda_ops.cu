@@ -1112,6 +1112,29 @@ namespace cuda_ops {
         CHECK_CUDA(cudaGetLastError());
     }
 
+    float sum_squares(const float* d_arr, int N) {
+        if (N <= 0 || !d_arr) return 0.0f;
+        cublasHandle_t handle = get_cublas_handle();
+        float result = 0.0f;
+        cublasSdot(handle, N, d_arr, 1, d_arr, 1, &result);
+        return result;
+    }
+
+    __global__ void scale_inplace_kernel(float* arr, float scale, int N) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < N) {
+            arr[idx] *= scale;
+        }
+    }
+
+    void scale_inplace(float* d_arr, float scale, int N) {
+        if (N <= 0 || !d_arr) return;
+        int threads = 256;
+        int blocks = (N + threads - 1) / threads;
+        scale_inplace_kernel<<<blocks, threads>>>(d_arr, scale, N);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
 } // namespace cuda_ops
 
 #else // !USE_CUDA
@@ -1171,6 +1194,8 @@ namespace cuda_ops {
     void swish_inplace(float* a, int N) {}
     void swish_into(const float* x, float* result, int N) {}
     void swish_backward_into(const float* x, const float* dout, float* result, int N) {}
+    float sum_squares(const float*, int) { return 0.0f; }
+    void scale_inplace(float*, float, int) {}
 }
 
 #endif // USE_CUDA
