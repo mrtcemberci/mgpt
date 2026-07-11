@@ -465,6 +465,12 @@ int main(int argc, char** argv) {
         Tensor y_batch({batch_size, config.max_seq_len}, 0.0f, target_dev);
         Tensor logits({batch_size, config.max_seq_len, config.vocab_size}, 0.0f, target_dev);
         std::vector<Tensor*> params = model.get_parameters();
+        if (mode_resume) {
+            std::string opt_path = weights_path + ".opt";
+            if (auto* adamw = dynamic_cast<AdamWOptimizer*>(optimizer.get())) {
+                adamw->load_state(opt_path, params);
+            }
+        }
 
         int global_total_steps = (total_steps > 0) ? total_steps : (start_step + max_steps);
 
@@ -589,6 +595,9 @@ int main(int argc, char** argv) {
 
         std::cout << "Exporting Trained Model to " << weights_path << "...\n";
         model.save_weights_bin(weights_path, start_step + max_steps);
+        if (auto* adamw = dynamic_cast<AdamWOptimizer*>(optimizer.get())) {
+            adamw->save_state(weights_path + ".opt", params);
+        }
     }
 
     std::cout << "\n--- Text Generation Sample (Prompt: \"" << prompt << "\" | Temp: " << temperature << " | Top-K: " << top_k << ") ---\n";

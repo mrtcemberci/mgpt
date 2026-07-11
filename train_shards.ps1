@@ -64,7 +64,7 @@ for ($i = $StartShard; $i -lt $shards.Count; $i++) {
     $prevBin = "tinystories_shard{0:D2}.bin" -f ($i - 1)
 
     Write-Host "------------------------------------------------------------" -ForegroundColor Yellow
-    Write-Host "[Shard $($i + 1)/$($shards.Count)] Processing: $shardName -> Saving to: $currentBin" -ForegroundColor Yellow
+    Write-Host "[Shard Index $idxStr ($($i + 1)/$($shards.Count))] Input: $shardName -> Saving Checkpoint: $currentBin" -ForegroundColor Yellow
     Write-Host "------------------------------------------------------------" -ForegroundColor Yellow
 
     $cmdArgs = @(
@@ -95,6 +95,9 @@ for ($i = $StartShard; $i -lt $shards.Count; $i++) {
             }
             Write-Host "Copying previous checkpoint ($prevBin -> $currentBin) to resume state..." -ForegroundColor Cyan
             Copy-Item -Path $prevBin -Destination $currentBin -Force
+            if (Test-Path "$prevBin.opt") {
+                Copy-Item -Path "$prevBin.opt" -Destination "$currentBin.opt" -Force
+            }
         }
         $cmdArgs += "--resume"
     }
@@ -107,7 +110,11 @@ for ($i = $StartShard; $i -lt $shards.Count; $i++) {
         exit $LASTEXITCODE
     }
 
-    Write-Host "`nSuccessfully completed shard $idxStr. Saved recovery checkpoint: $currentBin`n" -ForegroundColor Green
+    Write-Host "`n>>> Successfully completed Shard Index $idxStr ($shardName). Saved checkpoint: $currentBin <<<" -ForegroundColor Green
+    if ($i + 1 -lt $shards.Count) {
+        $nextIdx = "{0:D2}" -f ($i + 1)
+        Write-Host ">>> Advancing loop to next Shard Index $nextIdx ($($shards[$i + 1].Name))...`n" -ForegroundColor Cyan
+    }
 }
 
 Write-Host "============================================================" -ForegroundColor Cyan
