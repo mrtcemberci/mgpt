@@ -757,7 +757,41 @@ Step       Progress & Timings                      Train Loss   Val Loss
 [14100/72000 (Shard 2100/3000 |  19%)] LR:2.85e-04 Fwd:3ms Loss:158ms Opt:196ms | Step:545ms | Loss: nan
 [14400/72000 (Shard 2400/3000 |  20%)] LR:2.84e-04 Fwd:3ms Loss:158ms Opt:196ms | Step:545ms | Loss: nan
 
+========================
 
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_02.txt.tok.bin...
+      Total Dataset Tokens: 24136041 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21722436
+      -> Validation Tokens: 2413605
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard02.bin...
+Successfully loaded GPT model weights from tinystories_shard02.bin (restored at completed step 9000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 9000) from tinystories_shard02.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=9000 -> 12000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[9001/72000 (Shard 1/3000 |  12%)] LR:2.96e-04 Fwd:178ms Loss:117ms Opt:194ms | Step:664ms | Loss: 1.6668
+[9300/72000 (Shard 300/3000 |  12%)] LR:2.95e-04 Fwd:3ms Loss:158ms Opt:195ms | Step:548ms | Loss: 1.7253 | Val: 1.7501
+[9600/72000 (Shard 600/3000 |  13%)] LR:2.95e-04 Fwd:3ms Loss:157ms Opt:195ms | Step:547ms | Loss: 1.6063 | Val: 1.7251
+[9900/72000 (Shard 900/3000 |  13%)] LR:2.94e-04 Fwd:3ms Loss:159ms Opt:195ms | Step:547ms | Loss: 1.5832 | Val: 1.7164
+[10200/72000 (Shard 1200/3000 |  14%)] LR:2.94e-04 Fwd:3ms Loss:157ms Opt:197ms | Step:547ms | Loss: 1.4897 | Val: 1.7678
+[10500/72000 (Shard 1500/3000 |  14%)] LR:2.93e-04 Fwd:3ms Loss:157ms Opt:197ms | Step:547ms | Loss: 1.5506 | Val: 1.7214
+[10800/72000 (Shard 1800/3000 |  15%)] LR:2.93e-04 Fwd:3ms Loss:157ms Opt:195ms | Step:548ms | Loss: 1.7068 | Val: 1.9348
+[11100/72000 (Shard 2100/3000 |  15%)] LR:2.92e-04 Fwd:3ms Loss:159ms Opt:195ms | Step:545ms | Loss: nan
+PS C:\Users\bogaz\MGPT\mgpt>
 
 
 # NEXT STEPS & TODO:
