@@ -561,21 +561,27 @@ int main(int argc, char** argv) {
                 }
             }
             float total_norm = (float)std::sqrt(total_sq_norm);
-            if (total_norm > max_grad_norm) {
-                float scale = max_grad_norm / (total_norm + 1e-6f);
+            if (std::isnan(total_norm) || std::isinf(total_norm)) {
                 for (Tensor* param : params) {
-                    if (!param) continue;
-                    if (param->device == Device::CUDA) {
-                        cuda_ops::scale_inplace(param->get_grad_ptr(), scale, (int)param->size());
-                    } else {
-                        float* gptr = param->get_grad_ptr();
-                        for (size_t i = 0; i < param->size(); ++i) {
-                            gptr[i] *= scale;
+                    if (param) param->zero_grad();
+                }
+            } else {
+                if (total_norm > max_grad_norm) {
+                    float scale = max_grad_norm / (total_norm + 1e-6f);
+                    for (Tensor* param : params) {
+                        if (!param) continue;
+                        if (param->device == Device::CUDA) {
+                            cuda_ops::scale_inplace(param->get_grad_ptr(), scale, (int)param->size());
+                        } else {
+                            float* gptr = param->get_grad_ptr();
+                            for (size_t i = 0; i < param->size(); ++i) {
+                                gptr[i] *= scale;
+                            }
                         }
                     }
                 }
+                optimizer->step(params);
             }
-            optimizer->step(params);
             auto opt_end = std::chrono::high_resolution_clock::now();
             double opt_ms = std::chrono::duration<double, std::milli>(opt_end - opt_start).count();
 

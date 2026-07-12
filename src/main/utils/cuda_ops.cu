@@ -476,10 +476,10 @@ namespace cuda_ops {
     void layer_norm_backward(const float* dout, const float* x_hat, const float* scale, float* scale_grad, float* shift_grad, const float* var, float eps, float* dx, int total_tokens, int channels) {
         if (total_tokens == 0 || channels == 0) return;
         int threads = 256;
-        int blocks = (total_tokens + threads - 1) / threads;
-        layer_norm_backward_dx_kernel<<<blocks, threads>>>(dout, x_hat, scale, var, eps, dx, total_tokens, channels);
         int param_blocks = (channels + threads - 1) / threads;
         layer_norm_backward_params_kernel<<<param_blocks, threads>>>(dout, x_hat, scale_grad, shift_grad, total_tokens, channels);
+        int blocks = (total_tokens + threads - 1) / threads;
+        layer_norm_backward_dx_kernel<<<blocks, threads>>>(dout, x_hat, scale, var, eps, dx, total_tokens, channels);
         CHECK_CUDA(cudaGetLastError());
     }
 
@@ -551,10 +551,10 @@ namespace cuda_ops {
     void rms_norm_backward(const float* dout, const float* x_hat, const float* scale, float* scale_grad, const float* rsqrt, float* dx, int total_tokens, int channels) {
         if (total_tokens == 0 || channels == 0) return;
         int threads = 256;
-        int blocks = (total_tokens + threads - 1) / threads;
-        rms_norm_backward_dx_kernel<<<blocks, threads>>>(dout, x_hat, scale, rsqrt, dx, total_tokens, channels);
         int param_blocks = (channels + threads - 1) / threads;
         rms_norm_backward_params_kernel<<<param_blocks, threads>>>(dout, x_hat, scale_grad, total_tokens, channels);
+        int blocks = (total_tokens + threads - 1) / threads;
+        rms_norm_backward_dx_kernel<<<blocks, threads>>>(dout, x_hat, scale, rsqrt, dx, total_tokens, channels);
         CHECK_CUDA(cudaGetLastError());
     }
 
