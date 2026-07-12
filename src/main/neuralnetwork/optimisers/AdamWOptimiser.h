@@ -36,6 +36,7 @@ public:
 
     void set_lr(float new_lr) override { lr = new_lr; }
     float get_lr() const override { return lr; }
+    void set_step(int step_val) { t = step_val; }
 
     void save_state(const std::string& filepath, const std::vector<Tensor*>& parameters) {
         std::ofstream out(filepath, std::ios::binary);

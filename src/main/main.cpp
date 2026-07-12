@@ -469,6 +469,7 @@ int main(int argc, char** argv) {
             std::string opt_path = weights_path + ".opt";
             if (auto* adamw = dynamic_cast<AdamWOptimizer*>(optimizer.get())) {
                 adamw->load_state(opt_path, params);
+                adamw->set_step(start_step);
             }
         }
 
@@ -491,6 +492,7 @@ int main(int argc, char** argv) {
                 return max_lr * (step / warmup_steps);
             }
             float decay_ratio = (step - warmup_steps) / (max_steps - warmup_steps);
+            decay_ratio = std::min(1.0f, std::max(0.0f, decay_ratio));
             return min_lr + 0.5f * (max_lr - min_lr) * (1.0f + std::cos(PI * decay_ratio));
         };
 
@@ -525,6 +527,21 @@ int main(int argc, char** argv) {
                 accum_train_loss += micro_loss;
                 total_fwd_ms += std::chrono::duration<double, std::milli>(t1 - t0).count();
                 total_bwd_ms += std::chrono::duration<double, std::milli>(t2 - t1).count();
+            }
+
+            if (grad_accum_steps > 1) {
+                float inv_accum = 1.0f / (float)grad_accum_steps;
+                for (Tensor* param : params) {
+                    if (!param) continue;
+                    if (param->device == Device::CUDA) {
+                        cuda_ops::scale_inplace(param->get_grad_ptr(), inv_accum, (int)param->size());
+                    } else {
+                        float* gptr = param->get_grad_ptr();
+                        for (size_t i = 0; i < param->size(); ++i) {
+                            gptr[i] *= inv_accum;
+                        }
+                    }
+                }
             }
 
             float train_loss = accum_train_loss / (float)grad_accum_steps;
