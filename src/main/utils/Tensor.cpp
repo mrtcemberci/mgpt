@@ -853,21 +853,23 @@ Tensor Tensor::softmax(int dim) const {
         const float* logit_ptr = data.data() + i * V;
         float* prob_ptr = probs.data.data() + i * V;
 
-        float max_logit = logit_ptr[0];
-        for (int v = 1; v < V; ++v) {
-            if (logit_ptr[v] > max_logit) max_logit = logit_ptr[v];
+        float max_logit = -1e20f;
+        for (int v = 0; v < V; ++v) {
+            float val = std::fmin(std::fmax(logit_ptr[v], -80.0f), 80.0f);
+            if (val > max_logit) max_logit = val;
         }
 
         float sum_exp = 0.0f;
         for (int v = 0; v < V; ++v) {
-            float e = std::exp(logit_ptr[v] - max_logit);
+            float val = std::fmin(std::fmax(logit_ptr[v], -80.0f), 80.0f);
+            float e = std::exp(val - max_logit);
             prob_ptr[v] = e;
             sum_exp += e;
         }
 
-        float inv_sum = 1.0f / (sum_exp + 1e-15f);
+        float inv_sum = 1.0f / std::fmax(sum_exp, 1e-7f);
         for (int v = 0; v < V; ++v) {
-            prob_ptr[v] *= inv_sum;
+            prob_ptr[v] = std::fmin(std::fmax(prob_ptr[v] * inv_sum, 1e-7f), 1.0f);
         }
     }
     return probs;
@@ -924,8 +926,8 @@ float Tensor::cross_entropy_loss(const std::vector<int>& targets, Tensor& out_pr
             std::cerr << "cross_entropy_loss: target class out of bounds: " << target_class << std::endl;
             exit(-1);
         }
-        float p = out_probs.data[i * V + target_class];
-        total_loss -= std::log(p + 1e-15f);
+        float p = std::fmax(out_probs.data[i * V + target_class], 1e-7f);
+        total_loss -= std::log(p);
     }
     return total_loss / (float)total_tokens;
 }

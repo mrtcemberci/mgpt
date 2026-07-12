@@ -352,16 +352,19 @@ namespace cuda_ops {
             float* row_out = C + r * cols;
             float max_val = -1e20f;
             for (int c = 0; c < cols; ++c) {
-                if (row_in[c] > max_val) max_val = row_in[c];
+                float val = fminf(fmaxf(row_in[c], -80.0f), 80.0f);
+                if (val > max_val) max_val = val;
             }
             float sum_exp = 0.0f;
             for (int c = 0; c < cols; ++c) {
-                float e = expf(row_in[c] - max_val);
+                float val = fminf(fmaxf(row_in[c], -80.0f), 80.0f);
+                float e = expf(val - max_val);
                 row_out[c] = e;
                 sum_exp += e;
             }
+            float inv_sum = 1.0f / fmaxf(sum_exp, 1e-7f);
             for (int c = 0; c < cols; ++c) {
-                row_out[c] /= (sum_exp + 1e-9f);
+                row_out[c] = fminf(fmaxf(row_out[c] * inv_sum, 1e-7f), 1.0f);
             }
         }
     }
@@ -715,8 +718,8 @@ namespace cuda_ops {
         if (tok < total_tokens) {
             int target = (int)targets[tok];
             if (target >= 0 && target < vocab_size) {
-                float p = probs[tok * vocab_size + target];
-                my_loss = -logf(p + 1e-9f);
+                float p = fmaxf(probs[tok * vocab_size + target], 1e-7f);
+                my_loss = -logf(p);
             }
         }
         __shared__ float s_loss[256];
