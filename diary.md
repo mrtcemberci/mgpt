@@ -676,6 +676,89 @@ Step       Progress & Timings                      Train Loss   Val Loss
 [19200/72000 (Shard 1200/3000 |  26%)] LR:2.67e-04 Fwd:3ms Loss:158ms Opt:194ms | Step:543ms | Loss: nan
 PS C:\Users\bogaz\MGPT\mgpt>
 
+========================
+
+sing dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_03.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_03.txt.tok.bin...
+      Total Dataset Tokens: 24135917 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21722325
+      -> Validation Tokens: 2413592
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard03.bin...
+Successfully loaded GPT model weights from tinystories_shard03.bin (restored at completed step 9000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 9000) from tinystories_shard03.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=9000 -> 12000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[9001/72000 (Shard 1/3000 |  12%)] LR:2.96e-04 Fwd:183ms Loss:117ms Opt:195ms | Step:669ms | Loss: 1.7823
+[9300/72000 (Shard 300/3000 |  12%)] LR:2.95e-04 Fwd:3ms Loss:157ms Opt:199ms | Step:550ms | Loss: 1.7413 | Val: 1.6970
+[9600/72000 (Shard 600/3000 |  13%)] LR:2.95e-04 Fwd:3ms Loss:159ms Opt:195ms | Step:548ms | Loss: 1.6358 | Val: 1.7339
+[9900/72000 (Shard 900/3000 |  13%)] LR:2.94e-04 Fwd:3ms Loss:158ms Opt:197ms | Step:549ms | Loss: 1.7579 | Val: 1.7180
+[10200/72000 (Shard 1200/3000 |  14%)] LR:2.94e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:548ms | Loss: 1.6853 | Val: 1.6817
+[10500/72000 (Shard 1500/3000 |  14%)] LR:2.93e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:547ms | Loss: 1.6549 | Val: 1.6811
+[10800/72000 (Shard 1800/3000 |  15%)] LR:2.93e-04 Fwd:3ms Loss:159ms Opt:195ms | Step:547ms | Loss: 1.6248 | Val: 1.7779
+[11100/72000 (Shard 2100/3000 |  15%)] LR:2.92e-04 Fwd:3ms Loss:158ms Opt:195ms | Step:545ms | Loss: nan
+[11400/72000 (Shard 2400/3000 |  15%)] LR:2.91e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:544ms | Loss: nan
+[11700/72000 (Shard 2700/3000 |  16%)] LR:2.91e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:545ms | Loss: nan
+[12000/72000 (Shard 3000/3000 |  16%)] LR:2.90e-04 Fwd:3ms Loss:158ms Opt:195ms | Step:545ms | Loss: nan
+
+
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_04.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_04.txt.tok.bin...
+      Total Dataset Tokens: 24132786 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21719507
+      -> Validation Tokens: 2413279
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard04.bin...
+Successfully loaded GPT model weights from tinystories_shard04.bin (restored at completed step 12000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 12000) from tinystories_shard04.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=12000 -> 15000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[12001/72000 (Shard 1/3000 |  16%)] LR:2.90e-04 Fwd:179ms Loss:119ms Opt:194ms | Step:665ms | Loss: nan
+[12300/72000 (Shard 300/3000 |  17%)] LR:2.89e-04 Fwd:3ms Loss:157ms Opt:195ms | Step:545ms | Loss: nan
+[12600/72000 (Shard 600/3000 |  17%)] LR:2.89e-04 Fwd:3ms Loss:159ms Opt:195ms | Step:545ms | Loss: nan
+[12900/72000 (Shard 900/3000 |  17%)] LR:2.88e-04 Fwd:3ms Loss:158ms Opt:196ms | Step:545ms | Loss: nan
+[13200/72000 (Shard 1200/3000 |  18%)] LR:2.87e-04 Fwd:3ms Loss:159ms Opt:195ms | Step:545ms | Loss: nan
+[13500/72000 (Shard 1500/3000 |  18%)] LR:2.86e-04 Fwd:3ms Loss:158ms Opt:195ms | Step:545ms | Loss: nan
+[13800/72000 (Shard 1800/3000 |  19%)] LR:2.85e-04 Fwd:3ms Loss:158ms Opt:195ms | Step:545ms | Loss: nan
+[14100/72000 (Shard 2100/3000 |  19%)] LR:2.85e-04 Fwd:3ms Loss:158ms Opt:196ms | Step:545ms | Loss: nan
+[14400/72000 (Shard 2400/3000 |  20%)] LR:2.84e-04 Fwd:3ms Loss:158ms Opt:196ms | Step:545ms | Loss: nan
+
+
+
 
 # NEXT STEPS & TODO:
 - Implement dataset sharding / binary shard loading (`.bin` files) for large datasets (2GB+ TinyStories) with invisible model continuation / `--resume` checkpoints.
