@@ -853,21 +853,19 @@ Tensor Tensor::softmax(int dim) const {
         const float* logit_ptr = data.data() + i * V;
         float* prob_ptr = probs.data.data() + i * V;
 
-        float max_logit = -1e20f;
-        for (int v = 0; v < V; ++v) {
-            float val = std::fmin(std::fmax(logit_ptr[v], -80.0f), 80.0f);
-            if (val > max_logit) max_logit = val;
+        float max_logit = logit_ptr[0];
+        for (int v = 1; v < V; ++v) {
+            if (logit_ptr[v] > max_logit) max_logit = logit_ptr[v];
         }
 
         float sum_exp = 0.0f;
         for (int v = 0; v < V; ++v) {
-            float val = std::fmin(std::fmax(logit_ptr[v], -80.0f), 80.0f);
-            float e = std::exp(val - max_logit);
+            float e = std::exp(logit_ptr[v] - max_logit);
             prob_ptr[v] = e;
             sum_exp += e;
         }
 
-        float inv_sum = 1.0f / std::fmax(sum_exp, 1e-7f);
+        float inv_sum = 1.0f / std::fmax(sum_exp, 1e-15f);
         for (int v = 0; v < V; ++v) {
             prob_ptr[v] = std::fmin(std::fmax(prob_ptr[v] * inv_sum, 1e-7f), 1.0f);
         }

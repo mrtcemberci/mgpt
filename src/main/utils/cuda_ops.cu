@@ -352,17 +352,15 @@ namespace cuda_ops {
             float* row_out = C + r * cols;
             float max_val = -1e20f;
             for (int c = 0; c < cols; ++c) {
-                float val = fminf(fmaxf(row_in[c], -80.0f), 80.0f);
-                if (val > max_val) max_val = val;
+                if (row_in[c] > max_val) max_val = row_in[c];
             }
             float sum_exp = 0.0f;
             for (int c = 0; c < cols; ++c) {
-                float val = fminf(fmaxf(row_in[c], -80.0f), 80.0f);
-                float e = expf(val - max_val);
+                float e = expf(row_in[c] - max_val);
                 row_out[c] = e;
                 sum_exp += e;
             }
-            float inv_sum = 1.0f / fmaxf(sum_exp, 1e-7f);
+            float inv_sum = 1.0f / fmaxf(sum_exp, 1e-9f);
             for (int c = 0; c < cols; ++c) {
                 row_out[c] = fminf(fmaxf(row_out[c] * inv_sum, 1e-7f), 1.0f);
             }
