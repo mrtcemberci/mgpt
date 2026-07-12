@@ -87,13 +87,14 @@ for ($i = $StartShard; $i -lt $shards.Count; $i++) {
 
     if ($i -gt 0) {
         # For shard 1 and above, initialize current checkpoint from previous completed shard
-        # If starting/restarting at $StartShard OR if current checkpoint does not exist yet, copy fresh from previous shard
-        if (($i -eq $StartShard) -or (-not (Test-Path $currentBin))) {
+        # Always copy when advancing past StartShard ($i > $StartShard) so stale files are overwritten,
+        # or when starting at StartShard if the current checkpoint does not exist yet.
+        if (($i -gt $StartShard) -or (($i -eq $StartShard) -and (-not (Test-Path $currentBin)))) {
             if (-not (Test-Path $prevBin)) {
                 Write-Error "Previous shard checkpoint '$prevBin' missing! Cannot resume shard $idxStr."
                 exit 1
             }
-            Write-Host "Copying previous checkpoint ($prevBin -> $currentBin) to resume state..." -ForegroundColor Cyan
+            Write-Host "Copying previous checkpoint ($prevBin -> $currentBin) to continue training pipeline..." -ForegroundColor Cyan
             Copy-Item -Path $prevBin -Destination $currentBin -Force
             if (Test-Path "$prevBin.opt") {
                 Copy-Item -Path "$prevBin.opt" -Destination "$currentBin.opt" -Force
