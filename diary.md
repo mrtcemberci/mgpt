@@ -596,6 +596,87 @@ Step       Progress & Timings                      Train Loss   Val Loss
 [10200/72000 (Shard 1200/3000 |  14%)] LR:9.79e-04 Fwd:3ms Loss:158ms Opt:0ms | Step:539ms | Loss: 3.3543 | Val: 3.4565
 [10500/72000 (Shard 1500/3000 |  14%)] LR:9.78e-04 Fwd:3ms Loss:159ms Opt:0ms | Step:542ms | Loss: nan
 
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_06.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_06.txt.tok.bin...
+      Total Dataset Tokens: 24130492 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21717442
+      -> Validation Tokens: 2413050
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard06.bin...
+Successfully loaded GPT model weights from tinystories_shard06.bin (restored at completed step 15000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 3000) from tinystories_shard06.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=15000 -> 18000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[15001/72000 (Shard 1/3000 |  20%)] LR:2.82e-04 Fwd:187ms Loss:121ms Opt:194ms | Step:679ms | Loss: 1.7556
+[15300/72000 (Shard 300/3000 |  21%)] LR:2.81e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:545ms | Loss: 1.7165 | Val: 1.7016
+[15600/72000 (Shard 600/3000 |  21%)] LR:2.80e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:546ms | Loss: 1.7028 | Val: 1.7002
+[15900/72000 (Shard 900/3000 |  22%)] LR:2.79e-04 Fwd:3ms Loss:157ms Opt:194ms | Step:546ms | Loss: 1.7302 | Val: 1.7598
+[16200/72000 (Shard 1200/3000 |  22%)] LR:2.78e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:546ms | Loss: 1.8169 | Val: 1.7130
+[16500/72000 (Shard 1500/3000 |  22%)] LR:2.77e-04 Fwd:3ms Loss:157ms Opt:194ms | Step:545ms | Loss: 1.7610 | Val: 1.8143
+[16800/72000 (Shard 1800/3000 |  23%)] LR:2.76e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:546ms | Loss: 1.7516 | Val: 1.8470
+[17100/72000 (Shard 2100/3000 |  23%)] LR:2.75e-04 Fwd:3ms Loss:157ms Opt:195ms | Step:546ms | Loss: 1.8572 | Val: 1.8443
+[17400/72000 (Shard 2400/3000 |  24%)] LR:2.74e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:546ms | Loss: 1.7850 | Val: 1.8959
+[17700/72000 (Shard 2700/3000 |  24%)] LR:2.73e-04 Fwd:3ms Loss:157ms Opt:194ms | Step:546ms | Loss: 1.8910 | Val: 1.9042
+[18000/72000 (Shard 3000/3000 |  25%)] LR:2.72e-04 Fwd:3ms Loss:157ms Opt:196ms | Step:546ms | Loss: 2.0018 | Val: 1.9835
+
+------------------------------------------------------------
+[Shard Index 07 (8/24)] Input: shard_07.txt -> Saving Checkpoint: tinystories_shard07.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard06.bin -> tinystories_shard07.bin) to resume state...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_07.txt" -f="tinystories_shard07.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_07.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_07.txt.tok.bin...
+      Total Dataset Tokens: 24125355 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21712819
+      -> Validation Tokens: 2412536
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard07.bin...
+Successfully loaded GPT model weights from tinystories_shard07.bin (restored at completed step 18000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 6000) from tinystories_shard07.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=18000 -> 21000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[18001/72000 (Shard 1/3000 |  25%)] LR:2.72e-04 Fwd:183ms Loss:120ms Opt:194ms | Step:676ms | Loss: 1.9882
+[18300/72000 (Shard 300/3000 |  25%)] LR:2.70e-04 Fwd:3ms Loss:156ms Opt:195ms | Step:546ms | Loss: 2.1463 | Val: 2.0813
+[18600/72000 (Shard 600/3000 |  25%)] LR:2.69e-04 Fwd:3ms Loss:156ms Opt:196ms | Step:546ms | Loss: 2.1463 | Val: 2.1657
+[18900/72000 (Shard 900/3000 |  26%)] LR:2.68e-04 Fwd:3ms Loss:156ms Opt:195ms | Step:546ms | Loss: 2.2471 | Val: 2.2751
+[19200/72000 (Shard 1200/3000 |  26%)] LR:2.67e-04 Fwd:3ms Loss:158ms Opt:194ms | Step:543ms | Loss: nan
+PS C:\Users\bogaz\MGPT\mgpt>
+
+
 # NEXT STEPS & TODO:
 - Implement dataset sharding / binary shard loading (`.bin` files) for large datasets (2GB+ TinyStories) with invisible model continuation / `--resume` checkpoints.
 - Build Goku roleplay and Text-to-SQL commercial milestone bots.
