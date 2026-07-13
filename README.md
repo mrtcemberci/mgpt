@@ -132,3 +132,14 @@ Copy-Item -Path "tinystories_shard23.bin" -Destination "mgpt_chat.bin" -Force
 # 3. Test conversational generation with the fine-tuned assistant
 .\build\Release\mgpt.exe -i -g -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" -l=12 -c=384 -w=256 -p="User: Hello! How are you today?`nAssistant:" --temp=0.5 --topk=20
 ```
+
+### 3. Training a 30M Parameter Arithmetic Specialist Model (+, -, *, / with Chain-of-Thought)
+To train a specialized 30M parameter model (`12L`, `384C`, `256W`) from scratch to solve integer arithmetic (`+`, `-`, `*`, `/`) using explicit `<scratch>` chain-of-thought reasoning and character-level tokenization:
+
+```powershell
+# 1. Train from scratch on math_dataset.txt using character-level master vocabulary (math_dataset.txt.vocab.bin)
+.\build_release\Release\mgpt.exe -t -g -d="math_dataset.txt" --vocab-file="math_dataset.txt.vocab.bin" -f="mgpt_math.bin" -l=12 -c=384 -w=256 -b=16 -a=2 -s=5000 --lr=0.0003
+
+# 2. Test arithmetic reasoning with the trained model
+.\build\Release\mgpt.exe -i -g -f="mgpt_math.bin" --vocab-file="math_dataset.txt.vocab.bin" -l=12 -c=384 -w=256 -p="Q: 35 * 33`n<scratch>`n" --temp=0.1 --topk=5
+```
