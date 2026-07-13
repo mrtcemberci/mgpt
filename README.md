@@ -126,8 +126,8 @@ Use a low learning rate (`5e-5`) and match the exact architecture parameters (`1
 # 1. Copy completed base model weights to a new target checkpoint
 Copy-Item -Path "tinystories_shard23.bin" -Destination "mgpt_chat.bin" -Force
 
-# 2. Fine-tune on dialogues.txt for 3,000 steps using --resume
-.\build\Release\mgpt.exe -t -g --resume -d="dialogues.txt" -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" --lr=0.00005 -s=3000 --total-steps=75000 -l=12 -c=384 -w=256 -b=16 -a=2
+# 2. Fine-tune on dialogues.txt for 3,000 steps using --resume with a fresh Cosine LR curve (--start-step=0 --total-steps=3000)
+.\build_release\Release\mgpt.exe -t -g --resume -d="dialogues.txt" -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" --lr=0.00005 -s=3000 --start-step=0 --total-steps=3000 -l=12 -c=384 -w=256 -b=16 -a=2
 
 # 3. Test conversational generation with the fine-tuned assistant
 .\build\Release\mgpt.exe -i -g -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" -l=12 -c=384 -w=256 -p="User: Hello! How are you today?`nAssistant:" --temp=0.5 --topk=20
