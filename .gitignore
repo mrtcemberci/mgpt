@@ -21,6 +21,6 @@ build_release/
 instructions.md
 *.txt
 !input.txt
-!dialogues.txt
+!empathetic_dialogues.txt
 *.bin
 build_msvc/
