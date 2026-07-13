@@ -1,0 +1,116 @@
+PS C:\Users\bogaz\MGPT\mgpt> .\build\Release\mgpt.exe -i -g -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" -l=12 -c=384 -w=256 -p="User: Today was an awful day.`nAssistant:" --temp=0.5 --topk=20
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: input.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from input.txt.tok.bin...
+      Total Dataset Tokens: 452197 (Loaded instantly from binary cache!)
+Inference Mode Selected (Skipping Train/Val Split)
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Loading Trained Model Weights from mgpt_chat.bin...
+Successfully loaded GPT model weights from mgpt_chat.bin (restored at completed step 3000)!
+
+--- Text Generation Sample (Prompt: "User: Today was an awful day.
+Assistant:" | Temp: 0.5 | Top-K: 20) ---
+User: Today was an awful day.
+Assistant: I am so excited I've been waiting for a lot of people. It was a good time.
+User: I'm so proud of you!
+<|endoftext|>
+User: I am going to a party next week. I am so excited to hear it.
+Assistant: I am going to start a game and I have to wait.
+User: I'm ready to go to a party. I'm going to be a particularly.
+Assistant: I'm going to go to the party and I'm going to take a trip.
+User: Was it well?
+Assistant: I'm going to be a good person. I'm really excited for the surprise.
+User: Oh no, I'm sorry to hear that. I'm glad you'll do it.
+<|endoftext|>
+User: I'm not sure about my family, I'm going to have a family.
+Assistant: I am in a week and I'm going to be a family.
+User: I'm sure you are going to be a family.
+Assistant: I'm going to be a family.
+User: Yes to hear that, that's great to have a family of my family.
+<|endoftext|>
+User: I am so happy with my family. I am so happy about it!
+Assistant: I am very proud of my family. I've been going to the other day.
+User: I'm sure you will be able to go.
+Assistant: I am so happy to hear that.
+User: That's cool. I bet that is a good thing to do.
+<|endoftext|>
+User: I was so nervous about my birthday. I was so happy!
+Assistant: I was a little nervous at the other day.
+User: I have to go to the store with my family.
+Assistant: I can't wait to go to the store and get a new job.
+User: I'm sure you're going to get a new job!
+<|endoftext|>
+User: i
+------------------------------------------------------------
+
+PS C:\Users\bogaz\MGPT\mgpt> .\build\Release\mgpt.exe -i -g -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" -l=12 -c=384 -w=256 -p="User: Hello! How are you today?`nAssistant:" --temp=0.5 --topk=20
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: input.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from input.txt.tok.bin...
+      Total Dataset Tokens: 452197 (Loaded instantly from binary cache!)
+Inference Mode Selected (Skipping Train/Val Split)
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Loading Trained Model Weights from mgpt_chat.bin...
+Successfully loaded GPT model weights from mgpt_chat.bin (restored at completed step 3000)!
+
+--- Text Generation Sample (Prompt: "User: Hello! How are you today?
+Assistant:" | Temp: 0.5 | Top-K: 20) ---
+User: Hello! How are you today?
+Assistant: I am so glad I'm going to go to the gym. It's a great place to go.
+User: Oh my best! I hope he will be a great way to go with my friends.
+<|endoftext|>
+User: My friend had to go to the gym. I was upset when I was not looking at the gym.
+Assistant: My friend was so mad
+User: That's a very bad thing. I have to go on the gym.
+Assistant: I am so sorry to hear that. I just know.
+User: You can't go to the gym.
+<|endoftext|>
+User: I can't wait for my wife to go on the vacation.
+Assistant: My wife is going to the beach. She has a mower on the beach.
+User: That is a very good place to have a family.
+Assistant: I am so happy to go on this vacation.
+User: I think I can be a good kid.
+<|endoftext|>
+User: I am so happy.
+Assistant: I am so happy.
+User: I can't wait to go to the beach for a week.
+Assistant: I am so excited. I can't wait to go to the beach.
+User: I hope you are fine.
+Assistant: I cant wait to go to the beach for a week.
+User: I know. I'm sure you'll have a good time with the beach.
+<|endoftext|>
+User: I am so excited to go to the beach. I'm going to visit my best friend, I'm going to get a new lake.
+Assistant: My friend's friend is going to a new beach. It's very exciting,.
+User: Wow, that's very nice to hear........
+Assistant: Yes.  I am so happy to hear that.
+User: Yes to our friend, i have. i'm going to see the new lake.
+<|endoftext|>
+User
