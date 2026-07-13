@@ -116,3 +116,19 @@ Use `--resume`, `--vocab-file`, and `--lr` to smoothly continue step counting an
     .\build_release\Release\mgpt.exe -t -g $resumeFlag -d="tinystories/shard_${idx}.txt" --vocab-file="master_vocab.bin" -f="tinystories.bin" -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2
 }
 ```
+
+### 2. Supervised Conversational Fine-Tuning (SFT) on Multi-Turn Dialogues
+To transform a completed base model checkpoint (`tinystories_shard23.bin`) into a conversational assistant (`mgpt_chat.bin`), fine-tune on a dialogue text file (`dialogues.txt`) formatted with explicit turn markers (`User: ... \n Assistant: ... \n <|endoftext|>`).
+
+Use a low learning rate (`5e-5`) and match the exact architecture parameters (`12L`, `384C`, `256W`, `16B`, `2A`) used during base pretraining:
+
+```powershell
+# 1. Copy completed base model weights to a new target checkpoint
+Copy-Item -Path "tinystories_shard23.bin" -Destination "mgpt_chat.bin" -Force
+
+# 2. Fine-tune on dialogues.txt for 3,000 steps using --resume
+.\build\Release\mgpt.exe -t -g --resume -d="dialogues.txt" -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" --lr=0.00005 -s=3000 --total-steps=75000 -l=12 -c=384 -w=256 -b=16 -a=2
+
+# 3. Test conversational generation with the fine-tuned assistant
+.\build\Release\mgpt.exe -i -g -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" -l=12 -c=384 -w=256 -p="User: Hello! How are you today?`nAssistant:" --temp=0.5 --topk=20
+```
