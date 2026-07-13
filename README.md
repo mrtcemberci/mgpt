@@ -137,8 +137,8 @@ Copy-Item -Path "tinystories_shard23.bin" -Destination "mgpt_chat.bin" -Force
 To train a specialized 30M parameter model (`12L`, `384C`, `256W`) from scratch to solve integer arithmetic (`+`, `-`, `*`, `/`) using explicit chain-of-thought reasoning and zero-spelling-waste single-character structural symbols (`?` for question, `{` for scratchpad open, `}` for scratchpad close, `!` for answer, `;` for end of problem):
 
 ```powershell
-# 1. Train from scratch on massive 500,000 problem dataset (~22.5M tokens)
-.\build_release\Release\mgpt.exe -t -g -d="math_dataset.txt" --vocab-file="math_dataset.txt.vocab.bin" -f="mgpt_math.bin" -l=12 -c=384 -w=256 -b=16 -a=2 -s=10000 --lr=0.0001
+# 1. Train from scratch on massive 500,000 problem Multi-Scale dataset (~25.7M tokens)
+.\build_release\Release\mgpt.exe -t -g -d="math_dataset.txt" --vocab-file="math_dataset.txt.vocab.bin" -f="mgpt_math.bin" -l=12 -c=384 -w=256 -b=16 -a=2 -s=12000 --lr=0.0001
 
 # 2. Test arithmetic reasoning with the trained model
 .\build\Release\mgpt.exe -i -g -f="mgpt_math.bin" --vocab-file="math_dataset.txt.vocab.bin" -l=12 -c=384 -w=256 -p="? 35 * 33`n{" --temp=0.1 --topk=5
