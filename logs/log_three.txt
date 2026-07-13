@@ -1685,3 +1685,8 @@ There was a girl named Ipek who loved to play outside. One day. One day, she saw
 Lily's mom said to her, "Don't worry. Let's wash the water and wash our hands." They washed their hands and felt better and safe with their hands.
 After they cleaned the house, Lily's mom said, "Now, you can't drink from the sink. You can't drink the water." Lily smiled and felt very happy, but she knew she had to listen to her mom.
 <|endoftext|>
+
+--- Text Generation Sample (Prompt: "Once upon a time, There was a boy named Max who" | Temp: 0.5 | Top-K: 40) ---
+Once upon a time, There was a boy named Max who loved to play outside. One day, Max went to the park. He wanted to play with his ball.
+At the park. Max saw a big slide and wanted. Max was very excited, but he was too small to reach the ball. Max had an idea, so he climbed up the ladder. He climbed up the ladder and got the ball. Max was very happy.
+But then, something unexpected happened to Max. Max was not a normal boy. He was a very nice boy. Max was not shy anymore. He had. Max was a good boy. Max was not scared anymore, and he learned to be more careful.
