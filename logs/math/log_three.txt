@@ -1,0 +1,53 @@
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[   1/10000 (Shard 1/10000 |   0%)] LR:2.00e-07 Fwd:142ms Loss:39ms Opt:84ms | Step:335ms | Loss: 3.9532
+[1000/10000 (Shard 1000/10000 |  10%)] LR:9.94e-05 Fwd:3ms Loss:63ms Opt:75ms | Step:212ms | Loss: 0.5303 | Val: 0.5545
+[2000/10000 (Shard 2000/10000 |  20%)] LR:9.46e-05 Fwd:3ms Loss:63ms Opt:75ms | Step:212ms | Loss: 0.4908 | Val: 0.4835
+[3000/10000 (Shard 3000/10000 |  30%)] LR:8.55e-05 Fwd:3ms Loss:65ms Opt:75ms | Step:215ms | Loss: 0.4200 | Val: 0.4357
+[4000/10000 (Shard 4000/10000 |  40%)] LR:7.31e-05 Fwd:3ms Loss:63ms Opt:78ms | Step:214ms | Loss: 0.4206 | Val: 0.4269
+[5000/10000 (Shard 5000/10000 |  50%)] LR:5.87e-05 Fwd:3ms Loss:63ms Opt:75ms | Step:212ms | Loss: 0.4173 | Val: 0.4154
+[6000/10000 (Shard 6000/10000 |  60%)] LR:4.40e-05 Fwd:3ms Loss:63ms Opt:75ms | Step:212ms | Loss: 0.4212 | Val: 0.4138
+[7000/10000 (Shard 7000/10000 |  70%)] LR:3.04e-05 Fwd:3ms Loss:63ms Opt:75ms | Step:212ms | Loss: 0.4197 | Val: 0.4114
+[8000/10000 (Shard 8000/10000 |  80%)] LR:1.95e-05 Fwd:3ms Loss:63ms Opt:77ms | Step:214ms | Loss: 0.3962 | Val: 0.4050
+[9000/10000 (Shard 9000/10000 |  90%)] LR:1.24e-05 Fwd:3ms Loss:63ms Opt:75ms | Step:212ms | Loss: 0.3984 | Val: 0.3987
+[10000/10000 (Shard 10000/10000 | 100%)] LR:1.00e-05 Fwd:3ms Loss:64ms Opt:75ms | Step:212ms | Loss: 0.4181 | Val: 0.4000
+------------------------------------------------------------
+Training Complete! Total Duration: 2134.00 seconds.
+
+--- Text Generation Sample (Prompt: "? 35 * 33
+{" | Temp: 0.1 | Top-K: 5) ---
+? 35 * 33
+{
+35 * 3 = 105
+35 * 30 = 1050
+}
+! 1155
+
+--- Text Generation Sample (Prompt: "? 204 + 133
+{" | Temp: 0.1 | Top-K: 5) ---
+? 204 + 133
+{
+204 + 133 = 337
+}
+! 337
+;
+
+--- Text Generation Sample (Prompt: "? 204 * 8
+{" | Temp: 0.1 | Top-K: 5) ---
+? 204 * 8
+{
+20 * 8 = 160
+}
+! 160
+;
+
+--- Text Generation Sample (Prompt: "? 8 * 204
+{" | Temp: 0.1 | Top-K: 5) ---
+? 8 * 204
+{
+8 * 4 = 32
+8 * 20 = 160
+}
+! 192
+;
