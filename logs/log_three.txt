@@ -1,0 +1,1687 @@
+============================================================
+   MGPT MULTI-SHARD AUTOMATED PIPELINE (SHARD RECOVERY)
+============================================================
+Found 24 shards in 'tinystories' | Starting at Shard 2
+Model Config: 12L, 384C, 256W | Batch: 16 (Accum: 2) | LR: 0.0003
+============================================================
+
+------------------------------------------------------------
+[Shard Index 02 (3/24)] Input: shard_02.txt -> Saving Checkpoint: tinystories_shard02.bin
+------------------------------------------------------------
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_02.txt" -f="tinystories_shard02.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_02.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_02.txt.tok.bin...
+      Total Dataset Tokens: 24136041 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21722436
+      -> Validation Tokens: 2413605
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard02.bin...
+Successfully loaded GPT model weights from tinystories_shard02.bin (restored at completed step 6000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 6000) from tinystories_shard02.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=6000 -> 9000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[6001/72000 (Shard 1/3000 |   8%)] LR:2.99e-04 Fwd:189ms Loss:118ms Opt:189ms | Step:666ms | Loss: 1.9117
+[6300/72000 (Shard 300/3000 |   8%)] LR:2.99e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:524ms | Loss: 1.9359 | Val: 1.8380
+[6600/72000 (Shard 600/3000 |   9%)] LR:2.99e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:530ms | Loss: 1.7853 | Val: 1.8017
+[6900/72000 (Shard 900/3000 |   9%)] LR:2.98e-04 Fwd:3ms Loss:146ms Opt:192ms | Step:526ms | Loss: 1.7647 | Val: 1.7804
+[7200/72000 (Shard 1200/3000 |  10%)] LR:2.98e-04 Fwd:3ms Loss:148ms Opt:193ms | Step:529ms | Loss: 1.6329 | Val: 1.8203
+[7500/72000 (Shard 1500/3000 |  10%)] LR:2.98e-04 Fwd:3ms Loss:148ms Opt:190ms | Step:526ms | Loss: 1.7077 | Val: 1.7755
+[7800/72000 (Shard 1800/3000 |  10%)] LR:2.97e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:528ms | Loss: 1.6367 | Val: 1.8151
+[8100/72000 (Shard 2100/3000 |  11%)] LR:2.97e-04 Fwd:5ms Loss:147ms Opt:190ms | Step:526ms | Loss: 1.6870 | Val: 1.7293
+[8400/72000 (Shard 2400/3000 |  11%)] LR:2.97e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:528ms | Loss: 1.6563 | Val: 1.7709
+[8700/72000 (Shard 2700/3000 |  12%)] LR:2.96e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:525ms | Loss: 1.7887 | Val: 1.7879
+[9000/72000 (Shard 3000/3000 |  12%)] LR:2.96e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:530ms | Loss: 1.7585 | Val: 1.8508
+------------------------------------------------------------
+Training Complete! Total Duration: 1590.27 seconds.
+
+Exporting Trained Model to tinystories_shard02.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 9000) to tinystories_shard02.bin!
+Successfully saved AdamW optimizer state (step 9000) to tinystories_shard02.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be lost.
+<|endoftext|>
+One day, a little car named Zoom was very enthusiastic. He wanted to make it go forward. So to his friend Tom, "Zoom, come see me!" Tom said, "Yes, let's do it!"
+Zoom and Tom got in a big, soft pillow. They went back to the floor and put a little toy in it. Zoom and Tom were very happy. They played with the toy car and had lots of fun.
+But then, the toy car did not work. It made a big mess! Zoom and Tom were sad. They did not know what to do. They wanted to fix the toy car. Boom and Tom tried to fix it, but it was too hard. They couldn't fix it.
+Then, something unexpected happened a toy car. Boom and Tom were sad. But then, Bubu had an idea, "Let's use the car to fix it with!" So, Bubu and Tom fixed the car! Now, Bubu could play with the car again, and they were happy.
+<|endoftext|>
+Once upon. Tim had a big toy car. He loved, he played with his car every day, even when he played with his car. He had, his favorite toy car, a blue car.
+One day, Tim went to the park with his mom. He saw and asked, "Mom, can I play with your car?" His mom smiled and said, "Of course, Tim!" So, they got to the store and bought some toys.
+Tim started, but then he found her. He asked, "Mom. The store worker are for us, not for playing with them," His mom said, "You have to put them in a big bag. It's not safe. Do you want to share them with me?" Tim was happy, because he loved his toy car.
+The next day, Tim played with his toy car and learned how to play with his car. He told his mom, "The store worker, I need to buy them for a toy for you." His mom was happy, and Tim had a new toy that he liked. They played together and had lots of fun. The moral of the story is that kindness can help you have fun and make things grow big.
+<|endoftext|>
+
+Once upon a time
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 02 (shard_02.txt). Saved checkpoint: tinystories_shard02.bin <<<
+>>> Advancing loop to next Shard Index 03 (shard_03.txt)...
+
+------------------------------------------------------------
+[Shard Index 03 (4/24)] Input: shard_03.txt -> Saving Checkpoint: tinystories_shard03.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard02.bin -> tinystories_shard03.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_03.txt" -f="tinystories_shard03.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_03.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_03.txt.tok.bin...
+      Total Dataset Tokens: 24135917 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21722325
+      -> Validation Tokens: 2413592
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard03.bin...
+Successfully loaded GPT model weights from tinystories_shard03.bin (restored at completed step 9000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 9000) from tinystories_shard03.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=9000 -> 12000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[9001/72000 (Shard 1/3000 |  12%)] LR:2.96e-04 Fwd:171ms Loss:112ms Opt:191ms | Step:642ms | Loss: 1.9297
+[9300/72000 (Shard 300/3000 |  12%)] LR:2.95e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:527ms | Loss: 2.0029 | Val: 1.9702
+[9600/72000 (Shard 600/3000 |  13%)] LR:2.95e-04 Fwd:4ms Loss:146ms Opt:192ms | Step:527ms | Loss: 1.8917 | Val: 1.9637
+[9900/72000 (Shard 900/3000 |  13%)] LR:2.94e-04 Fwd:5ms Loss:148ms Opt:189ms | Step:526ms | Loss: 2.0388 | Val: 2.0124
+[10200/72000 (Shard 1200/3000 |  14%)] LR:2.94e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 1.9475 | Val: 1.9220
+[10500/72000 (Shard 1500/3000 |  14%)] LR:2.93e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:526ms | Loss: 1.9447 | Val: 1.9406
+[10800/72000 (Shard 1800/3000 |  15%)] LR:2.93e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 1.7780 | Val: 1.9202
+[11100/72000 (Shard 2100/3000 |  15%)] LR:2.92e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 2.0435 | Val: 1.9500
+[11400/72000 (Shard 2400/3000 |  15%)] LR:2.91e-04 Fwd:4ms Loss:149ms Opt:189ms | Step:523ms | Loss: 1.9232 | Val: 1.9066
+[11700/72000 (Shard 2700/3000 |  16%)] LR:2.91e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:522ms | Loss: 1.8831 | Val: 1.9644
+[12000/72000 (Shard 3000/3000 |  16%)] LR:2.90e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 1.8412 | Val: 1.9615
+------------------------------------------------------------
+Training Complete! Total Duration: 1580.42 seconds.
+
+Exporting Trained Model to tinystories_shard03.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 12000) to tinystories_shard03.bin!
+Successfully saved AdamW optimizer state (step 9974) to tinystories_shard03.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be scared. It was a special thing that made people feel happy.
+Tom was proud of himself. He knew that he had met a nice man who loved to share his toys with him. He gave them a good gift. He gave them a new toy and a new toy car. He gave them a big, shiny key.
+Tom and the man played with the toy car. They pretended to play with the car. They had a lot of fun. They shared the car and took turns. They had a lot of fun.
+<|endoftext|>
+One day, a little boy named Tim went to the park, but he did not look very good. He felt worried because he lost his toy. He looked everywhere, but he could not find it.
+Then, Tim met a small dog named Max. Max saw Tim's sad leg and asked, "Why are you sad, Tim?" Tim showed Max about his lost toy. Max said, "I can help you find your toy."
+Tim wanted to help Max. They looked everywhere and found a magic stick. Tim found the stick and helped Sam find the toy. They looked and looked, but could not find the toy. Then, they found a big box.
+The magic stick went inside the box, and Tim was happy again. Tim said, "Thank you, Max!" They all played together in the park and had a great time.
+<|endoftext|>
+Once upon the time,,. In a pretty bird was on a big tree. The bird was very pretty to see the sky. One day, the bird saw the bird and wanted to play with it.
+The bird flew down to the tree and said. The dove and the bird played together. They had so much fun. But one day, the bird felt sad. The bird saw the sad bird was sad.
+The bird had an idea. The bird flew down and said. The bird saw the dove's lost friend. The bird said, "I saw your lost bird, so I will take care of it." The bird felt happy and said, "Thank you, bird!" The bird said, "You're welcome, bird. I'm happy to help you."
+From that day on, the bird was not grumpy anymore. They became best friends there. The bird was glad it had found the best friend. The end.
+<|endoftext|>
+
+
+Sara and Ben are twins. They like
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 03 (shard_03.txt). Saved checkpoint: tinystories_shard03.bin <<<
+>>> Advancing loop to next Shard Index 04 (shard_04.txt)...
+
+------------------------------------------------------------
+[Shard Index 04 (5/24)] Input: shard_04.txt -> Saving Checkpoint: tinystories_shard04.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard03.bin -> tinystories_shard04.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_04.txt" -f="tinystories_shard04.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_04.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_04.txt.tok.bin...
+      Total Dataset Tokens: 24132786 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21719507
+      -> Validation Tokens: 2413279
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard04.bin...
+Successfully loaded GPT model weights from tinystories_shard04.bin (restored at completed step 12000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 9974) from tinystories_shard04.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=12000 -> 15000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[12001/72000 (Shard 1/3000 |  16%)] LR:2.90e-04 Fwd:178ms Loss:112ms Opt:188ms | Step:646ms | Loss: 1.9420
+[12300/72000 (Shard 300/3000 |  17%)] LR:2.89e-04 Fwd:4ms Loss:149ms Opt:189ms | Step:525ms | Loss: 1.9273 | Val: 1.9222
+[12600/72000 (Shard 600/3000 |  17%)] LR:2.89e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 1.9052 | Val: 1.9178
+[12900/72000 (Shard 900/3000 |  17%)] LR:2.88e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 1.8097 | Val: 1.9893
+[13200/72000 (Shard 1200/3000 |  18%)] LR:2.87e-04 Fwd:3ms Loss:149ms Opt:189ms | Step:524ms | Loss: 1.9603 | Val: 1.9913
+[13500/72000 (Shard 1500/3000 |  18%)] LR:2.86e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:525ms | Loss: 2.0352 | Val: 1.9586
+[13800/72000 (Shard 1800/3000 |  19%)] LR:2.85e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 1.9861 | Val: 1.9560
+[14100/72000 (Shard 2100/3000 |  19%)] LR:2.85e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:525ms | Loss: 1.9643 | Val: 1.9901
+[14400/72000 (Shard 2400/3000 |  20%)] LR:2.84e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:522ms | Loss: 1.9327 | Val: 1.9890
+[14700/72000 (Shard 2700/3000 |  20%)] LR:2.83e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 1.9818 | Val: 2.0099
+[15000/72000 (Shard 3000/3000 |  20%)] LR:2.82e-04 Fwd:4ms Loss:146ms Opt:190ms | Step:524ms | Loss: 2.0577 | Val: 2.0170
+------------------------------------------------------------
+Training Complete! Total Duration: 1578.31 seconds.
+
+Exporting Trained Model to tinystories_shard04.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 15000) to tinystories_shard04.bin!
+Successfully saved AdamW optimizer state (step 12058) to tinystories_shard04.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be scared.
+They hug Mom and Dad. They say they are sorry and they will never play with you. They will not forget to be careful in the garden, but they will not touch it. They are very happy, but they are also curious.
+<|endoftext|>
+
+
+Lily and Tom were best friends. They liked. They had many toys and books. One day, they found a big box. They wanted, but they had to use the box.
+"Let's open it!" Lily said, "No, this box is mine. You can't open it."
+But Tom did not listen. He pushed and pulled the box. The box broke into pieces. Ben and Lily were very sad and angry.
+They heard. They ran to the box and looked for something. They found a box of toys. They opened the box and saw a big red apple. They wanted, but they did not see it.
+They felt sorry. They wanted. They decided to share the apple with Lily. They shared the apple. They were happy and shared and played with other kids.
+<|endoftext|>
+
+
+Lily was a big girl who liked, but she had many ideas to make her friends, Max. He wore a big heart and went to the living room. Lily liked. She would tell her mom what she liked to do.
+One day and Lily were playing in the living room and making a big mess. She saw a plate of cookies and some cookies. She wanted to eat them. She asked her mom if they could have one. Her mom said no. Her mom said no. "You must be careful. You have to respect some cookies and milk."
+Lily was sad. She wanted, but she did not have any cookies, when she was not looking. She saw a red apple on a plate, and she wanted. She picked it up and saw a plate of cookies. She wanted to share them with her friends.
+She took a bowl and a plate of cookies. She put them in her mouth and a plate. She mixed up a big plate and her plate. She took out some cookies and a plate. She gave them to the kids. They smiled at Lily and said to herself.
+Lily was happy. She liked her plate. She liked her plate. She thought it was pretty to show Max her plate. She wanted, but she was not happy. She did not want. She liked
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 04 (shard_04.txt). Saved checkpoint: tinystories_shard04.bin <<<
+>>> Advancing loop to next Shard Index 05 (shard_05.txt)...
+
+------------------------------------------------------------
+[Shard Index 05 (6/24)] Input: shard_05.txt -> Saving Checkpoint: tinystories_shard05.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard04.bin -> tinystories_shard05.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_05.txt" -f="tinystories_shard05.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_05.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_05.txt.tok.bin...
+      Total Dataset Tokens: 24134201 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21720780
+      -> Validation Tokens: 2413421
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard05.bin...
+Successfully loaded GPT model weights from tinystories_shard05.bin (restored at completed step 15000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 12058) from tinystories_shard05.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=15000 -> 18000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[15001/72000 (Shard 1/3000 |  20%)] LR:2.82e-04 Fwd:176ms Loss:114ms Opt:189ms | Step:647ms | Loss: 1.9695
+[15300/72000 (Shard 300/3000 |  21%)] LR:2.81e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 1.9906 | Val: 1.9352
+[15600/72000 (Shard 600/3000 |  21%)] LR:2.80e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:525ms | Loss: 1.8471 | Val: 1.9893
+[15900/72000 (Shard 900/3000 |  22%)] LR:2.79e-04 Fwd:3ms Loss:149ms Opt:189ms | Step:524ms | Loss: 1.9676 | Val: 1.9406
+[16200/72000 (Shard 1200/3000 |  22%)] LR:2.78e-04 Fwd:4ms Loss:147ms Opt:189ms | Step:523ms | Loss: 1.8326 | Val: 2.0003
+[16500/72000 (Shard 1500/3000 |  22%)] LR:2.77e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 1.9425 | Val: 1.9282
+[16800/72000 (Shard 1800/3000 |  23%)] LR:2.76e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 1.9600 | Val: 1.9727
+[17100/72000 (Shard 2100/3000 |  23%)] LR:2.75e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:522ms | Loss: 2.0583 | Val: 1.9665
+[17400/72000 (Shard 2400/3000 |  24%)] LR:2.74e-04 Fwd:3ms Loss:148ms Opt:190ms | Step:522ms | Loss: 1.9688 | Val: 1.9465
+[17700/72000 (Shard 2700/3000 |  24%)] LR:2.73e-04 Fwd:3ms Loss:147ms Opt:191ms | Step:523ms | Loss: 1.9761 | Val: 1.9661
+[18000/72000 (Shard 3000/3000 |  25%)] LR:2.72e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:525ms | Loss: 1.9134 | Val: 1.9625
+------------------------------------------------------------
+Training Complete! Total Duration: 1577.85 seconds.
+
+Exporting Trained Model to tinystories_shard05.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 18000) to tinystories_shard05.bin!
+Successfully saved AdamW optimizer state (step 15010) to tinystories_shard05.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be scared anymore, but we all love it, but we can still have it. But for now, we have to be more careful next time.
+<|endoftext|>
+Once upon a time. there was a big cat. The cat was very sad there. The cat felt sad.
+One day and the cat went for a walk to find food. The cat met a little fish. The big cat was sad a long time. The cat wanted to help the fish feel better.
+The cat and the little fish swam together, looking for food. They found a nice, yummy fish. They ate the fish and had the food in the middle. The cat was very happy.
+<|endoftext|>
+One day, her mom and dad were watching to watch TV. They were having a fun time playing on the beach. The sun was shining so much that the cat wanted. One to the TV, to get there.
+The cat's mom asked him to get to the TV. She said there was a boy named Tim. Tim was happy. He wanted, but he was scared again. He didn't like the TV.
+Tim thought it was a fun game to play in the water. He played with the stove and the TV. But then, a big bird came. The bird took Tim and the stove away. Tim was sad and missed the bird.
+<|endoftext|>
+Once upon a time, a little boy named Tim found a marble. The marble was not a good marble to play with. It was a big, pretty marble. Tim liked to draw, and he drew a cat named Lily, who was a cat. They played with the marble every to each other.
+One day, the marble was very dirty, but it was time to clean up. Tim and Sue wanted, so they decided to clean the marble. They took turns making a big, colorful marble. Tim and Sue were so happy, and they played with the marble all toniscisicip.
+At the end of the day, the marble was clean and not smelly anymore. Tim and Sue became good friends to everyone who loved to draw on the marble. The marble taught them how to draw and be safe together.
+<|endoftext|>
+Once upon a time,,. A little boy named Tim went to the beach. Tim loved and liked to play in the sand. He saw a big, round thing on the sand. It was a big
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 05 (shard_05.txt). Saved checkpoint: tinystories_shard05.bin <<<
+>>> Advancing loop to next Shard Index 06 (shard_06.txt)...
+
+------------------------------------------------------------
+[Shard Index 06 (7/24)] Input: shard_06.txt -> Saving Checkpoint: tinystories_shard06.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard05.bin -> tinystories_shard06.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_06.txt" -f="tinystories_shard06.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_06.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_06.txt.tok.bin...
+      Total Dataset Tokens: 24130492 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21717442
+      -> Validation Tokens: 2413050
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard06.bin...
+Successfully loaded GPT model weights from tinystories_shard06.bin (restored at completed step 18000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 15010) from tinystories_shard06.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=18000 -> 21000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[18001/72000 (Shard 1/3000 |  25%)] LR:2.72e-04 Fwd:176ms Loss:111ms Opt:189ms | Step:647ms | Loss: 2.0270
+[18300/72000 (Shard 300/3000 |  25%)] LR:2.70e-04 Fwd:3ms Loss:150ms Opt:190ms | Step:525ms | Loss: 2.0055 | Val: 1.9715
+[18600/72000 (Shard 600/3000 |  25%)] LR:2.69e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:524ms | Loss: 2.0148 | Val: 1.9668
+[18900/72000 (Shard 900/3000 |  26%)] LR:2.68e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:521ms | Loss: 2.0412 | Val: 2.0281
+[19200/72000 (Shard 1200/3000 |  26%)] LR:2.67e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 2.1063 | Val: 1.9535
+[19500/72000 (Shard 1500/3000 |  27%)] LR:2.66e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 2.0061 | Val: 2.0118
+[19800/72000 (Shard 1800/3000 |  27%)] LR:2.64e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 1.9353 | Val: 1.9750
+[20100/72000 (Shard 2100/3000 |  27%)] LR:2.63e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 1.9916 | Val: 1.9823
+[20400/72000 (Shard 2400/3000 |  28%)] LR:2.62e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 1.9209 | Val: 1.9855
+[20700/72000 (Shard 2700/3000 |  28%)] LR:2.60e-04 Fwd:4ms Loss:148ms Opt:189ms | Step:523ms | Loss: 1.9742 | Val: 1.9312
+[21000/72000 (Shard 3000/3000 |  29%)] LR:2.59e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:524ms | Loss: 1.9766 | Val: 1.9358
+------------------------------------------------------------
+Training Complete! Total Duration: 1575.88 seconds.
+
+Exporting Trained Model to tinystories_shard06.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 21000) to tinystories_shard06.bin!
+Successfully saved AdamW optimizer state (step 18005) to tinystories_shard06.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be seen again.
+Tom and Sue were scared. They tried to run away from the house. They did not know how and never saw that the bear was. They hoped to get away from the house.
+The bear saw a big box near the tree. The box had a picture of. The bear wanted to take the cat out. But the box was too big and too big. Tom and Sue were not sure.
+They tried. The bear was too strong. The bear and the cat could not get out. They were stuck in a tree. They were in trouble. They could not get out.
+<|endoftext|>
+Once upon a time,. A little girl named Sue went to a big park. She wanted in a game with her friends. Sue liked. She saw a pretty butterfly and wanted. She wanted.
+Sue asked her friends if they could fly to the butterfly. The friends said, "Yes. Let's fly!" They flew up and up, up and down. But, while they were flying, they saw a big frog.
+The frog said, "Hello, I am Mr in the game. Do you want the frog to come to?" Sue and her friends were scared. They did not know if they could fly in the sky. But then, something unexpected happened.
+The frog said and jumped up. Sue was happy, and the frog jumped out. They became good friends. They played with the frog all day long.
+<|endoftext|>
+
+Once upon a time. A little boy named Jack wanted to get a closer look, so he got his scooter. He put the scooter in front of the pond and began, feeling a bit scared.
+Jack walked away and tried to stop, but he could not. He was getting tired and he didn't want to get to his scooter. He said.
+Jack's mom saw him and said. She said, "Two bad, Jack. You should stay here and try your scooter. That's not nice, but that's not good."
+Jack felt so sad that he couldn't play with the scooter anymore, but he still felt happy.
+<|endoftext|>
+Once upon a time. there was his dog, Max. This dog was a big dog. Max liked to play with his ball and run in the yard. The sun was shining bright and Max was very happy.
+One day, Max
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 06 (shard_06.txt). Saved checkpoint: tinystories_shard06.bin <<<
+>>> Advancing loop to next Shard Index 07 (shard_07.txt)...
+
+------------------------------------------------------------
+[Shard Index 07 (8/24)] Input: shard_07.txt -> Saving Checkpoint: tinystories_shard07.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard06.bin -> tinystories_shard07.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_07.txt" -f="tinystories_shard07.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_07.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_07.txt.tok.bin...
+      Total Dataset Tokens: 24125355 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21712819
+      -> Validation Tokens: 2412536
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard07.bin...
+Successfully loaded GPT model weights from tinystories_shard07.bin (restored at completed step 21000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 18005) from tinystories_shard07.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=21000 -> 24000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[21001/72000 (Shard 1/3000 |  29%)] LR:2.59e-04 Fwd:177ms Loss:111ms Opt:193ms | Step:649ms | Loss: 1.9415
+[21300/72000 (Shard 300/3000 |  29%)] LR:2.58e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 2.0920 | Val: 1.9885
+[21600/72000 (Shard 600/3000 |  30%)] LR:2.56e-04 Fwd:3ms Loss:151ms Opt:189ms | Step:525ms | Loss: 1.9573 | Val: 1.9640
+[21900/72000 (Shard 900/3000 |  30%)] LR:2.55e-04 Fwd:4ms Loss:147ms Opt:189ms | Step:523ms | Loss: 1.9209 | Val: 1.9756
+[22200/72000 (Shard 1200/3000 |  30%)] LR:2.54e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 2.0107 | Val: 1.9850
+[22500/72000 (Shard 1500/3000 |  31%)] LR:2.52e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 1.9398 | Val: 2.0204
+[22800/72000 (Shard 1800/3000 |  31%)] LR:2.51e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 2.0829 | Val: 2.0297
+[23100/72000 (Shard 2100/3000 |  32%)] LR:2.49e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 1.9356 | Val: 1.9952
+[23400/72000 (Shard 2400/3000 |  32%)] LR:2.48e-04 Fwd:3ms Loss:148ms Opt:189ms | Step:523ms | Loss: 2.0653 | Val: 2.0196
+[23700/72000 (Shard 2700/3000 |  32%)] LR:2.46e-04 Fwd:3ms Loss:150ms Opt:189ms | Step:524ms | Loss: 1.9810 | Val: 1.9722
+[24000/72000 (Shard 3000/3000 |  33%)] LR:2.45e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 2.0404 | Val: 2.0537
+------------------------------------------------------------
+Training Complete! Total Duration: 1576.09 seconds.
+
+Exporting Trained Model to tinystories_shard07.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 24000) to tinystories_shard07.bin!
+Successfully saved AdamW optimizer state (step 21005) to tinystories_shard07.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be scared. Maybe they are safe."
+Lily and Tom were scared. They did not know the sign was mean and scary. They did not know what to do.
+They got out of the box and ran to their room. But they could not find the box.
+Mom heard the noise. She saw them and ran to them, who was looking for them, but she was not there with the map, and she saw a big dog. The dog was barking and barking. It was a scary dog that looked scary and scary. It had a long tail and to toe it. The dog did not like it, but it was not scary, and it was not scary. It was his dad's big sister to see it. They were scared and scared that the dog would take them away from the dog, but it was too late. The map was not nice. The dog was sad.
+Lily cried. She was in pain to cry. She was very angry. She had been very bad. She did not mean, but she could not get the map. She was alone in the corner to hurt herself day.
+She was in trouble. She hurt her and cried. She cried. She wished to be free. She wished. She wished, but no one could see the big dog. She did not know how to take things, not with them. She wished, a nice dog, a cat. She was a good dog.
+<|endoftext|>
+Once upon a time,. there was a little girl named Lily. She had a toy frog that was very special. One day, she saw a big tree with a hole in her yard, to make it hole.
+Lily said. "Hello, frog. Do you want. I will show you my frog. Let's give it a try." The frog was happy. They tried.
+Then, the frog jumped inside. It jumped out of the hole. The snake was now gone. Lily and Tim could not see it. They were sad. The frog was happy.
+<|endoftext|>
+Once upon a time. Near the road. In the road. In the road, there was a big race track. Many kids were there. They wanted to see who was the fastest.
+One day, the small ball went very high! The big ball went up, up, up, up. The big ball went up, up, up and up. The
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 07 (shard_07.txt). Saved checkpoint: tinystories_shard07.bin <<<
+>>> Advancing loop to next Shard Index 08 (shard_08.txt)...
+
+------------------------------------------------------------
+[Shard Index 08 (9/24)] Input: shard_08.txt -> Saving Checkpoint: tinystories_shard08.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard07.bin -> tinystories_shard08.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_08.txt" -f="tinystories_shard08.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_08.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from C:\Users\bogaz\MGPT\mgpt\tinystories\shard_08.txt.tok.bin...
+      Total Dataset Tokens: 24125517 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   21712965
+      -> Validation Tokens: 2412552
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard08.bin...
+Successfully loaded GPT model weights from tinystories_shard08.bin (restored at completed step 24000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 21005) from tinystories_shard08.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=24000 -> 27000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[24001/72000 (Shard 1/3000 |  33%)] LR:2.45e-04 Fwd:176ms Loss:111ms Opt:189ms | Step:646ms | Loss: 1.9390
+[24300/72000 (Shard 300/3000 |  33%)] LR:2.43e-04 Fwd:4ms Loss:150ms Opt:189ms | Step:524ms | Loss: 1.9025 | Val: 2.0412
+[24600/72000 (Shard 600/3000 |  34%)] LR:2.42e-04 Fwd:3ms Loss:148ms Opt:189ms | Step:523ms | Loss: 1.9849 | Val: 2.0063
+[24900/72000 (Shard 900/3000 |  34%)] LR:2.40e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 1.9214 | Val: 2.0221
+[25200/72000 (Shard 1200/3000 |  35%)] LR:2.39e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 1.9737 | Val: 1.9571
+[25500/72000 (Shard 1500/3000 |  35%)] LR:2.37e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 2.0723 | Val: 2.0501
+[25800/72000 (Shard 1800/3000 |  35%)] LR:2.36e-04 Fwd:3ms Loss:147ms Opt:191ms | Step:523ms | Loss: 2.0152 | Val: 2.0116
+[26100/72000 (Shard 2100/3000 |  36%)] LR:2.34e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:525ms | Loss: 1.9204 | Val: 1.9502
+[26400/72000 (Shard 2400/3000 |  36%)] LR:2.33e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 1.9256 | Val: 1.9421
+[26700/72000 (Shard 2700/3000 |  37%)] LR:2.31e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 1.9798 | Val: 2.0735
+[27000/72000 (Shard 3000/3000 |  37%)] LR:2.29e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 1.9419 | Val: 2.0657
+------------------------------------------------------------
+Training Complete! Total Duration: 1576.26 seconds.
+
+Exporting Trained Model to tinystories_shard08.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 27000) to tinystories_shard08.bin!
+Successfully saved AdamW optimizer state (step 24001) to tinystories_shard08.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be happy again and that would be the best one.
+<|endoftext|>
+Once upon a time. that was his first time,. It was not nice to have others. One day, the wind came and made things with his friends. They all wanted in the sky.
+On the day of the day, it was very quiet. The wind and the wind would get clean. The wind blew and the sun, and the birds were all happy.
+But then, something unexpected happened. The wind blew and the rain started. They were very sad, and they could not play anymore, but the wind came.
+<|endoftext|>
+Once upon a time. there was a little boy named Tim, who loved. He had a toy named Mr to him. Tim and Mr. Brown played together every. They had.
+One day. Tim's mom showed him how to put his toy in the toy box. Tim tried to keep it safe. He put the toy in a big box and opened it. Inside, he found a new toy. It was an expensive toy! Tim was very happy.
+Tim was excited that Mr, but when he got to the toy box, something unexpected happened. The toy box started to move! It opened, and inside was a big, friendly dog named Mr. Brown. Tim and Mr to Mr. Brown. They played together every day! They had. Tim would take Mr. Brown to a new friend to play with, and Mr. Brown was not sad anymore. They all lived happily ever after a long time.
+<|endoftext|>
+Once upon a time, and the sun was shining in the sun to shine. It was so bright that the sun was glowing and it was not so hot. It was very bright. One day, the sun started. The sun was very hot.
+But then, a big cloud came. It was so hot that it could not fly. The sun and rained down. The sun said and it did not go to wake up. The sun was sad because it could not shine as the sun.
+But then, something unexpected happened to the cloud. The sun saw a big cloud and wanted, but it was too big for the sun. The sun and the cloud became friends. They would sit on the cloud every day. The sun helped the sun, and they would feel better together.
+<|endoftext|>
+
+
+
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 08 (shard_08.txt). Saved checkpoint: tinystories_shard08.bin <<<
+>>> Advancing loop to next Shard Index 09 (shard_09.txt)...
+
+------------------------------------------------------------
+[Shard Index 09 (10/24)] Input: shard_09.txt -> Saving Checkpoint: tinystories_shard09.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard08.bin -> tinystories_shard09.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_09.txt" -f="tinystories_shard09.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_09.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_09.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24131012
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_09.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_09.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21717910
+      -> Validation Tokens: 2413102
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard09.bin...
+Successfully loaded GPT model weights from tinystories_shard09.bin (restored at completed step 27000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 24001) from tinystories_shard09.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=27000 -> 30000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[27001/72000 (Shard 1/3000 |  37%)] LR:2.29e-04 Fwd:191ms Loss:110ms Opt:188ms | Step:658ms | Loss: 2.0467
+[27300/72000 (Shard 300/3000 |  37%)] LR:2.28e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 2.1297 | Val: 1.9613
+[27600/72000 (Shard 600/3000 |  38%)] LR:2.26e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 1.9745 | Val: 1.9995
+[27900/72000 (Shard 900/3000 |  38%)] LR:2.24e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 2.0090 | Val: 1.9737
+[28200/72000 (Shard 1200/3000 |  39%)] LR:2.23e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:520ms | Loss: 1.9772 | Val: 2.0146
+[28500/72000 (Shard 1500/3000 |  39%)] LR:2.21e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 2.1074 | Val: 1.9660
+[28800/72000 (Shard 1800/3000 |  40%)] LR:2.19e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 2.0451 | Val: 2.0078
+[29100/72000 (Shard 2100/3000 |  40%)] LR:2.18e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 2.0194 | Val: 2.0065
+[29400/72000 (Shard 2400/3000 |  40%)] LR:2.16e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 1.9220 | Val: 1.9704
+[29700/72000 (Shard 2700/3000 |  41%)] LR:2.14e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:521ms | Loss: 1.9695 | Val: 1.9605
+[30000/72000 (Shard 3000/3000 |  41%)] LR:2.12e-04 Fwd:3ms Loss:147ms Opt:191ms | Step:523ms | Loss: 1.8999 | Val: 2.0047
+------------------------------------------------------------
+Training Complete! Total Duration: 1575.27 seconds.
+
+Exporting Trained Model to tinystories_shard09.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 30000) to tinystories_shard09.bin!
+Successfully saved AdamW optimizer state (step 27000) to tinystories_shard09.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be afraid of what he did. She would never know what would happen if they could have anything around them. She had no idea. She had an idea.
+She decided. She went to the kitchen and picked up the spoon. She put a spoon on the table. She said. She put the spoon. She said it was not a toy. She said it was too heavy and it could burn.
+She gave the spoon to the boy and said, "Happy birthday, little boy. You are very brave. I like you. I like the spoon." She took the spoon and tried to eat the spoon. She said.
+Ben and Lily tried to eat the spoon, but they could not open the spoon. They felt very tired to take a break and fall down. They got very scared.
+They cried. They dropped the spoon and ran to their room, but they could not. They could not get out. They did not know what. They did not know what, but they did not know what.
+Then they heardÇ a voice. It was the spoon. It had opened. They saw a man with. He was holding a big box of food. He had. He had to take their food and food. He was a thief. He liked to make food and cake.
+Ben and Lily were scared. They tried to run away. They pulled and pulled. They screamed. They tried to run away. But it was too late. They could not get out of the box. They were alone and scared. They did not know what.
+The end.
+<|endoftext|>
+
+Once uponÇ there was a little boy named Sammy, who was very curious. Every day, Sammy would sit in the garden and look out the window to see the sun come out and the field, and soon they came to a big field. Sammy's mom said, "Wow, Sammy! You are so big!" Sammy said, "Yes and let's go!"
+The next day, Sammy and Sammy got ready to take a walk and found an old tree, and Sammy's mom said, "It's a nice tree and you can sit and rest." Sammy smiled and said, "Thank you!" Sammy put on his coat every day, and he kept walking and looking at all the different trees and flowers.
+At the end of the day, Sammy was no longer feeling very happy. He was so happy to have his
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 09 (shard_09.txt). Saved checkpoint: tinystories_shard09.bin <<<
+>>> Advancing loop to next Shard Index 10 (shard_10.txt)...
+
+------------------------------------------------------------
+[Shard Index 10 (11/24)] Input: shard_10.txt -> Saving Checkpoint: tinystories_shard10.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard09.bin -> tinystories_shard10.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_10.txt" -f="tinystories_shard10.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_10.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_10.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24127483
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_10.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_10.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21714734
+      -> Validation Tokens: 2412749
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard10.bin...
+Successfully loaded GPT model weights from tinystories_shard10.bin (restored at completed step 30000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 27000) from tinystories_shard10.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=30000 -> 33000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[30001/72000 (Shard 1/3000 |  41%)] LR:2.12e-04 Fwd:189ms Loss:116ms Opt:190ms | Step:663ms | Loss: 2.0550
+[30300/72000 (Shard 300/3000 |  42%)] LR:2.11e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 1.9207 | Val: 1.9737
+[30600/72000 (Shard 600/3000 |  42%)] LR:2.09e-04 Fwd:5ms Loss:148ms Opt:189ms | Step:523ms | Loss: 2.0172 | Val: 1.9882
+[30900/72000 (Shard 900/3000 |  42%)] LR:2.07e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 1.9889 | Val: 1.9913
+[31200/72000 (Shard 1200/3000 |  43%)] LR:2.05e-04 Fwd:5ms Loss:147ms Opt:189ms | Step:523ms | Loss: 2.0934 | Val: 2.0100
+[31500/72000 (Shard 1500/3000 |  43%)] LR:2.04e-04 Fwd:3ms Loss:149ms Opt:189ms | Step:524ms | Loss: 1.9352 | Val: 1.9948
+[31800/72000 (Shard 1800/3000 |  44%)] LR:2.02e-04 Fwd:3ms Loss:148ms Opt:189ms | Step:523ms | Loss: 2.0954 | Val: 2.0246
+[32100/72000 (Shard 2100/3000 |  44%)] LR:2.00e-04 Fwd:4ms Loss:149ms Opt:189ms | Step:523ms | Loss: 1.9579 | Val: 1.9807
+[32400/72000 (Shard 2400/3000 |  45%)] LR:1.98e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:520ms | Loss: 2.1645 | Val: 1.9945
+[32700/72000 (Shard 2700/3000 |  45%)] LR:1.96e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:521ms | Loss: 1.9615 | Val: 1.9709
+[33000/72000 (Shard 3000/3000 |  45%)] LR:1.95e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 1.8708 | Val: 2.0045
+------------------------------------------------------------
+Training Complete! Total Duration: 1576.36 seconds.
+
+Exporting Trained Model to tinystories_shard10.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 33000) to tinystories_shard10.bin!
+Successfully saved AdamW optimizer state (step 30002) to tinystories_shard10.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be so scary, but they can still be brave enough.
+<|endoftext|>
+One day, a little girl named Lucy went to the park. The park, there was a big slide. Lucy liked. She wanted to play too.
+At the park. She saw a boy named Tim to go on the slide the slide. Sue wanted, so she said, "I want to play with you." Tim liked to play and watch.
+Then, Lucy saw a big, red ball. "Let's play with it!" said Tim. They started to play, but Tim accidentally tripped on a rock and broke his toy. They both felt sad.
+Then, a nice man came to help them. He said, "I can save a big ball. It will make the ball go down. It is just fun." Lucy and Tim were happy. They both went to get the ball. But then, a big dog came and took the ball far away. Lucy and Tim were sad. The big dog chased them.
+<|endoftext|>
+Once upon a time. there was a boy named Tim. Tim had a toy, a big, red ball. He loved to play with his ball every day and always wore his big red ball, even when he played with his ball.
+One day, Tim lost, because he was very sad. He could not find his ball. He was very sad, and his mom came to help him. She told him to look where the big, red ball was. Tim looked and looked, but he could not find it.
+Tim's mom saw Tim was sad. She had an idea. She found a soft, blue ball. Tim played with the big, red ball all to himself. He threw it and it went far away. It went up and up, up, up into the sky.
+Tim was very happy to have his big, yellow ball, but he could not do it again. Tim was sad because he lost his favorite ball. His mom hugged him and told him to sit on his mattress, because they could not find it.
+<|endoftext|>
+
+
+Tom and Mia went to the park,, about the sunset. They liked to play with toys, but sometimes they felt bored. They wanted to buy some toys, but they had to be careful.
+"Can I have one toy, please?" Tom asked there.
+"No, it's mine," Mia
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 10 (shard_10.txt). Saved checkpoint: tinystories_shard10.bin <<<
+>>> Advancing loop to next Shard Index 11 (shard_11.txt)...
+
+------------------------------------------------------------
+[Shard Index 11 (12/24)] Input: shard_11.txt -> Saving Checkpoint: tinystories_shard11.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard10.bin -> tinystories_shard11.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_11.txt" -f="tinystories_shard11.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_11.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_11.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24135956
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_11.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_11.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21722360
+      -> Validation Tokens: 2413596
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard11.bin...
+Successfully loaded GPT model weights from tinystories_shard11.bin (restored at completed step 33000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 30002) from tinystories_shard11.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=33000 -> 36000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[33001/72000 (Shard 1/3000 |  45%)] LR:1.95e-04 Fwd:187ms Loss:111ms Opt:193ms | Step:659ms | Loss: 1.9812
+[33300/72000 (Shard 300/3000 |  46%)] LR:1.93e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:524ms | Loss: 2.0402 | Val: 2.0185
+[33600/72000 (Shard 600/3000 |  46%)] LR:1.91e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:524ms | Loss: 2.0751 | Val: 2.0333
+[33900/72000 (Shard 900/3000 |  47%)] LR:1.89e-04 Fwd:3ms Loss:150ms Opt:189ms | Step:524ms | Loss: 2.0501 | Val: 1.9827
+[34200/72000 (Shard 1200/3000 |  47%)] LR:1.87e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:522ms | Loss: 1.9484 | Val: 2.0010
+[34500/72000 (Shard 1500/3000 |  47%)] LR:1.85e-04 Fwd:3ms Loss:146ms Opt:192ms | Step:524ms | Loss: 2.0207 | Val: 2.0441
+[34800/72000 (Shard 1800/3000 |  48%)] LR:1.84e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:524ms | Loss: 2.0840 | Val: 1.9603
+[35100/72000 (Shard 2100/3000 |  48%)] LR:1.82e-04 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 1.9732 | Val: 1.9811
+[35400/72000 (Shard 2400/3000 |  49%)] LR:1.80e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:521ms | Loss: 2.0134 | Val: 2.0224
+[35700/72000 (Shard 2700/3000 |  49%)] LR:1.78e-04 Fwd:3ms Loss:147ms Opt:191ms | Step:523ms | Loss: 1.9874 | Val: 2.0328
+[36000/72000 (Shard 3000/3000 |  50%)] LR:1.76e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:523ms | Loss: 2.1492 | Val: 1.9695
+------------------------------------------------------------
+Training Complete! Total Duration: 1577.04 seconds.
+
+Exporting Trained Model to tinystories_shard11.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 36000) to tinystories_shard11.bin!
+Successfully saved AdamW optimizer state (step 33000) to tinystories_shard11.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be afraid, it was just a nice place. It was not scary and boring. It was scary. It was just a toy. It was a snake. It had and legs and spikes. It was very pretty. It had. It was a snake. It was a snake. It was shiny and had and a big hole,. It was a snake.
+Lily and Ben were very happy. They thanked the snake. They went back to their home to tell their mom. Mom was happy. She said. She said she loved them. She was the best.
+<|endoftext|>
+
+Once uponÇ there was a little girl who was very lonely and she was very sad a lot.
+One day, the little girl was very bored and wanted, with her mom. She looked everywhere, but she couldn't find anything to do. She tried to look around, but it was too dark and it wouldn't work.
+Suddenly, a big bear came and saw a small girl. The big bear wanted to help her, so it hopped around and said to the little girl, "Can I help you?"
+The little girl was so excited, she gave it some food and some food. The big bear was very happy, and they both ate together.
+After they finished eating, the big bear said, "Thank you for finding me! Now I will come and visit you again next time."
+The little girl was so glad she could help the bear. After that, she said, "Let's go!"
+The big bear agreed to go to the bear. When they arrived, it was time to go! She thanked the big bear and gave him a big hug again, and then he thanked the bear.
+The little girl waved goodbye to the bear and they both went back to the bear. They played together and had lots of fun to play. The bear was very happy.
+<|endoftext|>
+
+Once uponÇ upon a time. A little girl, Amy, was very brave. She looked around and saw a big, wide field. The field was full of grass. She said to herself, "Let's go to the field! I can't take it!"
+Amy was excited, but she kept walking in the field. She came across an open field and saw lots of fun things. Then she went over to pick it up and picked it up, then her mom smiled
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 11 (shard_11.txt). Saved checkpoint: tinystories_shard11.bin <<<
+>>> Advancing loop to next Shard Index 12 (shard_12.txt)...
+
+------------------------------------------------------------
+[Shard Index 12 (13/24)] Input: shard_12.txt -> Saving Checkpoint: tinystories_shard12.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard11.bin -> tinystories_shard12.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_12.txt" -f="tinystories_shard12.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_12.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_12.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24123002
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_12.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_12.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21710701
+      -> Validation Tokens: 2412301
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard12.bin...
+Successfully loaded GPT model weights from tinystories_shard12.bin (restored at completed step 36000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 33000) from tinystories_shard12.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=36000 -> 39000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[36001/72000 (Shard 1/3000 |  50%)] LR:1.76e-04 Fwd:189ms Loss:111ms Opt:188ms | Step:656ms | Loss: 1.9855
+[36300/72000 (Shard 300/3000 |  50%)] LR:1.74e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:524ms | Loss: 1.9455 | Val: 1.9852
+[36600/72000 (Shard 600/3000 |  50%)] LR:1.72e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:525ms | Loss: 2.0002 | Val: 1.9967
+[36900/72000 (Shard 900/3000 |  51%)] LR:1.71e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 1.9324 | Val: 1.9553
+[37200/72000 (Shard 1200/3000 |  51%)] LR:1.69e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 1.9480 | Val: 1.9990
+[37500/72000 (Shard 1500/3000 |  52%)] LR:1.67e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:525ms | Loss: 1.8760 | Val: 1.9805
+[37800/72000 (Shard 1800/3000 |  52%)] LR:1.65e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 2.0691 | Val: 2.0337
+[38100/72000 (Shard 2100/3000 |  52%)] LR:1.63e-04 Fwd:3ms Loss:149ms Opt:190ms | Step:526ms | Loss: 1.9278 | Val: 2.0028
+[38400/72000 (Shard 2400/3000 |  53%)] LR:1.61e-04 Fwd:3ms Loss:146ms Opt:194ms | Step:526ms | Loss: 1.9504 | Val: 2.0442
+[38700/72000 (Shard 2700/3000 |  53%)] LR:1.59e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 2.0859 | Val: 1.9995
+[39000/72000 (Shard 3000/3000 |  54%)] LR:1.58e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:525ms | Loss: 2.0531 | Val: 2.0034
+------------------------------------------------------------
+Training Complete! Total Duration: 1579.53 seconds.
+
+Exporting Trained Model to tinystories_shard12.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 39000) to tinystories_shard12.bin!
+Successfully saved AdamW optimizer state (step 36000) to tinystories_shard12.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be.
+<|endoftext|>
+Once upon a time, there was a big boat. The boat could go fast. It was very fast. One day. It wanted, flies, and trees in the water, but it was too late.
+The boat tried to go fast and got very wet. The boat's boat were very wet. The boat was sad, but the boat did not stop. The boat and the boat became best friends for the boat.
+The boat and the boat were friends. They swam and swam. They played and splashed in the harbor. They had. They were happy.
+<|endoftext|>
+Once upon a time,. A little boy named Tim was playing in the park. He saw a big, red ball on the ground. Tim picked it up and said that it was not good to play with. He was very happy, but then he saw many other kids playing.
+Tim wanted. He went to Tim and said, "Hi, I am Tim. Do you want and play?" Tim said. "Yes, Tim! Let's play together!" So, Tim and Sam played with the ball all day long.
+At the end of the day, they went home. Tim was happy, and Sam's mom was proud of him. She gave them a big, red ball. Tim and Sam played with the ball all there!
+<|endoftext|>
+Once upon. there was a little boy named Tim, who was playing in the garden. He saw a big, red ball and wanted, but the ball was too high up.
+Tim tried. He asked his mom for help. "Mom, can you help me get the ball?" he asked. His mom said, "Yes. Let's find a long, strong tree to get the ball."
+They looked and looked until they foundÇ The ball was so big it could roll very high in the sky to catch it. But when they got there, it was difficult. Tim felt scared.
+In the end, Tim's mom came into the house, and she saw the ball. She was very happy to see what it was. She said. "Tim, you are a good girl!" Tim felt bad for being naughty and not to play with the ball.
+<|endoftext|>
+One day, a little boy named Tim went to the beach,. He saw a big, red ball. Tim wanted to play with the ball
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 12 (shard_12.txt). Saved checkpoint: tinystories_shard12.bin <<<
+>>> Advancing loop to next Shard Index 13 (shard_13.txt)...
+
+------------------------------------------------------------
+[Shard Index 13 (14/24)] Input: shard_13.txt -> Saving Checkpoint: tinystories_shard13.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard12.bin -> tinystories_shard13.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_13.txt" -f="tinystories_shard13.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_13.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_13.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24128457
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_13.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_13.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21715611
+      -> Validation Tokens: 2412846
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard13.bin...
+Successfully loaded GPT model weights from tinystories_shard13.bin (restored at completed step 39000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 36000) from tinystories_shard13.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=39000 -> 42000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[39001/72000 (Shard 1/3000 |  54%)] LR:1.58e-04 Fwd:188ms Loss:114ms Opt:193ms | Step:668ms | Loss: 2.0366
+[39300/72000 (Shard 300/3000 |  54%)] LR:1.56e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:526ms | Loss: 1.9117 | Val: 2.0226
+[39600/72000 (Shard 600/3000 |  55%)] LR:1.54e-04 Fwd:3ms Loss:148ms Opt:192ms | Step:525ms | Loss: 2.1075 | Val: 1.9886
+[39900/72000 (Shard 900/3000 |  55%)] LR:1.52e-04 Fwd:3ms Loss:146ms Opt:190ms | Step:521ms | Loss: 2.0905 | Val: 2.0028
+[40200/72000 (Shard 1200/3000 |  55%)] LR:1.50e-04 Fwd:3ms Loss:149ms Opt:190ms | Step:524ms | Loss: 1.9814 | Val: 1.9793
+[40500/72000 (Shard 1500/3000 |  56%)] LR:1.48e-04 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 2.0000 | Val: 2.0051
+[40800/72000 (Shard 1800/3000 |  56%)] LR:1.46e-04 Fwd:3ms Loss:147ms Opt:191ms | Step:523ms | Loss: 1.9150 | Val: 1.9983
+[41100/72000 (Shard 2100/3000 |  57%)] LR:1.45e-04 Fwd:3ms Loss:148ms Opt:189ms | Step:526ms | Loss: 2.1132 | Val: 2.0190
+[41400/72000 (Shard 2400/3000 |  57%)] LR:1.43e-04 Fwd:3ms Loss:148ms Opt:192ms | Step:526ms | Loss: 1.9595 | Val: 1.9942
+[41700/72000 (Shard 2700/3000 |  57%)] LR:1.41e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:523ms | Loss: 1.9679 | Val: 1.9946
+[42000/72000 (Shard 3000/3000 |  58%)] LR:1.39e-04 Fwd:3ms Loss:148ms Opt:193ms | Step:527ms | Loss: 1.9632 | Val: 2.0100
+------------------------------------------------------------
+Training Complete! Total Duration: 1581.18 seconds.
+
+Exporting Trained Model to tinystories_shard13.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 42000) to tinystories_shard13.bin!
+Successfully saved AdamW optimizer state (step 39000) to tinystories_shard13.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be able to play with.
+<|endoftext|>
+Once upon a time,, to a small house. A little girl named Amy lived to see the big window. She wanted to learn new things, but she could not reach her house. Amy asked her mom if she could help her.
+Amy's mom said, "Yes, Amy, we can teach you how to use my hands. But be careful, can you help us? I need them to be careful." Amy was happy to help her mom with the money to do things.
+Amy and her mom helped clean the house. They put the food in a safe place. They worked very hard to put the windows, a soft bed, and to the top of the house, the blanket, and the table with the food. Amy felt happy. She knew she could use the blanket to help her mom.
+<|endoftext|>
+One day, a little boy named Tim went to play outside. He saw a big tree withÇ a small hole in it. Tim wanted. He asked his mom, "Can I go in the hole?" His mom said in a small voice, "No, it's not safe."
+Tim felt sad. He wanted to see what the hole would be inside, so he went to the hole and opened it. Inside, he saw a little bird in the hole. The bird was very pretty. Tim wanted there, and the bird was not scared anymore the bird.
+Tim was very surprised. He asked the bird, "Can you help me open the hole?" The bird said, "Yes to you! I can help you." Tim and the bird opened the hole, and it fit perfectly! Inside the hole, they found a big, shiny key.
+The bird and Tim were so happy. They opened the key and saw a tiny, pretty fairy! The fairy was not like the key, but an orange toy to me. The fairy said to Tim, "I can wrap to give you my key to keep your promise. Now, you can wrap your key to the bird." Tim was very happy, and the bird showed Tim how to wrap his key around it.
+<|endoftext|>
+Once upon a time. upon a time. A little girl named Lily livedÇ She had the pair of scissors, but she was very generous. She liked. Every, she had. Lily wanted, to make friends.
+One day, Lily went to the park
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 13 (shard_13.txt). Saved checkpoint: tinystories_shard13.bin <<<
+>>> Advancing loop to next Shard Index 14 (shard_14.txt)...
+
+------------------------------------------------------------
+[Shard Index 14 (15/24)] Input: shard_14.txt -> Saving Checkpoint: tinystories_shard14.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard13.bin -> tinystories_shard14.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_14.txt" -f="tinystories_shard14.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_14.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_14.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24133088
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_14.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_14.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21719779
+      -> Validation Tokens: 2413309
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard14.bin...
+Successfully loaded GPT model weights from tinystories_shard14.bin (restored at completed step 42000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 39000) from tinystories_shard14.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=42000 -> 45000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[42001/72000 (Shard 1/3000 |  58%)] LR:1.39e-04 Fwd:188ms Loss:114ms Opt:188ms | Step:661ms | Loss: 1.9601
+[42300/72000 (Shard 300/3000 |  58%)] LR:1.37e-04 Fwd:3ms Loss:148ms Opt:189ms | Step:522ms | Loss: 2.0512 | Val: 1.9457
+[42600/72000 (Shard 600/3000 |  59%)] LR:1.35e-04 Fwd:3ms Loss:149ms Opt:190ms | Step:524ms | Loss: 1.9963 | Val: 2.0089
+[42900/72000 (Shard 900/3000 |  59%)] LR:1.34e-04 Fwd:3ms Loss:146ms Opt:194ms | Step:526ms | Loss: 2.0356 | Val: 1.9947
+[43200/72000 (Shard 1200/3000 |  60%)] LR:1.32e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 1.9865 | Val: 2.0177
+[43500/72000 (Shard 1500/3000 |  60%)] LR:1.30e-04 Fwd:4ms Loss:150ms Opt:193ms | Step:529ms | Loss: 1.9853 | Val: 2.0166
+[43800/72000 (Shard 1800/3000 |  60%)] LR:1.28e-04 Fwd:3ms Loss:148ms Opt:190ms | Step:523ms | Loss: 1.8624 | Val: 2.0253
+[44100/72000 (Shard 2100/3000 |  61%)] LR:1.26e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 2.1199 | Val: 2.0741
+[44400/72000 (Shard 2400/3000 |  61%)] LR:1.25e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:525ms | Loss: 2.0407 | Val: 1.9459
+[44700/72000 (Shard 2700/3000 |  62%)] LR:1.23e-04 Fwd:3ms Loss:147ms Opt:192ms | Step:525ms | Loss: 1.9461 | Val: 1.9838
+[45000/72000 (Shard 3000/3000 |  62%)] LR:1.21e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:523ms | Loss: 1.9594 | Val: 1.9873
+------------------------------------------------------------
+Training Complete! Total Duration: 1580.87 seconds.
+
+Exporting Trained Model to tinystories_shard14.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 45000) to tinystories_shard14.bin!
+Successfully saved AdamW optimizer state (step 42000) to tinystories_shard14.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be.
+<|endoftext|>
+Once upon a time. there was a young boy. The boy loved to play outside. He had. Every day, he would go to a new park to play.
+One day, there was a boy named Tim forÇ He did not know who was, but he wanted. So, he went to find his mom there to help him.
+"Mom, can you help me find my toy?" Tim asked, picking the toy from the lady.
+"Yes, Tim," Mom said there, and they both went to the park. They looked under the swings, behind the flowers. The swings were having fun, but they did not know how to find it, so they looked near the swings, some other birds.
+Then, a little bird came and sat on the grass. The bird was very hungry to eat. Tim and the bird became friends with the bird to eat. They ate the yummy food together.
+The moral of the story is: Don't take things that are not his food.
+<|endoftext|>
+Once upon a time, to the beach. In the sea,. One day, a big bird came to the beach. The bird was cold and not dry. The bird liked.
+The bird said to the big bird, "Why are you cold?" The big bird said there was a big cloud. The bird said to the bird, "I want. I want to go outside." The small bird said and let the bird stay.
+As they played, the sky became dark. The wind started, and the sun came out. The wind was so strong, it was not cold anymore. The big bird said to the big bird, "Don't worry, I will help you. We can clean your eyes."
+The small bird was very happy. They worked together to make the day warm. The big bird was happy to be home. The pretty bird and the big bird became friends.
+<|endoftext|>
+Once upon a time and there was a girl named Lily. Lily had a delicate toy called Lily. She loved in her room. One day, she would draw with her toy and learn new things.
+Lily had a big mirror in her room. She looked at it and said. "Hello, Lily!" Lily said to herself. "Hello, Lily. I like your small arm. Do you want to play with me?"
+The mirror said, "Yes he,
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 14 (shard_14.txt). Saved checkpoint: tinystories_shard14.bin <<<
+>>> Advancing loop to next Shard Index 15 (shard_15.txt)...
+
+------------------------------------------------------------
+[Shard Index 15 (16/24)] Input: shard_15.txt -> Saving Checkpoint: tinystories_shard15.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard14.bin -> tinystories_shard15.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_15.txt" -f="tinystories_shard15.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_15.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_15.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24129938
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_15.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_15.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21716944
+      -> Validation Tokens: 2412994
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard15.bin...
+Successfully loaded GPT model weights from tinystories_shard15.bin (restored at completed step 45000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 42000) from tinystories_shard15.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=45000 -> 48000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[45001/72000 (Shard 1/3000 |  62%)] LR:1.21e-04 Fwd:187ms Loss:111ms Opt:188ms | Step:654ms | Loss: 2.0393
+[45300/72000 (Shard 300/3000 |  62%)] LR:1.19e-04 Fwd:3ms Loss:148ms Opt:190ms | Step:523ms | Loss: 1.8911 | Val: 2.0535
+[45600/72000 (Shard 600/3000 |  63%)] LR:1.18e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:526ms | Loss: 1.9564 | Val: 2.0198
+[45900/72000 (Shard 900/3000 |  63%)] LR:1.16e-04 Fwd:3ms Loss:147ms Opt:193ms | Step:525ms | Loss: 1.9680 | Val: 2.0353
+[46200/72000 (Shard 1200/3000 |  64%)] LR:1.14e-04 Fwd:3ms Loss:147ms Opt:190ms | Step:523ms | Loss: 1.9941 | Val: 1.9769
+[46500/72000 (Shard 1500/3000 |  64%)] LR:1.12e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:523ms | Loss: 1.9884 | Val: 1.9982
+[46800/72000 (Shard 1800/3000 |  65%)] LR:1.11e-04 Fwd:3ms Loss:148ms Opt:190ms | Step:523ms | Loss: 2.0013 | Val: 2.0136
+[47100/72000 (Shard 2100/3000 |  65%)] LR:1.09e-04 Fwd:3ms Loss:152ms Opt:190ms | Step:528ms | Loss: 1.9630 | Val: 2.0292
+[47400/72000 (Shard 2400/3000 |  65%)] LR:1.07e-04 Fwd:3ms Loss:148ms Opt:193ms | Step:527ms | Loss: 1.8965 | Val: 2.0237
+[47700/72000 (Shard 2700/3000 |  66%)] LR:1.06e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:523ms | Loss: 1.9856 | Val: 2.0216
+[48000/72000 (Shard 3000/3000 |  66%)] LR:1.04e-04 Fwd:3ms Loss:148ms Opt:190ms | Step:524ms | Loss: 1.9496 | Val: 2.0291
+------------------------------------------------------------
+Training Complete! Total Duration: 1582.00 seconds.
+
+Exporting Trained Model to tinystories_shard15.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 48000) to tinystories_shard15.bin!
+Successfully saved AdamW optimizer state (step 45001) to tinystories_shard15.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be scared.
+Tom and Mia were scared. They cried and ran to Tom. They shouted at him to help him. But he was too late. He could not get out of the house.
+<|endoftext|>
+Once upon a time,,,,. there was a big, old tree. It was the big tree. One day, a little boy named Tim came to play near the tree. Tim was so happy to see the tree.
+Tim and the tree were friends. They wanted. Tim was not sad. He said, "Let's play in the yard!" The tree said, "Okay to the wind." They made a big puddle.
+Then, the wind started, and the wind blew hard, but it did not get wet to fall. The wind blew and made it wet. The tree got wet and could not dry anymore. Tim and the tree became friends.
+<|endoftext|>
+Once upon a time,. A little boy named Tim went to play with his mom to have fun. They liked. Tim liked there too, but sometimes he felt very tired.
+One day to his mom. "Mom, can I have some ice? I like this one," she said, "It's okay to give it to me, Tim."
+Just then, Tim's mom said to her, "Be careful, Tim. You are not a baby."
+Tim felt ashamed that his mom would not be angry when he played near the tree. Tim did not want there day. He went to bed early. Tim did not want and to play. He learned that it is better to go to bed. This was the moral of the story:
+<|endoftext|>
+Once upon a time. there was a little boy named Tim, who was scared. He was scared that he was alone. He felt ashamed because he had. He could not play anymore, but he was too scared.
+One day, a mean cat came to the park and wanted to play. The cat was scared. It went to the park to find a friend. Tim wanted day. He said, "Don't be scared, dog. You are just scared."
+The cat was nice and helped Tim be nice, but he still looked bored and hungry. Tim learned that he should be careful when playing outside with his friends. So, he went to tell his friends about his new friends. They all came to play and had a fun day.
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 15 (shard_15.txt). Saved checkpoint: tinystories_shard15.bin <<<
+>>> Advancing loop to next Shard Index 16 (shard_16.txt)...
+
+------------------------------------------------------------
+[Shard Index 16 (17/24)] Input: shard_16.txt -> Saving Checkpoint: tinystories_shard16.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard15.bin -> tinystories_shard16.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_16.txt" -f="tinystories_shard16.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_16.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_16.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24129952
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_16.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_16.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21716956
+      -> Validation Tokens: 2412996
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard16.bin...
+Successfully loaded GPT model weights from tinystories_shard16.bin (restored at completed step 48000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 45001) from tinystories_shard16.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=48000 -> 51000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[48001/72000 (Shard 1/3000 |  66%)] LR:1.04e-04 Fwd:187ms Loss:111ms Opt:188ms | Step:657ms | Loss: 1.8654
+[48300/72000 (Shard 300/3000 |  67%)] LR:1.02e-04 Fwd:3ms Loss:148ms Opt:190ms | Step:524ms | Loss: 1.9018 | Val: 1.9349
+[48600/72000 (Shard 600/3000 |  67%)] LR:1.01e-04 Fwd:3ms Loss:147ms Opt:189ms | Step:525ms | Loss: 2.0183 | Val: 1.9879
+[48900/72000 (Shard 900/3000 |  67%)] LR:9.91e-05 Fwd:3ms Loss:149ms Opt:191ms | Step:526ms | Loss: 1.9301 | Val: 1.9954
+[49200/72000 (Shard 1200/3000 |  68%)] LR:9.75e-05 Fwd:3ms Loss:147ms Opt:194ms | Step:526ms | Loss: 1.9628 | Val: 2.0537
+[49500/72000 (Shard 1500/3000 |  68%)] LR:9.59e-05 Fwd:3ms Loss:146ms Opt:191ms | Step:522ms | Loss: 2.0498 | Val: 1.9920
+[49800/72000 (Shard 1800/3000 |  69%)] LR:9.43e-05 Fwd:3ms Loss:147ms Opt:193ms | Step:526ms | Loss: 2.1296 | Val: 1.9531
+[50100/72000 (Shard 2100/3000 |  69%)] LR:9.27e-05 Fwd:3ms Loss:149ms Opt:189ms | Step:525ms | Loss: 2.0467 | Val: 2.0383
+[50400/72000 (Shard 2400/3000 |  70%)] LR:9.12e-05 Fwd:3ms Loss:147ms Opt:192ms | Step:525ms | Loss: 1.9818 | Val: 1.9644
+[50700/72000 (Shard 2700/3000 |  70%)] LR:8.96e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:522ms | Loss: 2.0683 | Val: 2.0022
+[51000/72000 (Shard 3000/3000 |  70%)] LR:8.81e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:525ms | Loss: 2.0996 | Val: 2.0221
+------------------------------------------------------------
+Training Complete! Total Duration: 1581.41 seconds.
+
+Exporting Trained Model to tinystories_shard16.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 51000) to tinystories_shard16.bin!
+Successfully saved AdamW optimizer state (step 48000) to tinystories_shard16.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be able to go. But maybe she's not sure what to do.
+<|endoftext|>
+Once upon a time,, to a small house. In was so a small boy named Tim. Tim liked to play with his toys. Tim's room a lot of toys had a lot of toys. In his room. Tim was a happy and played all to himself.
+One day, Tim's mom asked him to behave. She said, "Tim, please be patient, and go to your room to get the new toys." Tim didn't want and kept playing with his toys to get the new toys.
+Later, Tim's mom came into the room. She saw the new toys and said in a little boy. The boy said, "Hello, I'm sorry for your toys." Tim was happy. He helped the boy clean up the mess to clean up. They both had. Tim and his sister played with the new toys together.
+<|endoftext|>
+Once upon a time. there was a little girl named Sue. Sue had the same toy. It was a pretty, soft, and she liked, just like her mom and dad. Sue played with her best friend, Tom,. Tom saw. Sue said, "Look, Tom! The ball!"
+Sue was very happy. She wanted, too. Tom and Sue put the ball in a special box. They opened it up, and out came a big cake!
+Sue and Tom were very surprised and happy. They ate the cake and played with the ball, the slide, and the slide. They had. They did not like the cake anymore.
+<|endoftext|>
+Once upon a time,. there was a little girl named Amy, who was very impatient, but she was not happy. One day, Amy's mom said to her, "Amy, you need to behave. He will be too healthy and make you feel better."
+While Amy was cleaning, Mom said to Amy, "It's time." Amy thought about what her mom would teach her. She was not happy at first, but she was happy. She knew it was time to do something good by herself.
+Amy went to her mom and said, "Mom, can I give this to you?" Her mom said, "Yes, but be sure, let's do it!" They took turns to make the cake together, and the cake mix became a big cake.
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 16 (shard_16.txt). Saved checkpoint: tinystories_shard16.bin <<<
+>>> Advancing loop to next Shard Index 17 (shard_17.txt)...
+
+------------------------------------------------------------
+[Shard Index 17 (18/24)] Input: shard_17.txt -> Saving Checkpoint: tinystories_shard17.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard16.bin -> tinystories_shard17.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_17.txt" -f="tinystories_shard17.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_17.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_17.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24129255
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_17.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_17.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21716329
+      -> Validation Tokens: 2412926
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard17.bin...
+Successfully loaded GPT model weights from tinystories_shard17.bin (restored at completed step 51000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 48000) from tinystories_shard17.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=51000 -> 54000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[51001/72000 (Shard 1/3000 |  70%)] LR:8.81e-05 Fwd:188ms Loss:114ms Opt:189ms | Step:667ms | Loss: 2.0834
+[51300/72000 (Shard 300/3000 |  71%)] LR:8.66e-05 Fwd:3ms Loss:147ms Opt:190ms | Step:523ms | Loss: 1.9954 | Val: 2.0027
+[51600/72000 (Shard 600/3000 |  71%)] LR:8.50e-05 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 2.0519 | Val: 2.0062
+[51900/72000 (Shard 900/3000 |  72%)] LR:8.36e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:524ms | Loss: 2.0559 | Val: 1.9977
+[52200/72000 (Shard 1200/3000 |  72%)] LR:8.21e-05 Fwd:3ms Loss:147ms Opt:194ms | Step:527ms | Loss: 2.1205 | Val: 2.0421
+[52500/72000 (Shard 1500/3000 |  72%)] LR:8.06e-05 Fwd:3ms Loss:147ms Opt:193ms | Step:525ms | Loss: 1.9178 | Val: 1.9958
+[52800/72000 (Shard 1800/3000 |  73%)] LR:7.92e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:523ms | Loss: 1.9940 | Val: 2.0020
+[53100/72000 (Shard 2100/3000 |  73%)] LR:7.77e-05 Fwd:3ms Loss:150ms Opt:189ms | Step:526ms | Loss: 1.9764 | Val: 2.0194
+[53400/72000 (Shard 2400/3000 |  74%)] LR:7.63e-05 Fwd:3ms Loss:146ms Opt:192ms | Step:525ms | Loss: 2.0754 | Val: 2.0186
+[53700/72000 (Shard 2700/3000 |  74%)] LR:7.49e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:522ms | Loss: 2.0094 | Val: 1.9856
+[54000/72000 (Shard 3000/3000 |  75%)] LR:7.36e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:526ms | Loss: 2.0104 | Val: 1.9277
+------------------------------------------------------------
+Training Complete! Total Duration: 1581.75 seconds.
+
+Exporting Trained Model to tinystories_shard17.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 54000) to tinystories_shard17.bin!
+Successfully saved AdamW optimizer state (step 51000) to tinystories_shard17.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be afraid anymore. She was very smart and smart, but she was also curious.
+As she walked home, she met a new friend named Ben. Ben saw a big tree withÇ. Ben wanted. Ben was very kind. He told Ben to close the tree.
+Ben came to the tree. He said. "Can I be your friend?"
+Ben said, "Yes, you can play with us, but only one. You should be nice to each other."
+Ben and Lily were happy. They played together and had fun a lot. They were friends.
+<|endoftext|>
+Once upon a time, to the zoo, in the jungle. The zoo hadÇ big trees, and many people. They all liked and watched. A little boy named Tim loved to play with the zoo there. He would run, jump, and laugh and have fun there.
+One day, Tim found a big, red ball. He decided, he would play with it. He ran to the ball and started to play with it. But then, he could not throw it. Tim got very sad, and he could not reach it.
+Tim was sad. He wanted. He saw a big fish. The fish said. The fish could not fight. Tim thought the fish was not mean. He swam away. They played together and the fish was happy. Tim was not lonely anymore.
+<|endoftext|>
+Once upon a time, with a little boy named Tim. Tim loved to play with his toys. One day with his mom, they went to the park. Tim saw a big, red car on the road. He wanted to see the car up close.
+Tim asked his mom, "Can I help the car?" His mom said. Tim was happy. He got the car and drove it to the car. They saw the big, red ball in the park. Tim was very happy there, but he was happy.
+Tim and his mom had with the big, red ball. They played with the ball all toss. They had. The ball made them fly. They laughed and clapped. Tim's mom said to him, "We did a great job!" Tim felt proud and happy, but he learned that even if it is hard to win with things, you need more careful.
+<|endoftext|>
+Once upon a time,. there was a little dog named Spot. Spot had the same fur. He loved, so he could
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 17 (shard_17.txt). Saved checkpoint: tinystories_shard17.bin <<<
+>>> Advancing loop to next Shard Index 18 (shard_18.txt)...
+
+------------------------------------------------------------
+[Shard Index 18 (19/24)] Input: shard_18.txt -> Saving Checkpoint: tinystories_shard18.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard17.bin -> tinystories_shard18.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_18.txt" -f="tinystories_shard18.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_18.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_18.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24125456
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_18.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_18.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21712910
+      -> Validation Tokens: 2412546
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard18.bin...
+Successfully loaded GPT model weights from tinystories_shard18.bin (restored at completed step 54000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 51000) from tinystories_shard18.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=54000 -> 57000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[54001/72000 (Shard 1/3000 |  75%)] LR:7.36e-05 Fwd:185ms Loss:111ms Opt:190ms | Step:658ms | Loss: 1.9098
+[54300/72000 (Shard 300/3000 |  75%)] LR:7.22e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:523ms | Loss: 1.9788 | Val: 1.9698
+[54600/72000 (Shard 600/3000 |  75%)] LR:7.09e-05 Fwd:3ms Loss:149ms Opt:189ms | Step:525ms | Loss: 1.9166 | Val: 2.0317
+[54900/72000 (Shard 900/3000 |  76%)] LR:6.95e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:523ms | Loss: 2.0101 | Val: 2.0793
+[55200/72000 (Shard 1200/3000 |  76%)] LR:6.82e-05 Fwd:3ms Loss:148ms Opt:189ms | Step:523ms | Loss: 1.9880 | Val: 1.9916
+[55500/72000 (Shard 1500/3000 |  77%)] LR:6.69e-05 Fwd:3ms Loss:147ms Opt:194ms | Step:525ms | Loss: 2.1154 | Val: 2.0164
+[55800/72000 (Shard 1800/3000 |  77%)] LR:6.57e-05 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 2.0798 | Val: 2.0133
+[56100/72000 (Shard 2100/3000 |  77%)] LR:6.44e-05 Fwd:3ms Loss:148ms Opt:191ms | Step:525ms | Loss: 2.0191 | Val: 1.9939
+[56400/72000 (Shard 2400/3000 |  78%)] LR:6.32e-05 Fwd:3ms Loss:148ms Opt:190ms | Step:523ms | Loss: 2.0218 | Val: 1.9823
+[56700/72000 (Shard 2700/3000 |  78%)] LR:6.20e-05 Fwd:3ms Loss:147ms Opt:192ms | Step:525ms | Loss: 1.9652 | Val: 1.9502
+[57000/72000 (Shard 3000/3000 |  79%)] LR:6.08e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:522ms | Loss: 1.9635 | Val: 1.9954
+------------------------------------------------------------
+Training Complete! Total Duration: 1579.97 seconds.
+
+Exporting Trained Model to tinystories_shard18.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 57000) to tinystories_shard18.bin!
+Successfully saved AdamW optimizer state (step 54000) to tinystories_shard18.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be able.
+<|endoftext|>
+Once upon a time. there was a big dog named Max. Max had a friend named Sally. They played together every day, and they were very happy.
+One day, Max and Sally found a big box. The box had. Max and Sally wanted, but they didn't know what. They wanted to open it, but Tim said, "Let's ask the big box to help us."
+Max said, "No, but I need to find a big box to help us." They both thought and thought. Then, they had, but they could not find the box, and they both felt very sad.
+Then, Max saw a bird in the box. The bird said, "Let me help you find the box." Max and Sally used the box to look for the box. They found a big, red ball. Max was so happy. He said to Sally, "Thank you for finding the box! Thank you for finding it!" They all played together and had fun with the big, red ball.
+<|endoftext|>
+Once upon a time,,. there was a little bird named Timmy. Timmy loved, but he was still weak. Every day, he would wake up early there.
+One day, Timmy's mom asked him to help him find food. She looked and looked but could not find food. Then, Timmy was very sad. He started to cry. "Why are you sad?" asked his mom.
+Timmy told his mom about his lost home. His mom told him it was okay. "Don't worry sunny, Timmy. But remember, maybe the food is good to eat!" Timmy felt better and learned to be more careful around the house. From that to her friends, Timmy, Timmy, and all their friends played together and had lots of fun there, happy.
+<|endoftext|>
+Once upon a time in the park. It was a busy day, and there were many kids. They all liked, but sometimes they would fight. One day he saw a little girl named Lily. Lily was very pretty.
+Lily said and Tim started to fight. She would yell at him and make him laugh. But Tim didn't want to scare Lily, so he tried to yell and shout. Lily said. She said, "Stop! You can't bite me!"
+Tim felt sad. He said, "No, I didn't want to
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 18 (shard_18.txt). Saved checkpoint: tinystories_shard18.bin <<<
+>>> Advancing loop to next Shard Index 19 (shard_19.txt)...
+
+------------------------------------------------------------
+[Shard Index 19 (20/24)] Input: shard_19.txt -> Saving Checkpoint: tinystories_shard19.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard18.bin -> tinystories_shard19.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_19.txt" -f="tinystories_shard19.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_19.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_19.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24137003
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_19.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_19.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21723302
+      -> Validation Tokens: 2413701
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard19.bin...
+Successfully loaded GPT model weights from tinystories_shard19.bin (restored at completed step 57000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 54000) from tinystories_shard19.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=57000 -> 60000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[57001/72000 (Shard 1/3000 |  79%)] LR:6.08e-05 Fwd:193ms Loss:115ms Opt:188ms | Step:669ms | Loss: 2.0275
+[57300/72000 (Shard 300/3000 |  79%)] LR:5.96e-05 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 1.8225 | Val: 2.0343
+[57600/72000 (Shard 600/3000 |  80%)] LR:5.85e-05 Fwd:3ms Loss:147ms Opt:191ms | Step:524ms | Loss: 2.0216 | Val: 1.9905
+[57900/72000 (Shard 900/3000 |  80%)] LR:5.73e-05 Fwd:3ms Loss:148ms Opt:189ms | Step:522ms | Loss: 2.0167 | Val: 2.0038
+[58200/72000 (Shard 1200/3000 |  80%)] LR:5.62e-05 Fwd:3ms Loss:147ms Opt:191ms | Step:525ms | Loss: 1.9913 | Val: 1.9860
+[58500/72000 (Shard 1500/3000 |  81%)] LR:5.51e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:522ms | Loss: 2.0404 | Val: 1.9471
+[58800/72000 (Shard 1800/3000 |  81%)] LR:5.41e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:523ms | Loss: 2.0044 | Val: 1.9949
+[59100/72000 (Shard 2100/3000 |  82%)] LR:5.30e-05 Fwd:3ms Loss:148ms Opt:193ms | Step:526ms | Loss: 1.9858 | Val: 1.9433
+[59400/72000 (Shard 2400/3000 |  82%)] LR:5.20e-05 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 1.8892 | Val: 2.0047
+[59700/72000 (Shard 2700/3000 |  82%)] LR:5.10e-05 Fwd:3ms Loss:149ms Opt:189ms | Step:525ms | Loss: 2.0373 | Val: 1.9807
+[60000/72000 (Shard 3000/3000 |  83%)] LR:5.00e-05 Fwd:3ms Loss:147ms Opt:190ms | Step:526ms | Loss: 2.1166 | Val: 1.9942
+------------------------------------------------------------
+Training Complete! Total Duration: 1580.62 seconds.
+
+Exporting Trained Model to tinystories_shard19.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 60000) to tinystories_shard19.bin!
+Successfully saved AdamW optimizer state (step 57000) to tinystories_shard19.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be scared anymore.
+<|endoftext|>
+Once upon a time there was a little girl named Lucy. She had a big, hairy dog named Max to play with, but he loved. One day, Lucy and Max went for a walk, holding hands. They walked very fast, and they could see the sunset.
+As they walked, they met a little bird who was in the park. The bird was different from the sunset. Lucy and Max said. "Hi, bird! Do you want to play?"
+The bird said. "Yes, I want, but we need to find a place to play."
+Lucy and Max followed the bird. They walked and walked until they found a big, warm hill. They were happy, and they played there together, and they were very good friends.
+<|endoftext|>
+
+Once upon a time. Fred was very curious about the world around him. He didn't want to go. He ran to the edge of the field.
+But he was too excited day. He was so busy running around the field, until he came to a nearby field. He saw a big red, brown, and yellow thing, but it was very difficult to get inside to find something else.
+So, the first one was running and he decided. He got out of the field, leaving the big, blue thing. The brown dog was so happy, and he felt the sun on his face and then hopped to the field and started to skip.
+When he was ready to see what the sun was and he could see the sunlight. He was so happy to have a new friend.
+But then, the brown dog started, and the brown dog stopped playing and he was happy. He was very sad there in the field. He wanted, but the sun was too hot and he wanted to play with it, but he didn't want to play. So, the brown dog got scared.
+The brown dog had been playing with his ball when he noticedÇ When he saw a big, hairy dog outside to keep it. He quickly picked it up and then he ran away with it, but it was too late!
+The brown dog stayed in his garden. He was very sad. He could not play with his ball anymore. He stayed with the other dogs and the big, mean dog. The brown dog was gone.
+<|endoftext|>
+Once upon a time, for. there was
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 19 (shard_19.txt). Saved checkpoint: tinystories_shard19.bin <<<
+>>> Advancing loop to next Shard Index 20 (shard_20.txt)...
+
+------------------------------------------------------------
+[Shard Index 20 (21/24)] Input: shard_20.txt -> Saving Checkpoint: tinystories_shard20.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard19.bin -> tinystories_shard20.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_20.txt" -f="tinystories_shard20.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_20.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_20.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24132403
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_20.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_20.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21719162
+      -> Validation Tokens: 2413241
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard20.bin...
+Successfully loaded GPT model weights from tinystories_shard20.bin (restored at completed step 60000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 57000) from tinystories_shard20.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=60000 -> 63000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[60001/72000 (Shard 1/3000 |  83%)] LR:5.00e-05 Fwd:189ms Loss:119ms Opt:190ms | Step:671ms | Loss: 1.9308
+[60300/72000 (Shard 300/3000 |  83%)] LR:4.90e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:522ms | Loss: 1.9183 | Val: 2.0040
+[60600/72000 (Shard 600/3000 |  84%)] LR:4.81e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:525ms | Loss: 1.9643 | Val: 2.0479
+[60900/72000 (Shard 900/3000 |  84%)] LR:4.72e-05 Fwd:3ms Loss:146ms Opt:191ms | Step:524ms | Loss: 2.1360 | Val: 2.0377
+[61200/72000 (Shard 1200/3000 |  85%)] LR:4.63e-05 Fwd:3ms Loss:146ms Opt:194ms | Step:526ms | Loss: 2.0396 | Val: 2.0164
+[61500/72000 (Shard 1500/3000 |  85%)] LR:4.54e-05 Fwd:3ms Loss:150ms Opt:190ms | Step:525ms | Loss: 2.0271 | Val: 2.0418
+[61800/72000 (Shard 1800/3000 |  85%)] LR:4.45e-05 Fwd:3ms Loss:146ms Opt:192ms | Step:525ms | Loss: 1.9652 | Val: 2.0399
+[62100/72000 (Shard 2100/3000 |  86%)] LR:4.37e-05 Fwd:3ms Loss:147ms Opt:191ms | Step:523ms | Loss: 1.9225 | Val: 2.0834
+[62400/72000 (Shard 2400/3000 |  86%)] LR:4.29e-05 Fwd:3ms Loss:147ms Opt:190ms | Step:524ms | Loss: 1.9867 | Val: 2.0294
+[62700/72000 (Shard 2700/3000 |  87%)] LR:4.21e-05 Fwd:3ms Loss:147ms Opt:191ms | Step:523ms | Loss: 2.0382 | Val: 2.0695
+[63000/72000 (Shard 3000/3000 |  87%)] LR:4.14e-05 Fwd:3ms Loss:146ms Opt:190ms | Step:524ms | Loss: 2.0432 | Val: 2.0092
+------------------------------------------------------------
+Training Complete! Total Duration: 1582.75 seconds.
+
+Exporting Trained Model to tinystories_shard20.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 63000) to tinystories_shard20.bin!
+Successfully saved AdamW optimizer state (step 60000) to tinystories_shard20.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be too small anymore. So, they all started to argue. This made them both sad. They never played together again.
+<|endoftext|>
+Once upon a time. A little boy named Tim had a big brother named Max to play in the park. One day, Tim had. He wanted to play in a park. Max was not happy.
+Tim saw a big slide and wanted, so Max went to the slide. He told Max, "I want to play with you. I want to play." The slide was very happy.
+But, there was a problem. The ball was not too high. The ball went too far and got stuck. Tim tried to get the ball, but he could not reach the ball. The ball was stuck in a tree. Tim cried.
+<|endoftext|>
+Once upon a time, to visit his grandma. Grandma livedÇ Grandma, a little girl named Lily. Lily had a small, red sweater. She loved. One day he went to a party with many people. Lily was very excited that she wanted to marry her friends, but her mommy said no.
+At the party, Lily hadÇ Her mommy and daddy said to her, "Lily, I need your help!" Lily felt bad for the party, but she knew mommy was right to take her sweater! So, she took her sweater and put it on a big, colorful hat.
+When Lily got home. She took her sweater with her mommy and daddy. They showed her the red sweater that she could sit on it every day. Lily felt happy. She knew the sweater would make her daddy happy. And she always tried sunny and be kind to others, even with the red sweater.
+<|endoftext|>
+Once upon a time,. there was a little boy named Tim, who loved to play outside. One day. One day, it was very cold, because it was cold outside. Tim did not like to get warm in the cold.
+Tim started to shiver. He started. He ran to the warm sun, but then he felt cold. Tim felt miserable. He had. He could not play in the cold.
+Tim's mom saw him and came to help. She put the cold on Tim's sweater there. They looked warm because it was not cold anymore. Tim felt better and happy. He learned to be more careful with his sweater to feel warm.
+<|endoftext|>
+Once upon a time,,.
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 20 (shard_20.txt). Saved checkpoint: tinystories_shard20.bin <<<
+>>> Advancing loop to next Shard Index 21 (shard_21.txt)...
+
+------------------------------------------------------------
+[Shard Index 21 (22/24)] Input: shard_21.txt -> Saving Checkpoint: tinystories_shard21.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard20.bin -> tinystories_shard21.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_21.txt" -f="tinystories_shard21.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_21.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_21.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24122137
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_21.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_21.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21709923
+      -> Validation Tokens: 2412214
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard21.bin...
+Successfully loaded GPT model weights from tinystories_shard21.bin (restored at completed step 63000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 60000) from tinystories_shard21.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=63000 -> 66000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[63001/72000 (Shard 1/3000 |  87%)] LR:4.14e-05 Fwd:189ms Loss:114ms Opt:189ms | Step:667ms | Loss: 2.0113
+[63300/72000 (Shard 300/3000 |  87%)] LR:4.06e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:521ms | Loss: 2.0501 | Val: 2.0153
+[63600/72000 (Shard 600/3000 |  88%)] LR:3.99e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:525ms | Loss: 2.0702 | Val: 2.0429
+[63900/72000 (Shard 900/3000 |  88%)] LR:3.92e-05 Fwd:3ms Loss:148ms Opt:189ms | Step:522ms | Loss: 1.9871 | Val: 2.0449
+[64200/72000 (Shard 1200/3000 |  89%)] LR:3.86e-05 Fwd:3ms Loss:146ms Opt:191ms | Step:525ms | Loss: 2.0121 | Val: 2.0242
+[64500/72000 (Shard 1500/3000 |  89%)] LR:3.79e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:522ms | Loss: 2.0180 | Val: 2.0266
+[64800/72000 (Shard 1800/3000 |  90%)] LR:3.73e-05 Fwd:3ms Loss:146ms Opt:191ms | Step:524ms | Loss: 1.9367 | Val: 2.0237
+[65100/72000 (Shard 2100/3000 |  90%)] LR:3.67e-05 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 2.0429 | Val: 1.9882
+[65400/72000 (Shard 2400/3000 |  90%)] LR:3.62e-05 Fwd:3ms Loss:146ms Opt:191ms | Step:522ms | Loss: 1.9336 | Val: 2.0111
+[65700/72000 (Shard 2700/3000 |  91%)] LR:3.56e-05 Fwd:3ms Loss:148ms Opt:191ms | Step:524ms | Loss: 1.9840 | Val: 2.0143
+[66000/72000 (Shard 3000/3000 |  91%)] LR:3.51e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:522ms | Loss: 2.0695 | Val: 1.9764
+------------------------------------------------------------
+Training Complete! Total Duration: 1580.10 seconds.
+
+Exporting Trained Model to tinystories_shard21.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 66000) to tinystories_shard21.bin!
+Successfully saved AdamW optimizer state (step 63000) to tinystories_shard21.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be seen again to find out what had to do.
+<|endoftext|>
+One day. a little boy named Tim went to the store with his mom. He saw a big jar of candy on the table. Tim wanted.
+"Mom, look at this candy!" said Tim. "I found an orange, green fruit."
+Mom looked at the jar and said and said, "Is it on the shelf?"
+Tim's mom looked at the jar and said. She took the jar and put it in her mouth.
+Later, Tim's mom took the jar away. She ran to the store and picked up the red fruit. "Tim, this jar is for you," she said to Tim.
+Tim wanted a red jar. He picked up the jar and put it in his mouth. He felt a little nervous.
+"I'm sorry, Mom," Tim said for a smile, but he saw a big rock in the corner for him, making them fly.
+"You are an ignorant thing!" Tim said. "You can't fly. I want to play with you."
+"Can you help me?" Tim asked. The rock was still scared. Mom said, "Let's be grateful and help each other. Then you can have the sweetest cookie."
+Tim and Mia put on their coats and shoes. They waited for the rock. They felt happy. They thanked the rock and went back to play. They were happy.
+<|endoftext|>
+Once upon it. A little girl named Lily lived, and she had a big dream, so she went to her grandma's house. In the house, there was a big, colorful room.
+At grandma's grandma's room to clean up. Lily wanted and loved, just like her grandma. But when they got there and, the shelf was not clean. Lily looked sad and started.
+After a few days, the mess was gone. Lily was sad and cried. Her grandma saw the mess and said to her, "Don't worry, we can fix it." They all worked together to fix the mess, and it worked hard there to clean it up because of the mess.
+After they cleaned the mess, Lily's grandma said, "Thank you for cleaning up your room. Now, we can have some new toys for you." Lily felt happy and proud of her. From that day on to everyone was not messy
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 21 (shard_21.txt). Saved checkpoint: tinystories_shard21.bin <<<
+>>> Advancing loop to next Shard Index 22 (shard_22.txt)...
+
+------------------------------------------------------------
+[Shard Index 22 (23/24)] Input: shard_22.txt -> Saving Checkpoint: tinystories_shard22.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard21.bin -> tinystories_shard22.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_22.txt" -f="tinystories_shard22.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_22.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_22.txt using master vocabulary...
+      Total Dataset Shard Tokens: 24129537
+      -> Caching raw encoded binary stream (92 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_22.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_22.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   21716583
+      -> Validation Tokens: 2412954
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard22.bin...
+Successfully loaded GPT model weights from tinystories_shard22.bin (restored at completed step 66000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 63000) from tinystories_shard22.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=66000 -> 69000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[66001/72000 (Shard 1/3000 |  91%)] LR:3.51e-05 Fwd:188ms Loss:112ms Opt:188ms | Step:658ms | Loss: 1.9908
+[66300/72000 (Shard 300/3000 |  92%)] LR:3.46e-05 Fwd:3ms Loss:146ms Opt:194ms | Step:526ms | Loss: 1.9328 | Val: 2.0008
+[66600/72000 (Shard 600/3000 |  92%)] LR:3.41e-05 Fwd:3ms Loss:146ms Opt:191ms | Step:523ms | Loss: 1.8857 | Val: 2.0347
+[66900/72000 (Shard 900/3000 |  92%)] LR:3.37e-05 Fwd:3ms Loss:150ms Opt:189ms | Step:525ms | Loss: 2.1344 | Val: 1.9931
+[67200/72000 (Shard 1200/3000 |  93%)] LR:3.33e-05 Fwd:3ms Loss:148ms Opt:193ms | Step:526ms | Loss: 1.9016 | Val: 2.0148
+[67500/72000 (Shard 1500/3000 |  93%)] LR:3.29e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:522ms | Loss: 2.0114 | Val: 2.0215
+[67800/72000 (Shard 1800/3000 |  94%)] LR:3.25e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:526ms | Loss: 1.9713 | Val: 2.0057
+[68100/72000 (Shard 2100/3000 |  94%)] LR:3.22e-05 Fwd:3ms Loss:146ms Opt:193ms | Step:526ms | Loss: 1.9372 | Val: 2.0649
+[68400/72000 (Shard 2400/3000 |  95%)] LR:3.18e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:522ms | Loss: 1.9410 | Val: 2.0306
+[68700/72000 (Shard 2700/3000 |  95%)] LR:3.15e-05 Fwd:3ms Loss:146ms Opt:189ms | Step:526ms | Loss: 1.9278 | Val: 1.9941
+[69000/72000 (Shard 3000/3000 |  95%)] LR:3.13e-05 Fwd:3ms Loss:149ms Opt:193ms | Step:528ms | Loss: 1.9227 | Val: 1.9741
+------------------------------------------------------------
+Training Complete! Total Duration: 1580.71 seconds.
+
+Exporting Trained Model to tinystories_shard22.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 69000) to tinystories_shard22.bin!
+Successfully saved AdamW optimizer state (step 66000) to tinystories_shard22.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be so scary, big and scary. The monster jumped out, and he started to cry.
+A bird saw Bob and wanted to help. The bird flew to Bob and asked, "Why are you sad?" Bob told the bird, "I lost my home, and I need it to grow big and strong." Bob wanted. Bob thought for a moment and said.
+Bob told the bird about his lost ball. The bird gave the ball back to Bob. The bird was so happy the storm was saved, and Bob felt good. He learned that it is important, even when someone is scared.
+<|endoftext|>
+Once upon a time,. upon a big cat,. The cat liked to play. One tore the cat, the big dog. The dog was big and strong. The cat was very tired to stay.
+One day, the cat met a little dog. The little dog said. The big dog was not nice. The small dog was sad. The big dog had an idea, but he could not play with the big ball.
+The big dog said, "Let's play together!" The little dog and the big dog played with the ball. They had. But then, something unexpected happened, but it was too late. The big dog was sad, and they had there.
+<|endoftext|>
+One day a boy named Tim had a big, red ball. He liked to play outside! He would push the ball high and the sky would go up and down.
+One day, Tim's mom said to him, "Tim, you need to throw a ball in the air." Tim was happy to play with his ball. He threw the ball and it went far away.
+But then, a big dog came into the yard,. The dog wanted to play with the ball. The dog jumped and tried to grab the ball, but it was too high. The dog was sad.
+Tim said. "Oh no!" said Tim. "Don't worry to the dog again." But then, the dog jumped off the ball and ran away. Tim was sad.
+<|endoftext|>
+Once upon a time,, that was an enormous cat named Tom. Tom liked, but he was not like. He would watch TV all the time. One day, he saw a big, colorful dog in the park, and he was very surprised.
+Tom said in a big, mean cat,
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 22 (shard_22.txt). Saved checkpoint: tinystories_shard22.bin <<<
+>>> Advancing loop to next Shard Index 23 (shard_23.txt)...
+
+------------------------------------------------------------
+[Shard Index 23 (24/24)] Input: shard_23.txt -> Saving Checkpoint: tinystories_shard23.bin
+------------------------------------------------------------
+Copying previous checkpoint (tinystories_shard22.bin -> tinystories_shard23.bin) to continue training pipeline...
+Running: .\build\Release\mgpt.exe -t -g -d="C:\Users\bogaz\MGPT\mgpt\tinystories\shard_23.txt" -f="tinystories_shard23.bin" --lr=0.0003 -s=3000 --total-steps=72000 -l=12 -c=384 -w=256 -b=16 -a=2 --vocab-file="tinystories_slice.txt.vocab.bin" --resume
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: C:\Users\bogaz\MGPT\mgpt\tinystories\shard_23.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard C:\Users\bogaz\MGPT\mgpt\tinystories\shard_23.txt using master vocabulary...
+      Total Dataset Shard Tokens: 14623429
+      -> Caching raw encoded binary stream (55 MB) to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_23.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to C:\Users\bogaz\MGPT\mgpt\tinystories\shard_23.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   13161086
+      -> Validation Tokens: 1462343
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from tinystories_shard23.bin...
+Successfully loaded GPT model weights from tinystories_shard23.bin (restored at completed step 69000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Successfully loaded AdamW optimizer state (step 66000) from tinystories_shard23.bin.opt!
+Starting Training Loop (AdamW, LR=0.0003, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=69000 -> 72000/72000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[69001/72000 (Shard 1/3000 |  95%)] LR:3.13e-05 Fwd:187ms Loss:111ms Opt:193ms | Step:661ms | Loss: 1.9910
+[69300/72000 (Shard 300/3000 |  96%)] LR:3.10e-05 Fwd:3ms Loss:147ms Opt:195ms | Step:527ms | Loss: 1.8912 | Val: 2.0129
+[69600/72000 (Shard 600/3000 |  96%)] LR:3.08e-05 Fwd:3ms Loss:147ms Opt:193ms | Step:526ms | Loss: 1.8671 | Val: 2.0375
+[69900/72000 (Shard 900/3000 |  97%)] LR:3.06e-05 Fwd:3ms Loss:147ms Opt:190ms | Step:527ms | Loss: 2.0807 | Val: 1.9618
+[70200/72000 (Shard 1200/3000 |  97%)] LR:3.05e-05 Fwd:3ms Loss:147ms Opt:191ms | Step:528ms | Loss: 2.0549 | Val: 1.9995
+[70500/72000 (Shard 1500/3000 |  97%)] LR:3.03e-05 Fwd:3ms Loss:147ms Opt:190ms | Step:526ms | Loss: 1.9077 | Val: 2.0171
+[70800/72000 (Shard 1800/3000 |  98%)] LR:3.02e-05 Fwd:3ms Loss:150ms Opt:189ms | Step:527ms | Loss: 1.9283 | Val: 1.9631
+[71100/72000 (Shard 2100/3000 |  98%)] LR:3.01e-05 Fwd:3ms Loss:147ms Opt:191ms | Step:526ms | Loss: 1.9126 | Val: 2.0010
+[71400/72000 (Shard 2400/3000 |  99%)] LR:3.01e-05 Fwd:3ms Loss:148ms Opt:190ms | Step:527ms | Loss: 1.9524 | Val: 1.9896
+[71700/72000 (Shard 2700/3000 |  99%)] LR:3.00e-05 Fwd:3ms Loss:148ms Opt:190ms | Step:523ms | Loss: 2.0353 | Val: 1.9752
+[72000/72000 (Shard 3000/3000 | 100%)] LR:3.00e-05 Fwd:3ms Loss:147ms Opt:190ms | Step:522ms | Loss: 2.1543 | Val: 1.9661
+------------------------------------------------------------
+Training Complete! Total Duration: 1584.96 seconds.
+
+Exporting Trained Model to tinystories_shard23.bin...
+Successfully saved GPT model weights (149 parameter tensors, step 72000) to tinystories_shard23.bin!
+Successfully saved AdamW optimizer state (step 69000) to tinystories_shard23.bin.opt!
+
+--- Text Generation Sample (Prompt: "To be or not to be" | Temp: 0.80 | Top-K: 15) ---
+To be or not to be too curious about the new toys.
+<|endoftext|>
+Once upon a time. there was a little boy named Tim. Tim had a big, red ball. One day, he wanted to play with the ball. He asked his mom, "Can I play with the ball?" His mom said it was difficult, and they had.
+One day, Tim saw a big ball. He wanted to play with the ball. So, he kicked the ball and it went into the air. Tim was so happy, he ran and jumped high. But then, something unexpected happened, and Tim got hurt.
+Tim's mom gave him a hug. She told him to be careful next time. The ball got stuck in the tree. Tim was surprised and sad. His mom saw the ball and helped him to get it back, but it was too late. Tim was very sad and cried.
+<|endoftext|>
+One day. A big cat named Tom went outside to play. Tom saw a big, wet puddle. The puddle was very icy. Tom was hungry, so he went inside.
+Tom saw a big pot near the puddle, a small pot. The pot was very high. Tom was curious. He wanted and tried, but he got stuck in the pot. He felt sad.
+Then, a big dog came out of the pot, and Tom was not looking. The dog was happy and jumped in the pot. The dog and Tom became friends. They played together on the grass every to play in the sun.
+<|endoftext|>
+Once upon a time,. upon a time. there was a little girl named Lily, who wanted. She had a pretty sweater that she could wear every day. Lily liked and she would wear it every day, and to be very good.
+One day, Lily went to play outside. She met a little bird. The bird said, "Hello, Lily! Do you want, little one!" Lily was very happy. She said, "Yes. I want, and it's so pretty."
+The bird showed the little bird how a big storm was. Lily and the bird went inside to play. They ran and jumped in the rain. They had, they ran and jumped and laughed, happy.
+After playing, the sun came out, and the sun came out. They saw a big tree with a hole in it to put out the hole. The bird was so happy.
+------------------------------------------------------------
+
+
+>>> Successfully completed Shard Index 23 (shard_23.txt). Saved checkpoint: tinystories_shard23.bin <<<
+============================================================
+   ALL 24 SHARDS COMPLETED SUCCESSFULLY!
+============================================================
+
+--- Text Generation Sample (Prompt: "There was a girl named Ipek who" | Temp: 0.65 | Top-K: 30) ---
+There was a girl named Ipek who loved to play outside. One day. One day, she saw a big puddle of water. Lily wanted to drink the water, but she was too small for her.
+Lily's mom said to her, "Don't worry. Let's wash the water and wash our hands." They washed their hands and felt better and safe with their hands.
+After they cleaned the house, Lily's mom said, "Now, you can't drink from the sink. You can't drink the water." Lily smiled and felt very happy, but she knew she had to listen to her mom.
+<|endoftext|>
