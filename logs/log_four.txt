@@ -4,11 +4,10 @@ PS C:\Users\bogaz\MGPT\mgpt> .\build\Release\mgpt.exe -t -g --resume -d="dialogu
 ============================================================
 
 Using dataset at: dialogues.txt
-Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
-      -> Encoding dataset shard dialogues.txt using master vocabulary...
-      Total Dataset Shard Tokens: 4026355
-      -> Caching raw encoded binary stream (15 MB) to dialogues.txt.tok.bin...
-      -> Successfully dumped raw encoded shard to dialogues.txt.tok.bin!
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from dialogues.txt.tok.bin...
+      Total Dataset Tokens: 4026355 (Loaded instantly from binary cache!)
 Train/Val Split (90/10):
       -> Training Tokens:   3623719
       -> Validation Tokens: 402636
@@ -25,8 +24,144 @@ Migrating GPT Model and Engine to CUDA GPU...
 Resuming Training Mode: Loading existing checkpoint from mgpt_chat.bin...
 Successfully loaded GPT model weights from mgpt_chat.bin (restored at completed step 72000)!
 Uploading Train and Validation Datasets to GPU Memory...
-Starting Training Loop (AdamW, LR=5e-05, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=72000 -> 75000/3000)...
+Starting Training Loop (AdamW, LR=5e-05, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=0 -> 3000/3000)...
 ------------------------------------------------------------
 Step       Progress & Timings                      Train Loss   Val Loss
 ------------------------------------------------------------
-[72001/3000 (Shard 1/3000 | 2400%)] LR:5.00e-06 Fwd:202ms Loss:140ms Opt:232ms | Step:767ms | Loss: 5.2594
+[   1/3000 (Shard 1/3000 |   0%)] LR:3.33e-07 Fwd:184ms Loss:114ms Opt:201ms | Step:675ms | Loss: 5.2594
+[ 300/3000 (Shard 300/3000 |  10%)] LR:4.97e-05 Fwd:3ms Loss:148ms Opt:193ms | Step:529ms | Loss: 2.6652 | Val: 2.6571
+[ 600/3000 (Shard 600/3000 |  20%)] LR:4.73e-05 Fwd:3ms Loss:147ms Opt:189ms | Step:529ms | Loss: 2.2298 | Val: 2.4784
+[ 900/3000 (Shard 900/3000 |  30%)] LR:4.27e-05 Fwd:3ms Loss:148ms Opt:190ms | Step:526ms | Loss: 2.3564 | Val: 2.2231
+[1200/3000 (Shard 1200/3000 |  40%)] LR:3.65e-05 Fwd:3ms Loss:151ms Opt:189ms | Step:530ms | Loss: 2.0665 | Val: 2.1234
+[1500/3000 (Shard 1500/3000 |  50%)] LR:2.94e-05 Fwd:3ms Loss:147ms Opt:190ms | Step:529ms | Loss: 1.8466 | Val: 2.0320
+[1800/3000 (Shard 1800/3000 |  60%)] LR:2.20e-05 Fwd:3ms Loss:147ms Opt:192ms | Step:530ms | Loss: 1.9228 | Val: 1.9820
+[2100/3000 (Shard 2100/3000 |  70%)] LR:1.52e-05 Fwd:3ms Loss:148ms Opt:190ms | Step:527ms | Loss: 1.8362 | Val: 2.0148
+[2400/3000 (Shard 2400/3000 |  80%)] LR:9.74e-06 Fwd:3ms Loss:147ms Opt:190ms | Step:529ms | Loss: 1.7363 | Val: 1.8536
+[2700/3000 (Shard 2700/3000 |  90%)] LR:6.22e-06 Fwd:3ms Loss:149ms Opt:190ms | Step:531ms | Loss: 1.7795 | Val: 1.8686
+[3000/3000 (Shard 3000/3000 | 100%)] LR:5.00e-06 Fwd:3ms Loss:150ms Opt:190ms | Step:529ms | Loss: 1.8859 | Val: 1.7974
+
+--- Text Generation Sample (Prompt: "User: How are you doing today?
+Assistant:" | Temp: 0.4 | Top-K: 20) ---
+User: How are you doing today?
+Assistant: I am going to get a job.
+<|endoftext|>
+User: I am going to get a job.
+Assistant: How long do you get a job?
+<|endoftext|>
+User: How long do you get a job?
+Assistant: I'm not sure.
+<|endoftext|>
+User: I'm not sure.
+Assistant: I'm afraid I'm not sure.
+<|endoftext|>
+User: I'm afraid I'm not sure I'm not sure.
+Assistant: I'm afraid I'm not sure. I'm not sure I'm not sure.
+<|endoftext|>
+User: I'm afraid I'm not sure I'm not sure I'm not sure I'm not sure I'm not sure.
+Assistant: I'm afraid we can't.
+<|endoftext|>
+User: I'm afraid we can't.
+Assistant: Oh, I'm afraid we can't.
+<|endoftext|>
+User: Oh, I'm afraid we can't.
+Assistant: I'm afraid we can't.
+<|endoftext|>
+User: I'm afraid we can't.
+Assistant: Well, I'm afraid we're not so worried.
+<|endoftext|>
+User: Well, I'm afraid we're not sure.
+Assistant: I'm afraid we'll have to go to the doctor.
+<|endoftext|>
+User: I'm afraid we'll have to go to the doctor.
+Assistant: OK. I'll have to go to the doctor.
+<|endoftext|>
+User: OK. I'll have to go to the doctor.
+Assistant: Yes, I'll have to go to the doctor.
+<|endoftext|>
+User: Yes, I'll have to go to the doctor.
+Assistant: I'll get you some time.
+<|endoftext|>
+User: I'll get you some time.
+Assistant: Well, you
+------------------------------------------------------------
+
+PS C:\Users\bogaz\MGPT\mgpt> .\build\Release\mgpt.exe -i -g -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" -l=12 -c=384 -w=256 -p="User: Hello! How are you today?`nAssistant:" --temp=0.5 --topk=20
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: input.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from input.txt.tok.bin...
+      Total Dataset Tokens: 452197 (Loaded instantly from binary cache!)
+Inference Mode Selected (Skipping Train/Val Split)
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Loading Trained Model Weights from mgpt_chat.bin...
+Successfully loaded GPT model weights from mgpt_chat.bin (restored at completed step 3000)!
+
+--- Text Generation Sample (Prompt: "User: Hello! How are you today?
+Assistant:" | Temp: 0.5 | Top-K: 20) ---
+User: Hello! How are you today?
+Assistant: I am going to look for the business.
+<|endoftext|>
+User: I am going to look for the business.
+Assistant: What's the business?
+<|endoftext|>
+User: What's the business today?
+Assistant: The business is really interesting.
+<|endoftext|>
+User: The business is really interesting.
+Assistant: What's the matter?
+<|endoftext|>
+User: What's the matter?
+Assistant: I'm a bit more interesting.
+<|endoftext|>
+User: I'm a bit more interesting.
+Assistant: I'm an accident.
+<|endoftext|>
+User: I'm an accident.
+Assistant: Do you have any problems?
+<|endoftext|>
+User: Do you have any problems?
+Assistant: Yes, I'm just looking for a good idea.
+<|endoftext|>
+User: Yes, I'm just looking for a good idea.
+Assistant: Well, I'm not sure.
+<|endoftext|>
+User: Well, I'm not sure.
+Assistant: Thanks.
+<|endoftext|>
+User: Thanks.
+Assistant: It's my birthday.
+<|endoftext|>
+User: It's my birthday.
+Assistant: Yeah, we're going to go to the park.
+<|endoftext|>
+User: Yeah, we're going to the park.
+Assistant: Thank you.
+<|endoftext|>
+User: Thank you.
+Assistant: I'll be happy. I'll be fine.
+<|endoftext|>
+User: I'll be fine. I'll be fine.
+Assistant: Thank you.
+<|endoftext|>
+User: Thank you.
+Assistant: Thank you.
+<|endoftext|>
+User: Thank you.
+Assistant: I'm sorry.
+<|endoftext|>
+User: I'm sorry.
+Assist
+------------------------------------------------------------
