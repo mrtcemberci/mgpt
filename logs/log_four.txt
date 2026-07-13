@@ -1,0 +1,32 @@
+PS C:\Users\bogaz\MGPT\mgpt> .\build\Release\mgpt.exe -t -g --resume -d="dialogues.txt" -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" --lr=0.00005 -s=3000 --start-step=0 --total-steps=3000 -l=12 -c=384 -w=256 -b=16 -a=2
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: dialogues.txt
+Found master vocabulary file (tinystories_slice.txt.vocab.bin): 4096 tokens.
+      -> Encoding dataset shard dialogues.txt using master vocabulary...
+      Total Dataset Shard Tokens: 4026355
+      -> Caching raw encoded binary stream (15 MB) to dialogues.txt.tok.bin...
+      -> Successfully dumped raw encoded shard to dialogues.txt.tok.bin!
+Train/Val Split (90/10):
+      -> Training Tokens:   3623719
+      -> Validation Tokens: 402636
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Resuming Training Mode: Loading existing checkpoint from mgpt_chat.bin...
+Successfully loaded GPT model weights from mgpt_chat.bin (restored at completed step 72000)!
+Uploading Train and Validation Datasets to GPU Memory...
+Starting Training Loop (AdamW, LR=5e-05, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=3000, Global Horizon=72000 -> 75000/3000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[72001/3000 (Shard 1/3000 | 2400%)] LR:5.00e-06 Fwd:202ms Loss:140ms Opt:232ms | Step:767ms | Loss: 5.2594
