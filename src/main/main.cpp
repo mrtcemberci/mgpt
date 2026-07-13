@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
     std::string prompt = "To be or not to be";
     int max_tokens = 500;
     int max_steps = 1000;
-    int start_step = 0;
+    int start_step = -1;
     int total_steps = 0;
     int num_layers = 4;
     int embed_dim = 128;
@@ -441,9 +441,10 @@ int main(int argc, char** argv) {
         if (mode_resume) {
             std::cout << "Resuming Training Mode: Loading existing checkpoint from " << weights_path << "...\n";
             int loaded_steps = model.load_weights_bin(weights_path);
-            if (start_step == 0) start_step = loaded_steps;
+            if (start_step == -1) start_step = loaded_steps;
             if (use_gpu) model.to(target_dev);
         }
+        if (start_step == -1) start_step = 0;
 
         int eval_interval = std::max(1, max_steps / 10);
         int print_interval = std::max(1, max_steps / 10);
