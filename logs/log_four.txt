@@ -165,3 +165,77 @@ Assistant: I'm sorry.
 User: I'm sorry.
 Assist
 ------------------------------------------------------------
+
+PS C:\Users\bogaz\MGPT\mgpt> .\build\Release\mgpt.exe -i -g -f="mgpt_chat.bin" --vocab-file="tinystories_slice.txt.vocab.bin" -l=12 -c=384 -w=256 -p="User: Can you tell me a story?`nAssistant:" --temp=0.5 --topk=20
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: input.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 4096 tokens (tinystories_slice.txt.vocab.bin)
+      -> Loading pre-encoded token stream from input.txt.tok.bin...
+      Total Dataset Tokens: 452197 (Loaded instantly from binary cache!)
+Inference Mode Selected (Skipping Train/Val Split)
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    4096
+      -> Max Seq Len:   256
+      -> Embed Dim:     384
+      -> Num Layers:    12
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  31531264 float32 parameters (~123169 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Loading Trained Model Weights from mgpt_chat.bin...
+Successfully loaded GPT model weights from mgpt_chat.bin (restored at completed step 3000)!
+
+--- Text Generation Sample (Prompt: "User: Can you tell me a story?
+Assistant:" | Temp: 0.5 | Top-K: 20) ---
+User: Can you tell me a story?
+Assistant: I don't know. I think you're not a good idea of exactly.
+<|endoftext|>
+User: I don't know. I think you're not a good idea about exactly.
+Assistant: Why?
+<|endoftext|>
+User: Why?
+Assistant: I'm not a good idea.
+<|endoftext|>
+User: I'm not a good idea.
+Assistant: What kind of fashion do you want to have?
+<|endoftext|>
+User: What kind of fashion do you want to have?
+Assistant: I want to have a look at the fashion of the fashion of the fashion.
+<|endoftext|>
+User: I want to have a look at the fashion of the fashion of the fashion of the fashion.
+Assistant: Yes, I want to see it.
+<|endoftext|>
+User: Yes, I want to see it.
+Assistant: Thank you.
+<|endoftext|>
+User: Thank you.
+Assistant: What's the matter?
+<|endoftext|>
+User: What's the matter?
+Assistant: I'm going to go to the date.
+<|endoftext|>
+User: I'm going to the date.
+Assistant: I'm going to the date with a job.
+<|endoftext|>
+User: I'm going to the date with a job.
+Assistant: I'll get a job.
+<|endoftext|>
+User: I'll get a job.
+Assistant: How much is it?
+<|endoftext|>
+User: How much is it?
+Assistant: It's not a 120 yuan.
+<|endoftext|>
+User: It's not a 100 yuan.
+Assistant: I'm sorry.
+<|endoftext|>
+User: I'm sorry.
+Assistant: I'm sorry.
+<|endoftext|>
+User: I
+------------------------------------------------------------
