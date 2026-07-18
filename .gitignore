@@ -20,7 +20,6 @@ build_release/
 # Model weights & datasets
 instructions.md
 *.txt
-!input.txt
-!empathetic_dialogues.txt
 *.bin
+*.ps1
 build_msvc/
