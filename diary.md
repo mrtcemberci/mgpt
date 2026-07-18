@@ -794,6 +794,3 @@ Step       Progress & Timings                      Train Loss   Val Loss
 PS C:\Users\bogaz\MGPT\mgpt>
 
 
-# NEXT STEPS & TODO:
-- Implement dataset sharding / binary shard loading (`.bin` files) for large datasets (2GB+ TinyStories) with invisible model continuation / `--resume` checkpoints.
-- Build Goku roleplay and Text-to-SQL commercial milestone bots.
