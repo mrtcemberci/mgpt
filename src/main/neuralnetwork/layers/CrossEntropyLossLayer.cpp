@@ -1,6 +1,13 @@
 #include "CrossEntropyLossLayer.h"
 #include <algorithm>
 
+/*
+
+Takes in the logits and the targets of dimensions BxTxVocabSize and BxT respectively,
+computes the probabilities and calculates the loss using cross-entropy loss.
+
+*/
+
 void CrossEntropyLossLayer::set_targets(const std::vector<int>& targets) {
     cached_targets = targets;
     using_tensor_targets = false;

@@ -1,6 +1,20 @@
 #include "TransformerBlock.h"
 #include "Scratchpad.h"
 
+/**
+ * The transformer block is the building block that is repeated in the transformer
+ * 
+ * Each transformer consists of
+ * 
+ * Layer norm -> Attention -> Layer norm -> projection to 4*channels, projection down to channels
+ * 
+ * Uses residual connections
+ * 
+ * Uses the swiglu activation.
+ * 
+ * X_next = X + Attention(RMSNorm1(X)) + MLP(RMSNorm2(X + Attention(RMSNorm1(X))))
+ */
+
 TransformerBlock::TransformerBlock(int channels, int num_heads)
     : channels(channels),
       ln1(channels),

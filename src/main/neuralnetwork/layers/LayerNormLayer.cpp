@@ -1,5 +1,9 @@
 #include "LayerNormLayer.h"
 
+/**
+ * Normalising layer, takes in a tensor and produces tensor of same dimension with normalising by both mean and variance.
+ */
+
 LayerNormLayer::LayerNormLayer(int channels, float eps)
     : channels(channels),
       eps(eps),

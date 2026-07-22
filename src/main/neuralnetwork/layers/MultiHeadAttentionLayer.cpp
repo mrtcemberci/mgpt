@@ -2,6 +2,10 @@
 #include "cuda_ops.h"
 #include "Scratchpad.h"
 
+/**
+ * uses the 4D tensor batched SHA method
+ */
+
 MultiHeadAttentionLayer::MultiHeadAttentionLayer(int channels, int num_heads_requested)
     : channels(channels) {
     num_heads = num_heads_requested;

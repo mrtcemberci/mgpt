@@ -20,15 +20,32 @@ private: // Private cached states for backpropagation
     Tensor cached_Q;
     Tensor cached_K;
     Tensor cached_V;
+    Tensor cached_K_T;
     Tensor cached_scores; // Raw attention scores before Softmax
     Tensor cached_probs;  // Attention weights P after Softmax & causal masking
+    Tensor cached_context;
+    Tensor cached_output;
+    Tensor cached_d_context;
+    Tensor cached_dV;
+    Tensor cached_dP;
+    Tensor cached_dS;
+    Tensor cached_dS_scaled;
+    Tensor cached_dQ;
+    Tensor cached_dK;
+    Tensor cached_dX_Q;
+    Tensor cached_dX_K;
+    Tensor cached_dX_V;
+    Tensor cached_dX;
 
 public:
     explicit SingleHeadAttentionLayer(int channels);
 
     Tensor forward(const Tensor& input) override;
+    void forward_into(const Tensor& input, Tensor& output) override;
     Tensor backward(const Tensor& dout) override;
+    void backward_into(const Tensor& dout, Tensor& din) override;
     std::vector<Tensor*> get_parameters() override;
+    void set_scratchpad(Scratchpad* pad) override;
 };
 
 #endif //SINGLEHEADATTENTIONLAYER_H

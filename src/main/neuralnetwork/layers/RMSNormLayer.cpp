@@ -1,5 +1,9 @@
 #include "RMSNormLayer.h"
 
+/**
+ * RMS Normalising layer, takes in a tensor and produces tensor of same dimension with normalising by RMS.
+ */
+
 RMSNormLayer::RMSNormLayer(int channels, float eps)
     : channels(channels),
       eps(eps),

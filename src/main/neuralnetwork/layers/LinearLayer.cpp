@@ -4,6 +4,15 @@
 #include <iostream>
 #include <cmath>
 
+/**
+ * Standard layer takes in BxTxin_channels and produces BxTxout_channels
+ * 
+ * Weights initialised randomly by Kaiming normal
+ * 
+ * biases initialised as 0
+ * 
+ */
+
 LinearLayer::LinearLayer(int in_channels, int out_channels)
     : in_channels(in_channels),
       out_channels(out_channels),

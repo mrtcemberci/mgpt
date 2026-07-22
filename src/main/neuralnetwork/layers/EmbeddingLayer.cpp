@@ -1,5 +1,11 @@
 #include "EmbeddingLayer.h"
 
+/**
+ * Takes in the BxT tensor and produces BxTxC of token embeddings, does not have positional embeddings
+ * 
+ * Lookup table is VxC (lookup array of V indices to produce a C length array)
+ */
+
 EmbeddingLayer::EmbeddingLayer(int table_size, int embed_dim)
     : table_size(table_size),
       embed_dim(embed_dim),

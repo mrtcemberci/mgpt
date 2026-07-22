@@ -161,6 +161,66 @@ void test_mhsa() {
     std::cout << " Passed! ✅\n";
 }
 
+// ============================================================================
+// 4. SINGLE-HEAD ATTENTION _INTO PARITY & ZERO-ALLOCATION VERIFICATION
+// ============================================================================
+void test_sha_into_parity() {
+    std::cout << "Running Test 4: SingleHeadAttentionLayer forward_into & backward_into Parity..." << std::endl;
+    int B = 2, T = 3, C = 4;
+    SingleHeadAttentionLayer attn(C);
+
+    for (Tensor* p : attn.get_parameters()) {
+        for (size_t i = 0; i < p->size(); ++i) {
+            p->data[i] = ((float)(i % 5) - 2.0f) * 0.1f;
+        }
+    }
+
+    Tensor X({B, T, C}, 0.0f);
+    for (size_t i = 0; i < X.size(); ++i) X.data[i] = ((float)(i % 7) - 3.0f) * 0.2f;
+
+    Tensor Target({B, T, C}, 0.0f);
+    for (size_t i = 0; i < Target.size(); ++i) Target.data[i] = ((float)(i % 4) - 1.5f) * 0.3f;
+
+    // Standard pass
+    for (Tensor* p : attn.get_parameters()) p->zero_grad();
+    Tensor Y_std = attn.forward(X);
+    Tensor dY_std = compute_mse_grad(Y_std, Target);
+    Tensor dX_std = attn.backward(dY_std);
+
+    std::vector<Tensor> std_grads;
+    for (Tensor* p : attn.get_parameters()) {
+        std_grads.push_back(*p);
+    }
+
+    // _into pass
+    for (Tensor* p : attn.get_parameters()) p->zero_grad();
+    Tensor Y_into({B, T, C}, 0.0f);
+    attn.forward_into(X, Y_into);
+
+    for (size_t i = 0; i < Y_std.size(); ++i) {
+        assert(std::abs(Y_std.data[i] - Y_into.data[i]) < 1e-5f);
+    }
+    std::cout << "  -> forward_into exactly matches standard forward! ✅\n";
+
+    Tensor dY_into = compute_mse_grad(Y_into, Target);
+    Tensor dX_into({B, T, C}, 0.0f);
+    attn.backward_into(dY_into, dX_into);
+
+    for (size_t i = 0; i < dX_std.size(); ++i) {
+        assert(std::abs(dX_std.data[i] - dX_into.data[i]) < 1e-5f);
+    }
+    std::cout << "  -> backward_into input gradients (dX) match exactly! ✅\n";
+
+    int idx = 0;
+    for (Tensor* p : attn.get_parameters()) {
+        for (size_t i = 0; i < p->size(); ++i) {
+            assert(std::abs(p->grad[i] - std_grads[idx].grad[i]) < 1e-5f);
+        }
+        idx++;
+    }
+    std::cout << "  -> backward_into parameter gradients match exactly! ✅\n";
+}
+
 int main() {
     std::cout << "============================================================\n";
     std::cout << "      STARTING ATTENTION LAYER VERIFICATION SUITE         \n";
@@ -169,6 +229,7 @@ int main() {
     test_attention_forward();
     test_attention_gradcheck();
     test_mhsa();
+    test_sha_into_parity();
 
     std::cout << "\n============================================================\n";
     std::cout << " 🚀 ATTENTION VERIFICATION COMPLETE! ALL TESTS PASSED! 🚀  \n";

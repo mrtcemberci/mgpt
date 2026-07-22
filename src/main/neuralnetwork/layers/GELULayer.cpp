@@ -1,5 +1,9 @@
 #include "GELULayer.h"
 
+/**
+ * Activation layer, takes in BxTxC and applies GELU activation element wise, produces a tensor of same dimension
+ */
+
 // GELU FORWARD PASS: y = 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
 void GELULayer::forward_into(const Tensor& input, Tensor& output) {
     cached_input = input;
