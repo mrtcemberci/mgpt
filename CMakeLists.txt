@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 option(USE_CUDA "Build with CUDA support" ON)
 
-include_directories(src/main src/main/utils src/main/neuralnetwork src/main/neuralnetwork/layers src/main/neuralnetwork/optimisers)
+include_directories(src/main src/main/utils src/main/neuralnetwork src/main/neuralnetwork/layers src/main/neuralnetwork/optimisers src/main/pipeline)
 
 set(TENSOR_SOURCES src/main/utils/Tensor.cpp src/main/utils/cuda_ops.cu src/main/utils/Scratchpad.cpp)
 
@@ -31,7 +31,7 @@ endif()
 
 enable_testing()
 
-add_executable(mgpt src/main/main.cpp src/main/utils/CharacterTokenizer.cpp src/main/utils/BytePairEncodingTokenizer.cpp
+add_executable(mgpt src/main/main.cpp src/main/pipeline/Trainer.cpp src/main/pipeline/Generator.cpp src/main/utils/CharacterTokenizer.cpp src/main/utils/BytePairEncodingTokenizer.cpp
         ${TENSOR_SOURCES} src/main/utils/Tensor.h src/main/utils/cuda_ops.h src/main/neuralnetwork/layers/Layer.h
         src/main/neuralnetwork/layers/LinearLayer.cpp
         src/main/neuralnetwork/layers/LinearLayer.h

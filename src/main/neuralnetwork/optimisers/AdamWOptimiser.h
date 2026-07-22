@@ -3,6 +3,7 @@
 #include <cmath>
 #include <fstream>
 #include <unordered_map>
+#include <iostream>
 
 #include "Optimiser.h"
 #include "Tensor.h"
