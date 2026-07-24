@@ -28,6 +28,7 @@ std::string Generator::generate_text(GPT& model, Tokenizer& tokenizer, const std
 
         // Forward pass
         Tensor logits = model.forward(input_ids);
+        model.reset_activations();
 
         std::vector<float> logits_host(logits.size());
         logits.copy_to_host(logits_host.data());

@@ -23,6 +23,9 @@ public:
 
     // Return pointers to all learnable weight/bias Tensors within this layer (used by Optimizers)
     virtual std::vector<Tensor*> get_parameters() { return {}; }
+    
+    // Clear heavy cached activations to save memory when gradient checkpointing is enabled
+    virtual void clear_activations() {}
 
     // Migrate all learnable parameters in this layer to the specified device
     virtual void to(Device target_device) {

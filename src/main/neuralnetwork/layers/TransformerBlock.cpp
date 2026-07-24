@@ -29,6 +29,17 @@ TransformerBlock::TransformerBlock(int channels, int num_heads)
 void TransformerBlock::forward_into(const Tensor& input, Tensor& output) {
     cached_input = input;
 
+    if (scratchpad && input.device == Device::CUDA) {
+        size_t B = input.shape[0], T = input.shape[1], C = input.shape[2];
+        cached_ln1_out = Tensor::view(input.shape, scratchpad->get_address(B*T*C), Device::CUDA);
+        cached_attn_out = Tensor::view(input.shape, scratchpad->get_address(B*T*C), Device::CUDA);
+        cached_x1 = Tensor::view(input.shape, scratchpad->get_address(B*T*C), Device::CUDA);
+        cached_ln2_out = Tensor::view(input.shape, scratchpad->get_address(B*T*C), Device::CUDA);
+        cached_gate_out = Tensor::view({(int)B, (int)T, (int)C*4}, scratchpad->get_address(B*T*C*4), Device::CUDA);
+        cached_up_out = Tensor::view({(int)B, (int)T, (int)C*4}, scratchpad->get_address(B*T*C*4), Device::CUDA);
+        cached_gate_swished = Tensor::view({(int)B, (int)T, (int)C*4}, scratchpad->get_address(B*T*C*4), Device::CUDA);
+    }
+
     ln1.forward_into(input, cached_ln1_out);
     attn.forward_into(cached_ln1_out, cached_attn_out);
     Tensor::add_into(input, cached_attn_out, cached_x1);

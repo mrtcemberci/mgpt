@@ -45,6 +45,8 @@ private: // Private cached states for backpropagation
     Tensor cached_d_logits;
     Tensor cached_dX;
     Tensor cached_dummy_din;
+    
+    size_t global_savepoint = 0;
 
 public:
     explicit GPT(const GPTConfig& config);
@@ -56,15 +58,18 @@ public:
 
     // Evaluates loss against target IDs {Batch, Time} and initiates backprop
     float compute_loss(const Tensor& logits, const Tensor& target_ids);
+
+    void reset_activations() {
+        if (scratchpad) scratchpad->reset();
+    }
+
+    std::vector<Tensor*> get_parameters() override;
     Tensor backward(const Tensor& d_logits) override;
     void backward_into(const Tensor& d_logits, Tensor& din) override;
 
     std::unique_ptr<Scratchpad> owned_scratchpad;
     void init_scratchpad(size_t capacity_floats = 128 * 1024 * 1024);
     void set_scratchpad(Scratchpad* pad) override;
-
-    std::vector<Tensor*> get_parameters() override;
-
     // Export & Import weights to raw binary .bin file for lightweight inference and training resume
     void save_weights_bin(const std::string& filepath, int completed_steps = 0);
     int load_weights_bin(const std::string& filepath);

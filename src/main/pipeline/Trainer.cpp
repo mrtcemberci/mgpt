@@ -58,6 +58,7 @@ float Trainer::evaluate_loss(GPT& model, const std::vector<int>& val_data,
         model.forward_into(x_batch, logits);
         float step_loss = model.loss_layer.forward_loss(logits, y_batch);
         total_loss += step_loss;
+        model.reset_activations();
     }
     return total_loss / (float)eval_steps;
 }

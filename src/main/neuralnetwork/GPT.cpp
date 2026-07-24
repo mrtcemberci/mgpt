@@ -13,6 +13,10 @@ GPT::GPT(const GPTConfig& config)
 
 // FORWARD PASS: Token Embeddings -> L Transformer Blocks -> LayerNorm -> LM Head
 void GPT::forward_into(const Tensor& input_ids, Tensor& output) {
+    if (scratchpad) {
+        global_savepoint = scratchpad->get_savepoint();
+    }
+
     if (input_ids.shape.size() != 2) {
         std::cerr << "GPT::forward_into: input_ids must be 2D {Batch, Time}!" << std::endl;
         exit(-1);
@@ -28,17 +32,25 @@ void GPT::forward_into(const Tensor& input_ids, Tensor& output) {
 
     // Token Embeddings: {B, T} -> {B, T, C}
     tok_emb.forward_into(input_ids, cached_tok_emb);
-    cached_x0 = cached_tok_emb;
-
+    
     // Pass sequentially through Transformer Blocks
-    Tensor* curr_ptr = &cached_x0;
+    Tensor curr_x = cached_tok_emb;
     for (size_t i = 0; i < blocks.size(); ++i) {
-        blocks[i]->forward_into(*curr_ptr, blocks[i]->cached_out);
-        curr_ptr = &(blocks[i]->cached_out);
+        size_t block_savepoint = 0;
+        if (config.use_gradient_checkpointing && scratchpad) {
+            block_savepoint = scratchpad->get_savepoint();
+        }
+
+        blocks[i]->forward_into(curr_x, blocks[i]->cached_out);
+        curr_x = blocks[i]->cached_out;
+
+        if (config.use_gradient_checkpointing && scratchpad) {
+            scratchpad->restore_savepoint(block_savepoint);
+        }
     }
 
     // Final Layer Normalization & Language Model Head Projection
-    ln_f.forward_into(*curr_ptr, cached_ln_f_out);
+    ln_f.forward_into(curr_x, cached_ln_f_out);
     lm_head.forward_into(cached_ln_f_out, output); // Shape {B, T, VocabSize}
     cached_logits = output;
 }
@@ -69,7 +81,9 @@ void GPT::backward_into(const Tensor& d_logits, Tensor& din) {
         cached_d_blocks.resize(blocks.size());
     }
     for (int i = (int)blocks.size() - 1; i >= 0; --i) {
-        if (config.use_gradient_checkpointing) {
+        size_t block_savepoint = 0;
+        if (config.use_gradient_checkpointing && scratchpad) {
+            block_savepoint = scratchpad->get_savepoint();
             // Recompute Block i's forward activations from its saved input
             blocks[i]->forward_into(blocks[i]->cached_input, blocks[i]->cached_out);
         }
@@ -78,6 +92,10 @@ void GPT::backward_into(const Tensor& d_logits, Tensor& din) {
             blocks[i]->backward_into(cached_d_curr, cached_d_blocks[i]);
         } else {
             blocks[i]->backward_into(cached_d_blocks[i+1], cached_d_blocks[i]);
+        }
+
+        if (config.use_gradient_checkpointing && scratchpad) {
+            scratchpad->restore_savepoint(block_savepoint);
         }
     }
 
@@ -88,6 +106,10 @@ void GPT::backward_into(const Tensor& d_logits, Tensor& din) {
         tok_emb.backward_into(cached_d_curr, cached_dummy_din);
     }
     cached_dX = Tensor();
+
+    if (scratchpad) {
+        scratchpad->restore_savepoint(global_savepoint);
+    }
 }
 
 Tensor GPT::backward(const Tensor& d_logits) {
