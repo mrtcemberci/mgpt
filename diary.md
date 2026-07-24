@@ -84,6 +84,26 @@ Train the Transformer architecture to perform precise, multi-digit algorithmic r
 - **Hardware Efficiency:** Achieved continuous `~99% CUDA GPU occupancy` at `~212 ms/step` (`Batch 16, Accum 2`) on an NVIDIA RTX 3070.
 
 
+## Phase 6: Custom Flash Attention & VRAM Optimization (July 24, 2026)
+
+### Goal & Challenge
+Drastically reduce the VRAM footprint to allow training a 26M parameter model with a 1024 sequence length on consumer hardware, without triggering Out-Of-Memory (OOM) crashes from massive $O(T^2)$ attention matrices.
+
+### Key Engineering Insights
+- **Custom Flash Attention Kernels:** Implemented native CUDA `flash_attention_forward` and `flash_attention_backward` kernels, bypassing the allocation of intermediate $T \times T$ attention scores.
+- **Scratchpad Lifecycle Fix:** Discovered a severe memory leak during the validation evaluation loop. The `Scratchpad` memory arena was steadily growing because the `savepoint` was never restored during validation inference. Fixed by injecting a targeted `model.reset_activations()` sweep at the end of the evaluation loop, locking the VRAM footprint completely.
+
+### Performance & Results
+- **Model Specs:** 16 Layers, 320 Channels (~26,305,942 parameters).
+- **VRAM Footprint:** Successfully achieved massive VRAM reductions.
+- **Speed Degradation Profile:** 
+  - Context Window `256`: `~855ms/step` | `3.7 GB VRAM`
+  - Context Window `1024`: `~10,163ms/step` | `8.3 GB VRAM`
+- **System Bottleneck:** The current Flash Attention backward pass suffers from extreme global memory contention. Because the grid is parallelized over Q tiles, all blocks fight to update the global `dK` and `dV` matrices using heavy `atomicAdd` calls, scaling terribly at $O(T^2)$.
+
+### Goal Fix: Flash Attention V2
+- **Next Step:** Implement a Flash Attention V2-style dual-kernel backward pass. By splitting the backward pass into two separate kernels (one looping over K to compute `dQ` without atomics, and one looping over Q to compute `dK/dV` without atomics), we will completely eliminate global memory contention and restore sub-second step times for large sequence lengths.
+
 ## Todo
 - **Floating point memory footprint:** Implement FP16
 - **Dynamic scratch pad allocation:** Implement dynamic scratch pad allocation rather than a set 1GB
