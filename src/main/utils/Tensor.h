@@ -103,6 +103,9 @@ public:
     void swish_inplace();
     void swish_into(Tensor& result) const;
     static void swish_backward_into(const Tensor& x, const Tensor& dout, Tensor& result);
+
+    static void flash_attention_forward(const Tensor& Q, const Tensor& K, const Tensor& V, Tensor& O, Tensor& L, int B, int num_heads, int T, int head_dim);
+    static void flash_attention_backward(const Tensor& Q, const Tensor& K, const Tensor& V, const Tensor& O, const Tensor& L, const Tensor& dO, Tensor& dQ, Tensor& dK, Tensor& dV, int B, int num_heads, int T, int head_dim);
     void transpose_into(int dim1, int dim2, Tensor& result) const;
     void softmax_into(int dim, Tensor& result) const;
     void add_broadcast_in_place(const Tensor& other);

@@ -33,6 +33,7 @@ private: // Private cached states and pre-allocated workspaces for forward/backw
     Tensor cached_K_T;
     Tensor cached_scores;
     Tensor cached_probs;
+    Tensor cached_L;
     Tensor cached_head_contexts;
     Tensor cached_concat_ctx;
     Tensor cached_d_concat_ctx;

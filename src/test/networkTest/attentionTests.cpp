@@ -221,6 +221,116 @@ void test_sha_into_parity() {
     std::cout << "  -> backward_into parameter gradients match exactly! ✅\n";
 }
 
+void test_flash_attention_cuda_parity() {
+    std::cout << "Running Test 5: Flash Attention CUDA Parity Check..." << std::endl;
+#ifndef USE_CUDA
+    std::cout << "  -> CUDA not enabled, skipping test.\n";
+    return;
+#endif
+
+    int B = 2, num_heads = 4, T = 128, head_dim = 64;
+    Tensor Q({B * num_heads, T, head_dim}, 0.0f, Device::CPU);
+    Tensor K({B * num_heads, T, head_dim}, 0.0f, Device::CPU);
+    Tensor V({B * num_heads, T, head_dim}, 0.0f, Device::CPU);
+    
+    for (size_t i = 0; i < Q.size(); ++i) Q.data[i] = ((float)(i % 5) - 2.0f) * 0.1f;
+    for (size_t i = 0; i < K.size(); ++i) K.data[i] = ((float)(i % 7) - 3.0f) * 0.2f;
+    for (size_t i = 0; i < V.size(); ++i) V.data[i] = ((float)(i % 11) - 5.0f) * 0.1f;
+    
+    Tensor dO({B * num_heads, T, head_dim}, 0.0f, Device::CPU);
+    for (size_t i = 0; i < dO.size(); ++i) dO.data[i] = ((float)(i % 3) - 1.0f) * 0.1f;
+
+    // CPU standard forward
+    Tensor K_T({B * num_heads, head_dim, T}, 0.0f, Device::CPU);
+    K.transpose_into(1, 2, K_T);
+    
+    Tensor scores({B * num_heads, T, T}, 0.0f, Device::CPU);
+    Q.matmul_into(K_T, scores);
+    
+    float scale = 1.0f / std::sqrt((float)head_dim);
+    scores.mul_scalar_in_place(scale);
+    scores.causal_mask();
+    
+    Tensor probs({B * num_heads, T, T}, 0.0f, Device::CPU);
+    scores.softmax_into(-1, probs);
+    
+    Tensor O_cpu({B * num_heads, T, head_dim}, 0.0f, Device::CPU);
+    probs.matmul_into(V, O_cpu);
+
+    // CPU standard backward
+    Tensor probs_T({B * num_heads, T, T}, 0.0f, Device::CPU);
+    probs.transpose_into(1, 2, probs_T);
+    
+    Tensor dV_cpu({B * num_heads, T, head_dim}, 0.0f, Device::CPU);
+    probs_T.matmul_into(dO, dV_cpu);
+    
+    Tensor V_T({B * num_heads, head_dim, T}, 0.0f, Device::CPU);
+    V.transpose_into(1, 2, V_T);
+    
+    Tensor dP({B * num_heads, T, T}, 0.0f, Device::CPU);
+    dO.matmul_into(V_T, dP);
+    
+    Tensor dS({B * num_heads, T, T}, 0.0f, Device::CPU);
+    probs.softmax_backward_into(dP, dS);
+    dS.mul_scalar_in_place(scale);
+    
+    Tensor dQ_cpu({B * num_heads, T, head_dim}, 0.0f, Device::CPU);
+    dS.matmul_into(K, dQ_cpu);
+    
+    Tensor dS_T({B * num_heads, T, T}, 0.0f, Device::CPU);
+    dS.transpose_into(1, 2, dS_T);
+    
+    Tensor dK_cpu({B * num_heads, T, head_dim}, 0.0f, Device::CPU);
+    dS_T.matmul_into(Q, dK_cpu);
+
+    // Flash Attention CUDA
+    Q.shape = {B, num_heads, T, head_dim};
+    K.shape = {B, num_heads, T, head_dim};
+    V.shape = {B, num_heads, T, head_dim};
+    dO.shape = {B, num_heads, T, head_dim};
+
+    Tensor Q_gpu = Q; Q_gpu.to(Device::CUDA);
+    Tensor K_gpu = K; K_gpu.to(Device::CUDA);
+    Tensor V_gpu = V; V_gpu.to(Device::CUDA);
+    Tensor dO_gpu = dO; dO_gpu.to(Device::CUDA);
+    
+    Tensor O_gpu({B, num_heads, T, head_dim}, 0.0f, Device::CUDA);
+    Tensor L_gpu({B, num_heads, T}, 0.0f, Device::CUDA);
+    
+    Tensor::flash_attention_forward(Q_gpu, K_gpu, V_gpu, O_gpu, L_gpu, B, num_heads, T, head_dim);
+    
+    Tensor dQ_gpu({B, num_heads, T, head_dim}, 0.0f, Device::CUDA);
+    Tensor dK_gpu({B, num_heads, T, head_dim}, 0.0f, Device::CUDA);
+    Tensor dV_gpu({B, num_heads, T, head_dim}, 0.0f, Device::CUDA);
+    
+    Tensor::flash_attention_backward(Q_gpu, K_gpu, V_gpu, O_gpu, L_gpu, dO_gpu, dQ_gpu, dK_gpu, dV_gpu, B, num_heads, T, head_dim);
+
+    O_gpu.to(Device::CPU);
+    dQ_gpu.to(Device::CPU);
+    dK_gpu.to(Device::CPU);
+    dV_gpu.to(Device::CPU);
+
+    for (size_t i = 0; i < O_cpu.size(); ++i) {
+        assert(std::abs(O_cpu.data[i] - O_gpu.data[i]) < 1e-4f);
+    }
+    std::cout << "  -> Flash Forward perfectly matches Standard Forward! ✅\n";
+
+    for (size_t i = 0; i < dV_cpu.size(); ++i) {
+        assert(std::abs(dV_cpu.data[i] - dV_gpu.data[i]) < 1e-3f);
+    }
+    std::cout << "  -> Flash Backward dV perfectly matches Standard dV! ✅\n";
+
+    for (size_t i = 0; i < dK_cpu.size(); ++i) {
+        assert(std::abs(dK_cpu.data[i] - dK_gpu.data[i]) < 1e-3f);
+    }
+    std::cout << "  -> Flash Backward dK perfectly matches Standard dK! ✅\n";
+
+    for (size_t i = 0; i < dQ_cpu.size(); ++i) {
+        assert(std::abs(dQ_cpu.data[i] - dQ_gpu.data[i]) < 1e-3f);
+    }
+    std::cout << "  -> Flash Backward dQ perfectly matches Standard dQ! ✅\n";
+}
+
 int main() {
     std::cout << "============================================================\n";
     std::cout << "      STARTING ATTENTION LAYER VERIFICATION SUITE         \n";
@@ -230,6 +340,7 @@ int main() {
     test_attention_gradcheck();
     test_mhsa();
     test_sha_into_parity();
+    test_flash_attention_cuda_parity();
 
     std::cout << "\n============================================================\n";
     std::cout << " 🚀 ATTENTION VERIFICATION COMPLETE! ALL TESTS PASSED! 🚀  \n";

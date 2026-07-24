@@ -1136,6 +1136,215 @@ namespace cuda_ops {
         CHECK_CUDA(cudaGetLastError());
     }
 
+    #define FLASH_FWD_TILE 128
+    __global__ void flash_attention_forward_kernel(
+        const float* Q, const float* K, const float* V, float* O, float* L_out, 
+        int B, int num_heads, int T, int head_dim) 
+    {
+        int tx = threadIdx.x; 
+        int batch_head_id = blockIdx.y;
+        int q_tile_id = blockIdx.x;
+        int q_idx = q_tile_id * FLASH_FWD_TILE + tx;
+
+        extern __shared__ float s_mem[];
+        float* s_Q = s_mem;
+        float* s_K = &s_mem[FLASH_FWD_TILE * head_dim];
+        float* s_V = &s_mem[2 * FLASH_FWD_TILE * head_dim];
+
+        float m_i = -INFINITY;
+        float l_i = 0.0f;
+        float O_i[128]; // Max head_dim supported is 128
+        for(int d=0; d<head_dim; d++) O_i[d] = 0.0f;
+
+        int batch_head_offset = batch_head_id * (T * head_dim);
+        int q_tile_start = q_tile_id * FLASH_FWD_TILE;
+        
+        for (int i = tx; i < FLASH_FWD_TILE * head_dim; i += blockDim.x) {
+            int row = i / head_dim;
+            if (q_tile_start + row < T) {
+                s_Q[i] = Q[batch_head_offset + q_tile_start * head_dim + i];
+            }
+        }
+        __syncthreads();
+
+        float scale = 1.0f / sqrtf((float)head_dim);
+        int num_k_tiles = (T + FLASH_FWD_TILE - 1) / FLASH_FWD_TILE;
+        
+        for (int k_tile = 0; k_tile < num_k_tiles; k_tile++) {
+            int k_tile_start = k_tile * FLASH_FWD_TILE;
+            
+            for (int i = tx; i < FLASH_FWD_TILE * head_dim; i += blockDim.x) {
+                int row = i / head_dim;
+                if (k_tile_start + row < T) {
+                    s_K[i] = K[batch_head_offset + k_tile_start * head_dim + i];
+                    s_V[i] = V[batch_head_offset + k_tile_start * head_dim + i];
+                }
+            }
+            __syncthreads();
+
+            if (q_idx < T) {
+                int max_k = min(FLASH_FWD_TILE, T - k_tile * FLASH_FWD_TILE);
+                for (int k = 0; k < max_k; k++) {
+                    int global_k_idx = k_tile * FLASH_FWD_TILE + k;
+                    if (global_k_idx > q_idx) continue;
+
+                    float score = 0.0f;
+                    for (int d = 0; d < head_dim; d++) {
+                        score += s_Q[tx * head_dim + d] * s_K[k * head_dim + d];
+                    }
+                    score *= scale;
+
+                    float m_old = m_i;
+                    m_i = fmaxf(m_i, score);
+                    float correction = expf(m_old - m_i);
+                    float exp_score = expf(score - m_i);
+                    
+                    l_i = l_i * correction + exp_score;
+                    
+                    for (int d = 0; d < head_dim; d++) {
+                        O_i[d] = O_i[d] * correction + exp_score * s_V[k * head_dim + d];
+                    }
+                }
+            }
+            __syncthreads();
+        }
+
+        if (q_idx < T) {
+            float inv_l = 1.0f / l_i;
+            for (int d = 0; d < head_dim; d++) {
+                O[batch_head_offset + q_idx * head_dim + d] = O_i[d] * inv_l;
+            }
+            if (L_out) {
+                L_out[batch_head_id * T + q_idx] = m_i + logf(l_i);
+            }
+        }
+    }
+
+    void flash_attention_forward(const float* Q, const float* K, const float* V, float* O, float* L, int B, int num_heads, int T, int head_dim) {
+        dim3 grid((T + FLASH_FWD_TILE - 1) / FLASH_FWD_TILE, B * num_heads);
+        dim3 block(FLASH_FWD_TILE);
+        size_t shared_mem_size = 3 * FLASH_FWD_TILE * head_dim * sizeof(float);
+        cudaFuncSetAttribute(flash_attention_forward_kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_mem_size);
+        flash_attention_forward_kernel<<<grid, block, shared_mem_size>>>(Q, K, V, O, L, B, num_heads, T, head_dim);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+    #define FLASH_BWD_TILE 64
+    __global__ void flash_attention_backward_kernel(
+        const float* Q, const float* K, const float* V, const float* O, 
+        const float* L, const float* dO, 
+        float* dQ, float* dK, float* dV, 
+        int B, int num_heads, int T, int head_dim) 
+    {
+        int tx = threadIdx.x; 
+        int batch_head_id = blockIdx.y;
+        int q_tile_id = blockIdx.x;
+        int q_idx = q_tile_id * FLASH_BWD_TILE + tx;
+
+        extern __shared__ float s_mem[];
+        float* s_Q = s_mem;
+        float* s_O = &s_mem[FLASH_BWD_TILE * head_dim];
+        float* s_dO = &s_mem[2 * FLASH_BWD_TILE * head_dim];
+        float* s_K = &s_mem[3 * FLASH_BWD_TILE * head_dim];
+        float* s_V = &s_mem[4 * FLASH_BWD_TILE * head_dim];
+
+        int batch_head_offset = batch_head_id * (T * head_dim);
+        int q_tile_start = q_tile_id * FLASH_BWD_TILE;
+
+        for (int i = tx; i < FLASH_BWD_TILE * head_dim; i += blockDim.x) {
+            int row = i / head_dim;
+            if (q_tile_start + row < T) {
+                s_Q[i] = Q[batch_head_offset + q_tile_start * head_dim + i];
+                s_O[i] = O[batch_head_offset + q_tile_start * head_dim + i];
+                s_dO[i] = dO[batch_head_offset + q_tile_start * head_dim + i];
+            }
+        }
+        
+        float D_i = 0.0f;
+        float L_i = 0.0f;
+        if (q_idx < T) {
+            for(int d=0; d<head_dim; d++) {
+                D_i += s_dO[tx * head_dim + d] * s_O[tx * head_dim + d];
+            }
+            L_i = L[batch_head_id * T + q_idx];
+        }
+        
+        float dQ_i[128]; 
+        for(int d=0; d<head_dim; d++) dQ_i[d] = 0.0f;
+
+        __syncthreads();
+
+        float scale = 1.0f / sqrtf((float)head_dim);
+        int num_k_tiles = (T + FLASH_BWD_TILE - 1) / FLASH_BWD_TILE;
+        
+        for (int k_tile = 0; k_tile < num_k_tiles; k_tile++) {
+            int k_tile_start = k_tile * FLASH_BWD_TILE;
+
+            for (int i = tx; i < FLASH_BWD_TILE * head_dim; i += blockDim.x) {
+                int row = i / head_dim;
+                if (k_tile_start + row < T) {
+                    s_K[i] = K[batch_head_offset + k_tile_start * head_dim + i];
+                    s_V[i] = V[batch_head_offset + k_tile_start * head_dim + i];
+                }
+            }
+            __syncthreads();
+
+            if (q_idx < T) {
+                int max_k = min(FLASH_BWD_TILE, T - k_tile * FLASH_BWD_TILE);
+                for (int k = 0; k < max_k; k++) {
+                    int global_k_idx = k_tile * FLASH_BWD_TILE + k;
+                    if (global_k_idx > q_idx) continue;
+
+                    float score = 0.0f;
+                    for(int d=0; d<head_dim; d++) {
+                        score += s_Q[tx * head_dim + d] * s_K[k * head_dim + d];
+                    }
+                    score *= scale;
+
+                    float p = expf(score - L_i);
+
+                    float dP = 0.0f;
+                    for(int d=0; d<head_dim; d++) {
+                        dP += s_dO[tx * head_dim + d] * s_V[k * head_dim + d];
+                    }
+
+                    float dS = p * (dP - D_i) * scale;
+
+                    for(int d=0; d<head_dim; d++) {
+                        dQ_i[d] += dS * s_K[k * head_dim + d];
+                    }
+                    
+                    for(int d=0; d<head_dim; d++) {
+                        float dv_update = p * s_dO[tx * head_dim + d];
+                        float dk_update = dS * s_Q[tx * head_dim + d];
+                        
+                        atomicAdd(&dV[batch_head_offset + global_k_idx * head_dim + d], dv_update);
+                        atomicAdd(&dK[batch_head_offset + global_k_idx * head_dim + d], dk_update);
+                    }
+                }
+            }
+            __syncthreads();
+        }
+
+        if (q_idx < T) {
+            for(int d=0; d<head_dim; d++) {
+                dQ[batch_head_offset + q_idx * head_dim + d] = dQ_i[d];
+            }
+        }
+    }
+
+    void flash_attention_backward(const float* Q, const float* K, const float* V, const float* O, const float* L, const float* dO, float* dQ, float* dK, float* dV, int B, int num_heads, int T, int head_dim) {
+        cudaMemset(dK, 0, B * num_heads * T * head_dim * sizeof(float));
+        cudaMemset(dV, 0, B * num_heads * T * head_dim * sizeof(float));
+
+        dim3 grid((T + FLASH_BWD_TILE - 1) / FLASH_BWD_TILE, B * num_heads);
+        dim3 block(FLASH_BWD_TILE);
+        size_t shared_mem_size = 5 * FLASH_BWD_TILE * head_dim * sizeof(float);
+        cudaFuncSetAttribute(flash_attention_backward_kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_mem_size);
+        flash_attention_backward_kernel<<<grid, block, shared_mem_size>>>(Q, K, V, O, L, dO, dQ, dK, dV, B, num_heads, T, head_dim);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
 } // namespace cuda_ops
 
 #else // !USE_CUDA
@@ -1197,6 +1406,8 @@ namespace cuda_ops {
     void swish_backward_into(const float* x, const float* dout, float* result, int N) {}
     float sum_squares(const float*, int) { return 0.0f; }
     void scale_inplace(float*, float, int) {}
+    void flash_attention_forward(const float*, const float*, const float*, float*, float*, int, int, int, int) {}
+    void flash_attention_backward(const float*, const float*, const float*, const float*, const float*, const float*, float*, float*, float*, int, int, int, int) {}
 }
 
 #endif // USE_CUDA

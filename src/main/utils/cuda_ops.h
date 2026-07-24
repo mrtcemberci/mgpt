@@ -83,6 +83,9 @@ namespace cuda_ops {
     void swish_backward_into(const float* x, const float* dout, float* result, int N);
     float sum_squares(const float* d_arr, int N);
     void scale_inplace(float* d_arr, float scale, int N);
+
+    void flash_attention_forward(const float* Q, const float* K, const float* V, float* O, float* L, int B, int num_heads, int T, int head_dim);
+    void flash_attention_backward(const float* Q, const float* K, const float* V, const float* O, const float* L, const float* dO, float* dQ, float* dK, float* dV, int B, int num_heads, int T, int head_dim);
 }
 
 #endif // CUDA_OPS_H

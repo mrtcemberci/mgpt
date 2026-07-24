@@ -70,20 +70,27 @@ void MultiHeadAttentionLayer::forward_into(const Tensor& input, Tensor& output) 
 
     float scale = 1.0f / std::sqrt((float)head_dim);
 
-    Tensor tmp_K_T = (scratchpad && input.device == Device::CUDA)
-        ? Tensor::view({B * num_heads, head_dim, T}, scratchpad->get_address((size_t)B * num_heads * head_dim * T), Device::CUDA)
-        : cached_K_T;
-    Tensor tmp_scores = (scratchpad && input.device == Device::CUDA)
-        ? Tensor::view({B * num_heads, T, T}, scratchpad->get_address((size_t)B * num_heads * T * T), Device::CUDA)
-        : cached_scores;
+    if (input.device == Device::CUDA) {
+        if (cached_L.shape.empty()) {
+            cached_L = Tensor({B, num_heads, T}, 0.0f, Device::CUDA);
+        }
+        Tensor::flash_attention_forward(cached_Q, cached_K, cached_V, cached_head_contexts, cached_L, B, num_heads, T, head_dim);
+    } else {
+        Tensor tmp_K_T = (scratchpad && input.device == Device::CUDA)
+            ? Tensor::view({B * num_heads, head_dim, T}, scratchpad->get_address((size_t)B * num_heads * head_dim * T), Device::CUDA)
+            : cached_K_T;
+        Tensor tmp_scores = (scratchpad && input.device == Device::CUDA)
+            ? Tensor::view({B * num_heads, T, T}, scratchpad->get_address((size_t)B * num_heads * T * T), Device::CUDA)
+            : cached_scores;
 
-    // 3. Batched Multi-Head Attention math across all heads simultaneously
-    cached_K.transpose_into(1, 2, tmp_K_T);
-    cached_Q.matmul_into(tmp_K_T, tmp_scores);
-    tmp_scores.mul_scalar_in_place(scale);
-    tmp_scores.causal_mask();
-    tmp_scores.softmax_into(-1, cached_probs);
-    cached_probs.matmul_into(cached_V, cached_head_contexts);
+        // 3. Batched Multi-Head Attention math across all heads simultaneously
+        cached_K.transpose_into(1, 2, tmp_K_T);
+        cached_Q.matmul_into(tmp_K_T, tmp_scores);
+        tmp_scores.mul_scalar_in_place(scale);
+        tmp_scores.causal_mask();
+        tmp_scores.softmax_into(-1, cached_probs);
+        cached_probs.matmul_into(cached_V, cached_head_contexts);
+    }
 
     // 4. Permute head contexts back to concatenated format {B, T, channels}
     Tensor::permute_heads_to_concat(cached_head_contexts, cached_concat_ctx, B, T, num_heads, head_dim);
@@ -114,13 +121,9 @@ void MultiHeadAttentionLayer::backward_into(const Tensor& dout, Tensor& din) {
         savepoint = scratchpad->get_savepoint();
         cached_d_concat_ctx = Tensor::view({B, T, channels}, scratchpad->get_address(B * T * channels), Device::CUDA);
         cached_d_head_contexts = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
-        cached_probs_T = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
+        
         cached_dV = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
-        cached_V_T = Tensor::view({B * num_heads, head_dim, T}, scratchpad->get_address(B * num_heads * head_dim * T), Device::CUDA);
-        cached_dP = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
-        cached_dS = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
         cached_dQ = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
-        cached_dS_scaled_T = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
         cached_dK = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
         cached_dQKV_all = Tensor::view({B, T, 3 * channels}, scratchpad->get_address(B * T * 3 * channels), Device::CUDA);
     }
@@ -128,22 +131,31 @@ void MultiHeadAttentionLayer::backward_into(const Tensor& dout, Tensor& din) {
     W_O->backward_into(dout, cached_d_concat_ctx);
     Tensor::permute_concat_to_heads(cached_d_concat_ctx, cached_d_head_contexts, B, T, num_heads, head_dim);
 
-    float scale = 1.0f / std::sqrt((float)head_dim);
+    if (dout.device == Device::CUDA) {
+        Tensor::flash_attention_backward(
+            cached_Q, cached_K, cached_V, 
+            cached_head_contexts, cached_L, cached_d_head_contexts, 
+            cached_dQ, cached_dK, cached_dV,
+            B, num_heads, T, head_dim
+        );
+    } else {
+        float scale = 1.0f / std::sqrt((float)head_dim);
 
-    cached_probs.transpose_into(1, 2, cached_probs_T);
-    cached_probs_T.matmul_into(cached_d_head_contexts, cached_dV);
+        cached_probs.transpose_into(1, 2, cached_probs_T);
+        cached_probs_T.matmul_into(cached_d_head_contexts, cached_dV);
 
-    cached_V.transpose_into(1, 2, cached_V_T);
-    cached_d_head_contexts.matmul_into(cached_V_T, cached_dP);
+        cached_V.transpose_into(1, 2, cached_V_T);
+        cached_d_head_contexts.matmul_into(cached_V_T, cached_dP);
 
-    cached_probs.softmax_backward_into(cached_dP, cached_dS);
+        cached_probs.softmax_backward_into(cached_dP, cached_dS);
 
-    cached_dS.mul_scalar_in_place(scale);
+        cached_dS.mul_scalar_in_place(scale);
 
-    cached_dS.matmul_into(cached_K, cached_dQ);
+        cached_dS.matmul_into(cached_K, cached_dQ);
 
-    cached_dS.transpose_into(1, 2, cached_dS_scaled_T);
-    cached_dS_scaled_T.matmul_into(cached_Q, cached_dK);
+        cached_dS.transpose_into(1, 2, cached_dS_scaled_T);
+        cached_dS_scaled_T.matmul_into(cached_Q, cached_dK);
+    }
 
     // Apply inverse RoPE rotation to dQ and dK during backprop
     Tensor::apply_rope_inplace(cached_dQ, rope_cos_table, rope_sin_table, B, num_heads, T, head_dim, false);

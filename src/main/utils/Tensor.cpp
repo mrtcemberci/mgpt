@@ -1760,3 +1760,26 @@ void Tensor::swish_backward_into(const Tensor& x, const Tensor& dout, Tensor& re
         }
     }
 }
+
+void Tensor::flash_attention_forward(const Tensor& Q, const Tensor& K, const Tensor& V, Tensor& O, Tensor& L, int B, int num_heads, int T, int head_dim) {
+    assert(Q.device == Device::CUDA && K.device == Device::CUDA && V.device == Device::CUDA);
+
+    if (O.shape != Q.shape || O.device != Q.device || !O.cuda_data) {
+        O = Tensor(Q.shape, 0.0f, Q.device);
+    }
+    if (L.shape.empty() || L.device != Q.device || !L.cuda_data) {
+        L = Tensor({B, num_heads, T}, 0.0f, Q.device);
+    }
+
+    cuda_ops::flash_attention_forward(Q.cuda_data, K.cuda_data, V.cuda_data, O.cuda_data, L.cuda_data, B, num_heads, T, head_dim);
+}
+
+void Tensor::flash_attention_backward(const Tensor& Q, const Tensor& K, const Tensor& V, const Tensor& O, const Tensor& L, const Tensor& dO, Tensor& dQ, Tensor& dK, Tensor& dV, int B, int num_heads, int T, int head_dim) {
+    assert(Q.device == Device::CUDA && K.device == Device::CUDA && V.device == Device::CUDA && O.device == Device::CUDA && dO.device == Device::CUDA);
+
+    if (dQ.shape != Q.shape || dQ.device != Q.device || !dQ.cuda_data) dQ = Tensor(Q.shape, 0.0f, Q.device);
+    if (dK.shape != K.shape || dK.device != K.device || !dK.cuda_data) dK = Tensor(K.shape, 0.0f, K.device);
+    if (dV.shape != V.shape || dV.device != V.device || !dV.cuda_data) dV = Tensor(V.shape, 0.0f, V.device);
+
+    cuda_ops::flash_attention_backward(Q.cuda_data, K.cuda_data, V.cuda_data, O.cuda_data, L.cuda_data, dO.cuda_data, dQ.cuda_data, dK.cuda_data, dV.cuda_data, B, num_heads, T, head_dim);
+}
