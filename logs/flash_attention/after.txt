@@ -1,0 +1,32 @@
+PS C:\Users\bogaz\MGPT\mgpt> .\build\Release\mgpt.exe -t -g -d="math_dataset.txt" --vocab-file="math_dataset.txt.vocab.bin" -f="mgpt_math.bin" -l=16 -c=320 -w=128 -b=16 -a=2 -s=12000 --lr=0.0001
+============================================================
+      MGPT BOOTING UP...
+============================================================
+
+Using dataset at: math_dataset.txt
+Found cached binary dataset files:
+      -> Loaded Vocabulary Size = 22 tokens (math_dataset.txt.vocab.bin)
+      -> Loading pre-encoded token stream from math_dataset.txt.tok.bin...
+      Total Dataset Tokens: 25658834 (Loaded instantly from binary cache!)
+Train/Val Split (90/10):
+      -> Training Tokens:   23092950
+      -> Validation Tokens: 2565884
+
+Instantiated GPT Model Architecture:
+      -> Vocab Size:    22
+      -> Max Seq Len:   128
+      -> Embed Dim:     320
+      -> Num Layers:    16
+      -> Checkpointing: ENABLED (Block-Level Activation Recomputation)
+      -> Total Params:  26305942 float32 parameters (~102757 KB)
+
+Migrating GPT Model and Engine to CUDA GPU...
+Uploading Train and Validation Datasets to GPU Memory...
+Starting Training Loop (AdamW, LR=0.0001, Micro-Batch=16, Accum Steps=2 [Effective Batch: 32], Shard Steps=12000, Global Horizon=0 -> 12000/12000)...
+------------------------------------------------------------
+Step       Progress & Timings                      Train Loss   Val Loss
+------------------------------------------------------------
+[   1/12000 (Shard 1/12000 |   0%)] LR:1.67e-07 Fwd:179ms Loss:59ms Opt:189ms | Step:594ms | Loss: 3.8469
+
+5.3GB
+98% Util
