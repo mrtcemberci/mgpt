@@ -104,6 +104,33 @@ Drastically reduce the VRAM footprint to allow training a 26M parameter model wi
 ### Goal Fix: Flash Attention V2
 - **Next Step:** Implement a Flash Attention V2-style dual-kernel backward pass. By splitting the backward pass into two separate kernels (one looping over K to compute `dQ` without atomics, and one looping over Q to compute `dK/dV` without atomics), we will completely eliminate global memory contention and restore sub-second step times for large sequence lengths.
 
+## Phase 7: Flash Attention V2 & Unmasking Hidden Bottlenecks (July 25, 2026)
+
+### Goal & Challenge
+Eliminate the extreme $O(T^2)$ global memory contention in the backward pass caused by massive `atomicAdd` usage, then verify the speed improvements at `1024` context length.
+
+### Key Engineering Insights
+- **FA2 Dual-Kernel Architecture:** Successfully split the single backward pass into two decoupled kernels (`flash_attention_backward_dq_kernel` and `flash_attention_backward_dkv_kernel`). This inverted the loops so each thread block exclusively owns its output tile, completely eliminating `atomicAdd` calls while preserving perfect mathematical parity.
+- **Unmasking Hidden Bottlenecks:** While the backward pass (`Loss`) dropped from `1986ms` to `1396ms` (a 30% reduction), the overall Step time remained shockingly high at `8295ms`. This revealed two massive architectural flaws that were previously hidden by the `atomicAdd` stall:
+  1. **Optimizer Sync Stall (`Opt: 2137ms`):** Gradient clipping in the optimizer uses `cuda_ops::sum_squares` to sum the parameter gradients. This function calls `cublasSdot` with a CPU host pointer `&result`. With 197 parameters in the model, this forces the CPU and GPU to hard-synchronize 197 times every single step, destroying parallel execution and artificially bloating the optimizer step to over 2 seconds.
+  2. **Scalar Math in Flash Attention (`Fwd: 1478ms`):** Our custom Flash Attention kernels (both forward and backward) compute dot products using raw scalar loops (`for (int d=0; d<head_dim; d++)`). Because they don't use blocked cooperative matrix multiplications, the CUDA compiler cannot utilize the RTX 3070's Tensor Cores. The kernels are manually executing 43 Billion math operations on standard CUDA cores, bottlenecking the entire network.
+
+### Goal Fix: Optimizer Device-Side Reduction
+- **Next Step:** Implement a custom CUDA kernel to compute the sum of squares entirely on the device without halting the CPU. This will eliminate the 197 host syncs and instantly drop the optimizer step from `2.1 seconds` down to a few milliseconds.
+
+## Phase 8: Legacy Attention VRAM Footprint & Scratchpad Expansion (July 25, 2026)
+
+### Goal & Challenge
+Restore the pre-flash-attention legacy looping architecture for the fallback `--no-flash-attention` path, and resolve the severe Scratchpad Memory OOM caused by the massive $O(B \times H \times T^2)$ intermediate tensors used during its backward pass.
+
+### Key Engineering Insights
+- **Legacy Fallback Restoration:** Safely restored the loop-based MHA forward and backward passes from Git history (v`f6ef028`) specifically for when Flash Attention is disabled, ensuring architectural parity and giving users a direct cuBLAS scalar execution path.
+- **Scratchpad Capacity Ceiling:** Discovered that restoring the legacy backward pass caused immediate `Scratchpad Memory Arena Out of Memory` fatal errors. The legacy path relies on explicit materialization of `cached_probs_T`, `cached_dP`, `cached_dS`, and `cached_dS_scaled_T` matrices on the GPU. For `-b 16` and `-w 1024`, these intermediate tensors combine to demand over `491 MB` of VRAM per layer during backpropagation.
+- **Arena Expansion Fix:** Because gradient checkpointing properly frees the Scratchpad at the end of each block, the memory requirement doesn't multiply by the 16 layers. However, the sheer size of a single layer's backward pass required increasing the initial `Trainer` scratchpad capacity from `1 GB (256M floats)` up to `3 GB (768M floats)`.
+
+### Goal Fix: Optimizer Device-Side Reduction
+- **Next Step:** Return to the hidden performance bottlenecks uncovered in Phase 7 and implement the custom CUDA kernel to compute the sum of squares entirely on the device without halting the CPU.
+
 ## Todo
 - **Floating point memory footprint:** Implement FP16
 - **Dynamic scratch pad allocation:** Implement dynamic scratch pad allocation rather than a set 1GB
