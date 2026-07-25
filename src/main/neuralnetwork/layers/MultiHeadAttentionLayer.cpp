@@ -6,8 +6,8 @@
  * uses the 4D tensor batched SHA method
  */
 
-MultiHeadAttentionLayer::MultiHeadAttentionLayer(int channels, int num_heads_requested)
-    : channels(channels) {
+MultiHeadAttentionLayer::MultiHeadAttentionLayer(int channels, int num_heads_requested, bool use_flash)
+    : channels(channels), use_flash_attention(use_flash) {
     num_heads = num_heads_requested;
     // Safety check: gracefully fallback if channels don't divide evenly
     if (channels % num_heads != 0) {
@@ -70,7 +70,7 @@ void MultiHeadAttentionLayer::forward_into(const Tensor& input, Tensor& output) 
 
     float scale = 1.0f / std::sqrt((float)head_dim);
 
-    if (input.device == Device::CUDA) {
+    if (input.device == Device::CUDA && use_flash_attention) {
         if (cached_L.shape.empty()) {
             cached_L = Tensor({B, num_heads, T}, 0.0f, Device::CUDA);
         }
@@ -121,9 +121,13 @@ void MultiHeadAttentionLayer::backward_into(const Tensor& dout, Tensor& din) {
         savepoint = scratchpad->get_savepoint();
         cached_d_concat_ctx = Tensor::view({B, T, channels}, scratchpad->get_address(B * T * channels), Device::CUDA);
         cached_d_head_contexts = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
-        
+        cached_probs_T = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
         cached_dV = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
+        cached_V_T = Tensor::view({B * num_heads, head_dim, T}, scratchpad->get_address(B * num_heads * head_dim * T), Device::CUDA);
+        cached_dP = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
+        cached_dS = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
         cached_dQ = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
+        cached_dS_scaled_T = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
         cached_dK = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
         cached_dQKV_all = Tensor::view({B, T, 3 * channels}, scratchpad->get_address(B * T * 3 * channels), Device::CUDA);
     }
@@ -131,7 +135,7 @@ void MultiHeadAttentionLayer::backward_into(const Tensor& dout, Tensor& din) {
     W_O->backward_into(dout, cached_d_concat_ctx);
     Tensor::permute_concat_to_heads(cached_d_concat_ctx, cached_d_head_contexts, B, T, num_heads, head_dim);
 
-    if (dout.device == Device::CUDA) {
+    if (dout.device == Device::CUDA && use_flash_attention) {
         Tensor::flash_attention_backward(
             cached_Q, cached_K, cached_V, 
             cached_head_contexts, cached_L, cached_d_head_contexts, 

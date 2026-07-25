@@ -13,6 +13,7 @@ public: // Public for optimizer updates and inspection
     int channels;
     int num_heads;
     int head_dim;
+    bool use_flash_attention;
 
     // CONSOLIDATED Linear projection: channels -> channels * 3 (W_QKV smashed together)
     std::unique_ptr<LinearLayer> W_QKV;
@@ -33,8 +34,8 @@ private: // Private cached states and pre-allocated workspaces for forward/backw
     Tensor cached_K_T;
     Tensor cached_scores;
     Tensor cached_probs;
-    Tensor cached_L;
     Tensor cached_head_contexts;
+    Tensor cached_L;
     Tensor cached_concat_ctx;
     Tensor cached_d_concat_ctx;
     Tensor cached_d_head_contexts;
@@ -51,7 +52,7 @@ private: // Private cached states and pre-allocated workspaces for forward/backw
     Tensor cached_dX;
 
 public:
-    MultiHeadAttentionLayer(int channels, int num_heads);
+    MultiHeadAttentionLayer(int channels, int num_heads, bool use_flash = true);
 
     Tensor forward(const Tensor& input) override;
     void forward_into(const Tensor& input, Tensor& output) override;
