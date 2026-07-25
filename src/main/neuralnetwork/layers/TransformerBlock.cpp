@@ -15,10 +15,10 @@
  * X_next = X + Attention(RMSNorm1(X)) + MLP(RMSNorm2(X + Attention(RMSNorm1(X))))
  */
 
-TransformerBlock::TransformerBlock(int channels, int num_heads)
+TransformerBlock::TransformerBlock(int channels, int num_heads, bool use_flash_attention)
     : channels(channels),
       ln1(channels),
-      attn(channels, num_heads),
+      attn(channels, num_heads, use_flash_attention),
       ln2(channels),
       mlp_gate(channels, 4 * channels),
       mlp_up(channels, 4 * channels),

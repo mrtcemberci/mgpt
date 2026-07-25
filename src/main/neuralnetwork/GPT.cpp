@@ -7,7 +7,7 @@ GPT::GPT(const GPTConfig& config)
       ln_f(config.embed_dim),
       lm_head(config.embed_dim, config.vocab_size) {
     for (int i = 0; i < config.num_layers; ++i) {
-        blocks.push_back(std::make_unique<TransformerBlock>(config.embed_dim, config.num_heads));
+        blocks.push_back(std::make_unique<TransformerBlock>(config.embed_dim, config.num_heads, config.use_flash_attention));
     }
 }
 

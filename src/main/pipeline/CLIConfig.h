@@ -10,6 +10,7 @@ struct CLIConfig {
     bool mode_resume = false;
     bool use_gpu = false;
     bool use_checkpointing = true;
+    bool use_flash_attention = true;
 
     std::string weights_path = "shakespeare_gpt.bin";
     std::string data_path = "input.txt";
@@ -52,6 +53,8 @@ inline CLIConfig parse_arguments(int argc, char** argv) {
                       << "  -g, --gpu                 Run training and inference using CUDA GPU engine\n"
                       << "  -k, --checkpointing       Enable gradient/activation checkpointing (default: enabled)\n"
                       << "      --no-checkpointing    Disable gradient/activation checkpointing\n"
+                      << "      --flash-attention     Enable custom Flash Attention scalar kernels (default: enabled)\n"
+                      << "      --no-flash-attention  Disable Flash Attention and fallback to standard cuBLAS GEMM\n"
                       << "  -f, --file <path>         Path to model weights file (.bin) (default: shakespeare_gpt.bin)\n"
                       << "  -d, --data <path>         Path to training dataset (default: input.txt)\n"
                       << "      --vocab-file <path>   Path to master .vocab.bin dictionary file for consistent sharded training\n"
@@ -83,6 +86,8 @@ inline CLIConfig parse_arguments(int argc, char** argv) {
         if (arg == "-g" || arg == "--gpu") { config.use_gpu = true; continue; }
         if (arg == "-k" || arg == "--checkpointing") { config.use_checkpointing = true; continue; }
         if (arg == "--no-checkpointing") { config.use_checkpointing = false; continue; }
+        if (arg == "--flash-attention") { config.use_flash_attention = true; continue; }
+        if (arg == "--no-flash-attention") { config.use_flash_attention = false; continue; }
 
         if (arg == "-f" || arg == "--file") { if (i + 1 < argc) config.weights_path = argv[++i]; continue; }
         if (arg.find("-f=") == 0) { config.weights_path = arg.substr(3); continue; }

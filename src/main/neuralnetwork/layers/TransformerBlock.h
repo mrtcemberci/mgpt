@@ -43,7 +43,7 @@ private: // Private cached states for backpropagation
 
 public:
     Tensor cached_out;
-    explicit TransformerBlock(int channels, int num_heads = 6);
+    explicit TransformerBlock(int channels, int num_heads = 6, bool use_flash_attention = true);
 
     Tensor forward(const Tensor& input) override;
     void forward_into(const Tensor& input, Tensor& output) override;

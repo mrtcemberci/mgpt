@@ -118,6 +118,7 @@ int Generator::run() {
     gpt_cfg.embed_dim = config.embed_dim;
     gpt_cfg.num_layers = config.num_layers;
     gpt_cfg.use_gradient_checkpointing = config.use_checkpointing;
+    gpt_cfg.use_flash_attention = config.use_flash_attention;
 
     GPT model(gpt_cfg);
 

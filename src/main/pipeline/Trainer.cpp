@@ -171,6 +171,7 @@ int Trainer::run() {
     gpt_cfg.embed_dim = config.embed_dim;
     gpt_cfg.num_layers = config.num_layers;
     gpt_cfg.use_gradient_checkpointing = config.use_checkpointing;
+    gpt_cfg.use_flash_attention = config.use_flash_attention;
 
     GPT model(gpt_cfg);
 
@@ -198,7 +199,7 @@ int Trainer::run() {
 #endif
         std::cout << "Migrating GPT Model and Engine to CUDA GPU...\n";
         model.to(target_dev);
-        model.init_scratchpad(256 * 1024 * 1024); // 256M floats (1 GB CUDA memory arena)
+        model.init_scratchpad(768 * 1024 * 1024); // 768M floats (3 GB CUDA memory arena)
     }
 
     int start_step = config.start_step;
@@ -317,16 +318,25 @@ int Trainer::run() {
         auto opt_start = std::chrono::high_resolution_clock::now();
         float max_grad_norm = 1.0f;
         double total_sq_norm = 0.0;
+        
+        if (target_dev == Device::CUDA) {
+            cuda_ops::reset_sq_norm();
+        }
+        
         for (Tensor* param : params) {
             if (!param) continue;
             if (param->device == Device::CUDA) {
-                total_sq_norm += (double)cuda_ops::sum_squares(param->get_grad_ptr(), (int)param->size());
+                cuda_ops::accumulate_sq_norm(param->get_grad_ptr(), (int)param->size());
             } else {
                 const float* gptr = param->get_grad_ptr();
                 for (size_t i = 0; i < param->size(); ++i) {
                     total_sq_norm += (double)gptr[i] * gptr[i];
                 }
             }
+        }
+        
+        if (target_dev == Device::CUDA) {
+            total_sq_norm = (double)cuda_ops::get_sq_norm();
         }
         float total_norm = (float)std::sqrt(total_sq_norm);
         if (std::isnan(total_norm) || std::isinf(total_norm)) {

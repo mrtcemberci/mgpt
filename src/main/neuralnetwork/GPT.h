@@ -22,6 +22,7 @@ struct GPTConfig {
     int num_layers = 6;
     int num_heads = 6;     
     bool use_gradient_checkpointing = true; 
+    bool use_flash_attention = true;
 };
 
 class GPT : public Layer {
