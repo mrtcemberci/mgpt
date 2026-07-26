@@ -16,6 +16,7 @@ build_release/
 *.exp
 *.ilk
 *.test
+*.opt
 
 # Model weights & datasets
 instructions.md
