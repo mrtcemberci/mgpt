@@ -9,7 +9,7 @@
 MultiHeadAttentionLayer::MultiHeadAttentionLayer(int channels, int num_heads_requested, bool use_flash)
     : channels(channels), use_flash_attention(use_flash) {
     num_heads = num_heads_requested;
-    // Safety check: gracefully fallback if channels don't divide evenly
+    // fallback if channels don't divide evenly
     if (channels % num_heads != 0) {
         while (num_heads > 1 && channels % num_heads != 0) {
             num_heads--;
@@ -17,7 +17,7 @@ MultiHeadAttentionLayer::MultiHeadAttentionLayer(int channels, int num_heads_req
     }
     head_dim = channels / num_heads;
 
-    // CONSOLIDATED PROJECTIONS: 1 massive kernel projecting channels -> 3 * channels
+    //  1 kernel projecting channels -> 3 * channels
     W_QKV = std::make_unique<LinearLayer>(channels, 3 * channels);
     W_O = std::make_unique<LinearLayer>(channels, channels);
 
@@ -40,9 +40,7 @@ MultiHeadAttentionLayer::MultiHeadAttentionLayer(int channels, int num_heads_req
     rope_sin_table.data = h_sin;
 }
 
-// ----------------------------------------------------------------------------
-// FORWARD PASS
-// ----------------------------------------------------------------------------
+
 void MultiHeadAttentionLayer::forward_into(const Tensor& input, Tensor& output) {
     if (input.device == Device::CUDA && rope_cos_table.device != Device::CUDA) {
         rope_cos_table.to(Device::CUDA);
@@ -58,18 +56,19 @@ void MultiHeadAttentionLayer::forward_into(const Tensor& input, Tensor& output) 
     int B = input.shape[0];
     int T = input.shape[1];
 
-    // 1. Project entire Q, K, V at once in ONE violent GEMM (channels -> 3 * channels)
+    // Project entire Q, K, V at once (channels -> 3 * channels)
     W_QKV->forward_into(input, cached_QKV_all_fw);
 
-    // 2. Permute Q, K, V directly into batched head format {B * num_heads, T, head_dim}
+    // Permute Q, K, V directly into batched head format {B * num_heads, T, head_dim}
     Tensor::permute_qkv_to_heads(cached_QKV_all_fw, cached_Q, cached_K, cached_V, B, T, num_heads, head_dim);
 
-    // 2.5 Apply RoPE rotary positional embeddings to Q and K
+    // Apply RoPE rotary positional embeddings to Q and K
     Tensor::apply_rope_inplace(cached_Q, rope_cos_table, rope_sin_table, B, num_heads, T, head_dim, true);
     Tensor::apply_rope_inplace(cached_K, rope_cos_table, rope_sin_table, B, num_heads, T, head_dim, true);
 
     float scale = 1.0f / std::sqrt((float)head_dim);
 
+    // Calculates QK^T / root d
     if (input.device == Device::CUDA && use_flash_attention) {
         if (cached_L.shape.empty()) {
             cached_L = Tensor({B, num_heads, T}, 0.0f, Device::CUDA);
@@ -83,7 +82,7 @@ void MultiHeadAttentionLayer::forward_into(const Tensor& input, Tensor& output) 
             ? Tensor::view({B * num_heads, T, T}, scratchpad->get_address((size_t)B * num_heads * T * T), Device::CUDA)
             : cached_scores;
 
-        // 3. Batched Multi-Head Attention math across all heads simultaneously
+        // Batched Multi-Head Attention math across all heads simultaneously
         cached_K.transpose_into(1, 2, tmp_K_T);
         cached_Q.matmul_into(tmp_K_T, tmp_scores);
         tmp_scores.mul_scalar_in_place(scale);
@@ -92,10 +91,10 @@ void MultiHeadAttentionLayer::forward_into(const Tensor& input, Tensor& output) 
         cached_probs.matmul_into(cached_V, cached_head_contexts);
     }
 
-    // 4. Permute head contexts back to concatenated format {B, T, channels}
+    // Permute head contexts back to concatenated format {B, T, channels}
     Tensor::permute_heads_to_concat(cached_head_contexts, cached_concat_ctx, B, T, num_heads, head_dim);
 
-    // 5. Output projection W_O
+    // Output projection W_O
     W_O->forward_into(cached_concat_ctx, output);
     cached_output = output;
 
@@ -109,9 +108,6 @@ Tensor MultiHeadAttentionLayer::forward(const Tensor& input) {
     return cached_output;
 }
 
-// ----------------------------------------------------------------------------
-// BACKWARD PASS
-// ----------------------------------------------------------------------------
 void MultiHeadAttentionLayer::backward_into(const Tensor& dout, Tensor& din) {
     int B = cached_input.shape[0];
     int T = cached_input.shape[1];
