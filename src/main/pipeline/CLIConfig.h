@@ -8,6 +8,7 @@ struct CLIConfig {
     bool mode_train = true;
     bool mode_infer_only = false;
     bool mode_resume = false;
+    bool mode_virtual = false;
     bool use_gpu = false;
     bool use_checkpointing = true;
     bool use_flash_attention = true;
@@ -50,6 +51,7 @@ inline CLIConfig parse_arguments(int argc, char** argv) {
                       << "  -t, --train               Run in training mode (default)\n"
                       << "  -r, --resume              Resume training from existing checkpoint weights & step counter\n"
                       << "  -i, --infer               Run in inference/generation mode (load weights without training)\n"
+                      << "  -v, --virtual             Run a dry-run memory profiler to output max VRAM requirements\n"
                       << "  -g, --gpu                 Run training and inference using CUDA GPU engine\n"
                       << "  -k, --checkpointing       Enable gradient/activation checkpointing (default: enabled)\n"
                       << "      --no-checkpointing    Disable gradient/activation checkpointing\n"
@@ -80,9 +82,10 @@ inline CLIConfig parse_arguments(int argc, char** argv) {
             config.show_help = true;
             return config;
         }
-        if (arg == "-t" || arg == "--train") { config.mode_train = true; config.mode_infer_only = false; continue; }
-        if (arg == "-r" || arg == "--resume") { config.mode_resume = true; config.mode_train = true; config.mode_infer_only = false; continue; }
-        if (arg == "-i" || arg == "--infer") { config.mode_infer_only = true; config.mode_train = false; continue; }
+        if (arg == "-t" || arg == "--train") { config.mode_train = true; config.mode_infer_only = false; config.mode_virtual = false; continue; }
+        if (arg == "-r" || arg == "--resume") { config.mode_resume = true; config.mode_train = true; config.mode_infer_only = false; config.mode_virtual = false; continue; }
+        if (arg == "-i" || arg == "--infer") { config.mode_infer_only = true; config.mode_train = false; config.mode_virtual = false; continue; }
+        if (arg == "--virtual") { config.mode_virtual = true; config.mode_train = false; config.mode_infer_only = false; continue; }
         if (arg == "-g" || arg == "--gpu") { config.use_gpu = true; continue; }
         if (arg == "-k" || arg == "--checkpointing") { config.use_checkpointing = true; continue; }
         if (arg == "--no-checkpointing") { config.use_checkpointing = false; continue; }
@@ -136,6 +139,8 @@ inline CLIConfig parse_arguments(int argc, char** argv) {
 
         if (arg == "-w" || arg == "--window") { if (i + 1 < argc) config.max_seq_len = std::stoi(argv[++i]); continue; }
         if (arg.find("-w=") == 0) { config.max_seq_len = std::stoi(arg.substr(3)); continue; }
+        if (arg.find("--window=") == 0) { config.max_seq_len = std::stoi(arg.substr(9)); continue; }
+
         if (arg.find("--window=") == 0) { config.max_seq_len = std::stoi(arg.substr(9)); continue; }
 
         if (arg == "-v" || arg == "--vocab") { if (i + 1 < argc) config.target_vocab_size = std::stoi(argv[++i]); continue; }

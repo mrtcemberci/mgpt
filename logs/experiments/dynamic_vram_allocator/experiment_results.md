@@ -1,0 +1,34 @@
+| Flash Attention | Window | Batch | Checkpointing | Net Peak VRAM (MB) | Avg Step Time (ms) | Status |
+|-----------------|--------|-------|---------------|--------------------|--------------------|--------|
+| On | 128 | 8 | On | 1470 | 232 | Success |
+| On | 256 | 8 | On | 2174 | 462 | Success |
+| On | 512 | 8 | On | 3184 | 1307 | Success |
+| On | 1024 | 8 | On | 5442 | 4278 | Success |
+| On | 128 | 16 | On | 2148 | 311 | Success |
+| On | 256 | 16 | On | 3082 | 771 | Success |
+| On | 512 | 16 | On | 5040 | 2383 | Success |
+| On | 1024 | 16 | On | 10108 | 8135 | Success |
+| On | 128 | 8 | Off | 1784 | 174 | Success |
+| On | 256 | 8 | Off | 2804 | 385 | Success |
+| On | 512 | 8 | Off | 4444 | 1092 | Success |
+| On | 1024 | 8 | Off | 7962 | 3595 | Success |
+| On | 128 | 16 | Off | 2778 | 259 | Success |
+| On | 256 | 16 | Off | 4342 | 645 | Success |
+| On | 512 | 16 | Off | 7560 | 2001 | Success |
+| On | 1024 | 16 | Off | 11982 | 8977 | Success |
+| Off | 128 | 8 | On | 1534 | 127 | Success |
+| Off | 256 | 8 | On | 2334 | 187 | Success |
+| Off | 512 | 8 | On | 3824 | 402 | Success |
+| Off | 1024 | 8 | On | 8002 | 1378 | Success |
+| Off | 128 | 16 | On | 2244 | 167 | Success |
+| Off | 256 | 16 | On | 3402 | 292 | Success |
+| Off | 512 | 16 | On | 6320 | 887 | Success |
+| Off | 1024 | 16 | On | 11982 | 11674 | Success |
+| Off | 128 | 8 | Off | 1848 | 102 | Success |
+| Off | 256 | 8 | Off | 2964 | 146 | Success |
+| Off | 512 | 8 | Off | 5084 | 311 | Success |
+| Off | 1024 | 8 | Off | 10522 | 1013 | Success |
+| Off | 128 | 16 | Off | 2874 | 133 | Success |
+| Off | 256 | 16 | Off | 4662 | 232 | Success |
+| Off | 512 | 16 | Off | 8840 | 658 | Success |
+| Off | 1024 | 16 | Off | 11980 | 21669 | Success |

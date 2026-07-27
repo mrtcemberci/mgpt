@@ -123,6 +123,17 @@ Restore the pre-flash-attention legacy looping architecture for the fallback `--
 - **Arena Expansion Fix:** Because gradient checkpointing properly frees the Scratchpad at the end of each block, the memory requirement doesn't multiply by the 16 layers. However, the sheer size of a single layer's backward pass required increasing the initial `Trainer` scratchpad capacity from `1 GB (256M floats)` up to `3 GB (768M floats)`.
 - **Benchmarking:** This allowed for benchmarking of the old implementation compared to the new flash attention on several context windows and batch sizes, which can be view in $/logs/experiments/$
 
+## Phase 9: Dynamic VRAM Predictor  (July 27, 2026)
+
+### Goal & Challenge
+Replace the rigid 3 GB Scratchpad memory arena with a dynamic memory allocator that mathematically predicts exactly how much VRAM the model will need based on its hyperparameters, preventing memory hoarding on small grids and fatal bounds-checking crashes on massive grids.
+
+### Key Engineering Insights
+- **Mathematical Peak Prediction:** Implemented a zero-overhead arithmetic formula inside `Trainer.cpp`. This mathematically calculates the peak Scratchpad requirements by summing the matrices (e.g., $16 * B*T*C$ for forward standing stacks).
+- **Non-Checkpointing Stack Accumulation:** Discovered that disabling Gradient Checkpointing forced the Scratchpad to hold the forward activations for *all* $L$ layers concurrently. Updated the math predictor to multiply the forward standing block by `config.num_layers` if checkpointing is disabled, which correctly scaled the allocation request from ~70 MB up to ~12 GB.
+- **Unified Memory Paging Tolerance:** By properly requesting massive allocations (e.g., 11.9 GB) from the NVIDIA driver rather than failing an internal C++ bounds check, the C++ execution engine successfully delegates overflow to the OS. The driver gracefully spills the excess VRAM over the PCIe bus into System RAM, avoiding an OOM crash entirely (albeit at the cost of significantly increased step times due to PCIe bottlenecking).
+- **Virtual Memory Profiler (`--virtual`):** Implemented a `--virtual` flag that executes the Mathematical VRAM Predictor and immediately exits. This allows users to test hyperparameter limits and view exact VRAM requirements without launching the training loop or loading weights.
+
 ## Todo
 - **Floating point memory footprint:** Implement FP16
-- **Dynamic scratch pad allocation:** Implement dynamic scratch pad allocation rather than a set size.
+- **Interactive Chat Mode:** Implement an interactive mode with a Stop Token check for inference.

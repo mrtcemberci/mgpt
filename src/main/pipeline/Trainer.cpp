@@ -199,7 +199,48 @@ int Trainer::run() {
 #endif
         std::cout << "Migrating GPT Model and Engine to CUDA GPU...\n";
         model.to(target_dev);
-        model.init_scratchpad(768 * 1024 * 1024); // 768M floats (3 GB CUDA memory arena)
+
+        std::cout << "Running Mathematical VRAM Profiler...\n";
+        size_t B = config.batch_size;
+        size_t T = config.max_seq_len;
+        size_t C = config.embed_dim;
+        size_t H = gpt_cfg.num_heads;
+        size_t Vocab = config.target_vocab_size;
+
+        // TransformerBlock Peak (Forward standing + Backward standing + MHA + Linear)
+        // Fwd standing: 16 * B*T*C
+        // Bwd standing: 22 * B*T*C
+        size_t block_fwd_standing = 16 * B * T * C;
+        if (!config.use_checkpointing) {
+            block_fwd_standing *= config.num_layers;
+        }
+
+        size_t block_bwd_standing = 22 * B * T * C;
+        size_t mha_bwd = 9 * B * T * C + 4 * B * H * T * T;
+        size_t w_qkv_bwd = 3 * C + 3 * B * T * C + 6 * C * C;
+        
+        size_t block_peak = block_fwd_standing + block_bwd_standing + mha_bwd + w_qkv_bwd;
+
+        // LM Head Backward Peak
+        size_t lm_head_peak = B * T * C + 2 * C * Vocab + Vocab;
+
+        // Global peak is the max of the deep network branches
+        size_t peak_floats = std::max(block_peak, lm_head_peak);
+        size_t peak_mb = (peak_floats * sizeof(float)) / (1024 * 1024);
+
+        std::cout << "      -> Dynamic Scratchpad Peak: " << peak_floats << " floats (~" << peak_mb << " MB)\n";
+        
+        if (config.mode_virtual) {
+            std::cout << "      -> Peak VRAM calculated successfully. Exiting virtual mode.\n";
+            return 0;
+        }
+
+        // Allocate real scratchpad with a 5% safety buffer
+        size_t safe_capacity = (size_t)(peak_floats * 1.05f);
+        model.init_scratchpad(safe_capacity);
+    } else if (config.mode_virtual) {
+        std::cout << "Virtual mode (--virtual) is only supported with --gpu flag.\n";
+        return 0;
     }
 
     int start_step = config.start_step;

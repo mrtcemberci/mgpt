@@ -37,6 +37,7 @@ A autoregressive Transformer/GPT training and inference engine built from scratc
 | `-t` | `--train` | Run in **Training Mode** (trains model & saves checkpoint) | *Default* |
 | `-r` | `--resume` | Resume training from existing checkpoint weights & step progress header | `false` |
 | `-i` | `--infer` | Run in **Inference Mode** (loads checkpoint & generates text) | `false` |
+| | `--virtual` | Run **Virtual Profiler** (outputs exact VRAM requirement & immediately exits) | `false` |
 | `-g` | `--gpu` | Enable **CUDA GPU Acceleration** for training & generation | `false` |
 | `-k` | `--checkpointing` | Enable **Activation/Gradient Checkpointing** for memory efficiency | `true` |
 | | `--no-checkpointing` | Disable activation checkpointing (store all activations) | `false` |
