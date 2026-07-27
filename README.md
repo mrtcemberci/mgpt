@@ -1,8 +1,8 @@
 # C++ & CUDA Transformer Engine
 
-A zero-allocation autoregressive Transformer/GPT training and inference engine built from scratch in modern C++ and hardware-accelerated CUDA. Designed with zero external dependencies—pure linear algebra, custom autograd, memory scratchpad recycling, and modern LLM architectural features.
+A autoregressive Transformer/GPT training and inference engine built from scratch in modern C++ and hardware-accelerated CUDA. Designed with zero external dependencies—pure linear algebra, custom autograd, memory scratchpad recycling, and modern LLM architectural features.
 
-> **📖 Systems Engineering Diary**: For a complete chronological log of architectural decisions, performance debugging, VRAM optimizations, and mathematical discoveries during the building of this engine, please read the [diary.md](diary.md).
+> **📖 Systems Engineering Diary**: For a complete chronological log of architectural decisions, performance debugging, VRAM optimizations, and discoveries during the building of this engine, please read the [diary.md](diary.md).
 
 ## Features
 
@@ -13,11 +13,11 @@ A zero-allocation autoregressive Transformer/GPT training and inference engine b
 - **Byte Pair Encoding (BPE) & Character Tokenizers**: Built-in BPE tokenizer (`BytePairEncodingTokenizer`) with configurable vocabulary size (`--vocab`), alongside a polymorphic `Tokenizer` interface supporting raw character-level tokenization.
 
 ### Memory & Hardware Acceleration
-- **Custom Flash Attention**: Native CUDA implementations of Flash Attention kernels (`flash_attention_forward` and `flash_attention_backward`) to eliminate the $O(T^2)$ memory bottleneck, significantly reducing VRAM footprint for long context windows.
+- **Custom Flash Attention**: Native CUDA implementations of Flash Attention kernels (`flash_attention_forward` and `flash_attention_backward`)
 - **Zero-Allocation GPU Scratchpad**: Reuses pre-allocated temporary memory buffers (`Scratchpad`) across forward and backward passes to eliminate runtime CUDA memory allocations.
 - **Activation / Gradient Checkpointing**: Recomputes intermediate layer activations during backpropagation (`-k` / `--checkpointing`), drastically reducing peak GPU memory usage for deep models.
 - **Gradient Accumulation**: Supports multi-step micro-batch gradient accumulation (`-a` / `--accumulate`) to train with massive effective batch sizes on consumer GPUs.
-- **Dual CUDA & CPU Backends**: Highly optimized CUDA kernels (`cuda_ops.cu`) with clean CPU C++ fallback stubs (`#else`) allowing builds and execution on any platform.
+- **Dual CUDA & CPU Backends**: CUDA kernels (`cuda_ops.cu`) with clean CPU C++ fallback stubs (`#else`) allowing builds and execution on any platform.
 - **AdamW Optimizer**: Built-in fused AdamW optimizer with decoupled weight decay and momentum tracking.
 
 ---
@@ -62,3 +62,12 @@ A zero-allocation autoregressive Transformer/GPT training and inference engine b
 | `-h` | `--help` | Display usage summary and exit | |
 
 ---
+
+### Build Utility Script (`make.bat`)
+
+For convenience on Windows, a `make.bat` wrapper is included in the root directory to simplify the CMake configuration and build process. 
+
+**Available Commands:**
+* `.\make.bat config` : Initializes and configures the CMake `build_release` directory. Run this once before building.
+* `.\make.bat` : Compiles the `mgpt` executable in Release mode using the configured CMake build.
+* `.\make.bat clean` : Deletes the `build_release` directory to force a fresh compilation from scratch.
