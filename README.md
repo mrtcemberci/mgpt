@@ -2,6 +2,8 @@
 
 A zero-allocation autoregressive Transformer/GPT training and inference engine built from scratch in modern C++ and hardware-accelerated CUDA. Designed with zero external dependencies—pure linear algebra, custom autograd, memory scratchpad recycling, and modern LLM architectural features.
 
+> **📖 Systems Engineering Diary**: For a complete chronological log of architectural decisions, performance debugging, VRAM optimizations, and mathematical discoveries during the building of this engine, please read the [diary.md](diary.md).
+
 ## Features
 
 ### Architecture
@@ -11,6 +13,7 @@ A zero-allocation autoregressive Transformer/GPT training and inference engine b
 - **Byte Pair Encoding (BPE) & Character Tokenizers**: Built-in BPE tokenizer (`BytePairEncodingTokenizer`) with configurable vocabulary size (`--vocab`), alongside a polymorphic `Tokenizer` interface supporting raw character-level tokenization.
 
 ### Memory & Hardware Acceleration
+- **Custom Flash Attention**: Native CUDA implementations of Flash Attention kernels (`flash_attention_forward` and `flash_attention_backward`) to eliminate the $O(T^2)$ memory bottleneck, significantly reducing VRAM footprint for long context windows.
 - **Zero-Allocation GPU Scratchpad**: Reuses pre-allocated temporary memory buffers (`Scratchpad`) across forward and backward passes to eliminate runtime CUDA memory allocations.
 - **Activation / Gradient Checkpointing**: Recomputes intermediate layer activations during backpropagation (`-k` / `--checkpointing`), drastically reducing peak GPU memory usage for deep models.
 - **Gradient Accumulation**: Supports multi-step micro-batch gradient accumulation (`-a` / `--accumulate`) to train with massive effective batch sizes on consumer GPUs.
@@ -37,6 +40,8 @@ A zero-allocation autoregressive Transformer/GPT training and inference engine b
 | `-g` | `--gpu` | Enable **CUDA GPU Acceleration** for training & generation | `false` |
 | `-k` | `--checkpointing` | Enable **Activation/Gradient Checkpointing** for memory efficiency | `true` |
 | | `--no-checkpointing` | Disable activation checkpointing (store all activations) | `false` |
+| | `--flash-attention` | Enable memory-efficient custom Flash Attention kernels | `true` |
+| | `--no-flash-attention`| Disable Flash Attention (fall back to cuBLAS scalar matrices) | `false` |
 | `-f` | `--file <path>` | Path to save/load model binary checkpoint (`.bin`) | `"shakespeare_gpt.bin"` |
 | `-d` | `--data <path>` | Path to training text corpus shard/file | `"input.txt"` |
 | | `--vocab-file <path>` | Path to master `.vocab.bin` dictionary for consistent multi-shard training | |
