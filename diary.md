@@ -137,3 +137,4 @@ Replace the rigid 3 GB Scratchpad memory arena with a dynamic memory allocator t
 ## Todo
 - **Floating point memory footprint:** Implement FP16
 - **Interactive Chat Mode:** Implement an interactive mode with a Stop Token check for inference.
+- **Mixture of Experts** Implement MoE routing within the transformer block
