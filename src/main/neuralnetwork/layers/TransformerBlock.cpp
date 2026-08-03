@@ -20,9 +20,7 @@ TransformerBlock::TransformerBlock(int channels, int num_heads, bool use_flash_a
       ln1(channels),
       attn(channels, num_heads, use_flash_attention),
       ln2(channels),
-      mlp_gate(channels, 4 * channels),
-      mlp_up(channels, 4 * channels),
-      mlp_down(4 * channels, channels) {
+      mlp(channels, 4 * channels) {
 }
 
 // FORWARD PASS: Pre-Norm Attention + Skip -> Pre-Norm SwiGLU MLP + Skip
@@ -35,9 +33,6 @@ void TransformerBlock::forward_into(const Tensor& input, Tensor& output) {
         cached_attn_out = Tensor::view(input.shape, scratchpad->get_address(B*T*C), Device::CUDA);
         cached_x1 = Tensor::view(input.shape, scratchpad->get_address(B*T*C), Device::CUDA);
         cached_ln2_out = Tensor::view(input.shape, scratchpad->get_address(B*T*C), Device::CUDA);
-        cached_gate_out = Tensor::view({(int)B, (int)T, (int)C*4}, scratchpad->get_address(B*T*C*4), Device::CUDA);
-        cached_up_out = Tensor::view({(int)B, (int)T, (int)C*4}, scratchpad->get_address(B*T*C*4), Device::CUDA);
-        cached_gate_swished = Tensor::view({(int)B, (int)T, (int)C*4}, scratchpad->get_address(B*T*C*4), Device::CUDA);
     }
 
     ln1.forward_into(input, cached_ln1_out);
@@ -46,25 +41,7 @@ void TransformerBlock::forward_into(const Tensor& input, Tensor& output) {
 
     ln2.forward_into(cached_x1, cached_ln2_out);
 
-    // SwiGLU: swish(gate(x)) ⊙ up(x)
-    mlp_gate.forward_into(cached_ln2_out, cached_gate_out);   // [B, T, 4C] raw gate (persists for swish backward)
-    mlp_up.forward_into(cached_ln2_out, cached_up_out);       // [B, T, 4C] up projection (persists for backward)
-    cached_gate_out.swish_into(cached_gate_swished);           // [B, T, 4C] swish(gate) (persists for d_up in backward)
-
-    // Temporary buffer for swish(gate) ⊙ up — mlp_down caches its own input, so this doesn't need to persist
-    int B = cached_gate_out.shape[0], T = cached_gate_out.shape[1], C4 = cached_gate_out.shape[2];
-    size_t fwd_savepoint = 0;
-    if (scratchpad && cached_gate_out.device == Device::CUDA) {
-        fwd_savepoint = scratchpad->get_savepoint();
-    }
-    Tensor swiglu_tmp = (scratchpad && cached_gate_out.device == Device::CUDA)
-        ? Tensor::view({B, T, C4}, scratchpad->get_address((size_t)B * T * C4), Device::CUDA)
-        : cached_swiglu_tmp;
-    cached_gate_swished.pairwise_mult_into(cached_up_out, swiglu_tmp);
-    mlp_down.forward_into(swiglu_tmp, cached_out);
-    if (scratchpad && cached_gate_out.device == Device::CUDA) {
-        scratchpad->restore_savepoint(fwd_savepoint);
-    }
+    mlp.forward_into(cached_ln2_out, cached_out);
 
     Tensor::add_into(cached_x1, cached_out, output);
     cached_out = output;
@@ -87,24 +64,6 @@ void TransformerBlock::backward_into(const Tensor& dout, Tensor& din) {
     int C = dout.shape[2];
 
     // Allocate scratch views for backward intermediates
-    Tensor tmp_d_down = (scratchpad && dout.device == Device::CUDA)
-        ? Tensor::view({B, T, 4 * C}, scratchpad->get_address((size_t)B * T * 4 * C), Device::CUDA)
-        : cached_d_down;
-    Tensor tmp_d_gate = (scratchpad && dout.device == Device::CUDA)
-        ? Tensor::view({B, T, 4 * C}, scratchpad->get_address((size_t)B * T * 4 * C), Device::CUDA)
-        : cached_d_gate;
-    Tensor tmp_d_up = (scratchpad && dout.device == Device::CUDA)
-        ? Tensor::view({B, T, 4 * C}, scratchpad->get_address((size_t)B * T * 4 * C), Device::CUDA)
-        : cached_d_up;
-    Tensor tmp_d_swish = (scratchpad && dout.device == Device::CUDA)
-        ? Tensor::view({B, T, 4 * C}, scratchpad->get_address((size_t)B * T * 4 * C), Device::CUDA)
-        : cached_d_swish;
-    Tensor tmp_d_gate_proj = (scratchpad && dout.device == Device::CUDA)
-        ? Tensor::view({B, T, C}, scratchpad->get_address((size_t)B * T * C), Device::CUDA)
-        : cached_d_gate_proj;
-    Tensor tmp_d_up_proj = (scratchpad && dout.device == Device::CUDA)
-        ? Tensor::view({B, T, C}, scratchpad->get_address((size_t)B * T * C), Device::CUDA)
-        : cached_d_up_proj;
     Tensor tmp_d_ln2 = (scratchpad && dout.device == Device::CUDA)
         ? Tensor::view({B, T, C}, scratchpad->get_address((size_t)B * T * C), Device::CUDA)
         : cached_d_ln2;
@@ -118,14 +77,8 @@ void TransformerBlock::backward_into(const Tensor& dout, Tensor& din) {
         ? Tensor::view({B, T, C}, scratchpad->get_address((size_t)B * T * C), Device::CUDA)
         : cached_d_ln1;
 
-    // Backprop through SwiGLU MLP branch: down -> (swish_backward ⊙ multiply) -> gate/up -> ln2
-    mlp_down.backward_into(dout, tmp_d_down);                                      // d_down = [B,T,4C]
-    tmp_d_down.pairwise_mult_into(cached_gate_swished, tmp_d_up);                  // d_up = d_down ⊙ swish(gate)
-    tmp_d_down.pairwise_mult_into(cached_up_out, tmp_d_swish);                     // d_swish_in = d_down ⊙ up
-    Tensor::swish_backward_into(cached_gate_out, tmp_d_swish, tmp_d_gate);         // d_gate = swish'(gate_pre) * d_swish_in
-    mlp_gate.backward_into(tmp_d_gate, tmp_d_gate_proj);                           // d_gate_proj = [B,T,C]
-    mlp_up.backward_into(tmp_d_up, tmp_d_up_proj);                                 // d_up_proj = [B,T,C]
-    Tensor::add_into(tmp_d_gate_proj, tmp_d_up_proj, tmp_d_ln2);                   // merge gate + up gradients
+        
+    mlp.backward_into(dout, tmp_d_ln2);
     ln2.backward_into(tmp_d_ln2, tmp_d_ln2);                                       // reuse buffer for ln2 backward
 
     // Gradient entering X1 is the sum of direct skip connection (dout) and MLP branch (d_ln2)
@@ -154,8 +107,6 @@ std::vector<Tensor*> TransformerBlock::get_parameters() {
     auto p_ln1 = ln1.get_parameters(); params.insert(params.end(), p_ln1.begin(), p_ln1.end());
     auto p_attn = attn.get_parameters(); params.insert(params.end(), p_attn.begin(), p_attn.end());
     auto p_ln2 = ln2.get_parameters(); params.insert(params.end(), p_ln2.begin(), p_ln2.end());
-    auto p_gate = mlp_gate.get_parameters(); params.insert(params.end(), p_gate.begin(), p_gate.end());
-    auto p_up = mlp_up.get_parameters(); params.insert(params.end(), p_up.begin(), p_up.end());
-    auto p_down = mlp_down.get_parameters(); params.insert(params.end(), p_down.begin(), p_down.end());
+    auto p_mlp = mlp.get_parameters(); params.insert(params.end(), p_mlp.begin(), p_mlp.end());
     return params;
 }

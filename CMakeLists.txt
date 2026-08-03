@@ -35,6 +35,8 @@ add_executable(mgpt src/main/main.cpp src/main/pipeline/Trainer.cpp src/main/pip
         ${TENSOR_SOURCES} src/main/utils/Tensor.h src/main/utils/cuda_ops.h src/main/neuralnetwork/layers/Layer.h
         src/main/neuralnetwork/layers/LinearLayer.cpp
         src/main/neuralnetwork/layers/LinearLayer.h
+        src/main/neuralnetwork/layers/SwiGLU.cpp
+        src/main/neuralnetwork/layers/SwiGLU.h
         src/main/neuralnetwork/layers/GELULayer.cpp
         src/main/neuralnetwork/layers/LayerNormLayer.cpp
         src/main/neuralnetwork/layers/LayerNormLayer.h
