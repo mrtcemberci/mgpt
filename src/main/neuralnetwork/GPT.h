@@ -20,7 +20,9 @@ struct GPTConfig {
     int max_seq_len = 256;
     int embed_dim = 384;
     int num_layers = 6;
-    int num_heads = 6;     
+    int num_heads = 6;
+    int num_experts = 8;
+    int top_k = 2;
     bool use_gradient_checkpointing = true; 
     bool use_flash_attention = true;
 };

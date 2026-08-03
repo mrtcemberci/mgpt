@@ -15,12 +15,12 @@
  * X_next = X + Attention(RMSNorm1(X)) + MLP(RMSNorm2(X + Attention(RMSNorm1(X))))
  */
 
-TransformerBlock::TransformerBlock(int channels, int num_heads, bool use_flash_attention)
+TransformerBlock::TransformerBlock(int channels, int num_heads, int num_experts, int top_k, bool use_flash_attention) 
     : channels(channels),
-      ln1(channels),
-      attn(channels, num_heads, use_flash_attention),
-      ln2(channels),
-      mlp(channels, 4 * channels) {
+      ln1(channels), 
+      attn(channels, num_heads, use_flash_attention), 
+      ln2(channels), 
+      mlp(channels, 4 * channels, num_experts, top_k) {
 }
 
 // FORWARD PASS: Pre-Norm Attention + Skip -> Pre-Norm SwiGLU MLP + Skip

@@ -5,7 +5,7 @@
 #include "LayerNormLayer.h"
 #include "RMSNormLayer.h"
 #include "MultiHeadAttentionLayer.h"
-#include "SwiGLU.h"
+#include "MoELayer.h"
 #include <vector>
 
 class TransformerBlock : public Layer {
@@ -14,7 +14,7 @@ public: // Public for optimizer updates and inspection
     RMSNormLayer ln1;                 // Pre-attention RMS normalization
     MultiHeadAttentionLayer attn;     // Causal multi-head self-attention
     RMSNormLayer ln2;                 // Pre-MLP RMS normalization
-    SwiGLU mlp;                       // SwiGLU MLP block
+    MoELayer mlp;                     // Mixture of Experts MLP block
 
     Tensor cached_input;              // Publicly accessible for gradient checkpointing recomputation
 
@@ -31,7 +31,7 @@ private: // Private cached states for backpropagation
 
 public:
     Tensor cached_out;
-    explicit TransformerBlock(int channels, int num_heads = 6, bool use_flash_attention = true);
+    explicit TransformerBlock(int channels, int num_heads, int num_experts, int top_k, bool use_flash_attention);
 
     Tensor forward(const Tensor& input) override;
     void forward_into(const Tensor& input, Tensor& output) override;
