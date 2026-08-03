@@ -137,4 +137,6 @@ Replace the rigid 3 GB Scratchpad memory arena with a dynamic memory allocator t
 ## Todo
 - **Floating point memory footprint:** Implement FP16
 - **Interactive Chat Mode:** Implement an interactive mode with a Stop Token check for inference.
-- **Mixture of Experts** Implement MoE routing within the transformer block
+- **Mixture of Experts:** Implement MoE routing within the transformer block (DONE)
+- **Object-Oriented Memory Profiling:** Add `virtual size_t get_scratchpad_peak(int B, int T)` to the `Layer` class, requiring developers to hand-calculate and return their layer's exact memory footprint
+- **Load balancing loss:** Add a load balancer to the mixture of experts to prevent one expert from receiving all tokens
