@@ -206,16 +206,19 @@ int Trainer::run() {
         size_t C = config.embed_dim;
         size_t H = gpt_cfg.num_heads;
         size_t Vocab = config.target_vocab_size;
-
+        size_t top_k = gpt_cfg.top_k;
+        
         // TransformerBlock Peak (Forward standing + Backward standing + MHA + Linear)
-        // Fwd standing: 16 * B*T*C
-        // Bwd standing: 22 * B*T*C
-        size_t block_fwd_standing = 16 * B * T * C;
+        // MHA Fwd standing: 4 * B*T*C
+        // MoE Fwd standing: 14 * top_k * B*T*C
+        size_t block_fwd_standing = (4 + 14 * top_k) * B * T * C;
         if (!config.use_checkpointing) {
             block_fwd_standing *= config.num_layers;
         }
 
-        size_t block_bwd_standing = 22 * B * T * C;
+        // MHA Bwd standing: 4 * B*T*C
+        // MoE Bwd standing: 20 * top_k * B*T*C
+        size_t block_bwd_standing = (4 + 20 * top_k) * B * T * C;
         size_t mha_bwd = 9 * B * T * C + 4 * B * H * T * T;
         size_t w_qkv_bwd = 3 * C + 3 * B * T * C + 6 * C * C;
         
