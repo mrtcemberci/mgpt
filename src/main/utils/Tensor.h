@@ -43,6 +43,7 @@ public:
     void copy_to_host(float* dst) const;
 
     void randomize(float mean, float stddev);      // Fill tensor data from N(mean, stddev^2)
+    void fill(float value);
     void zero_grad();                              // Sets all elements in grad to 0.0f
     size_t size() const;                           // Returns total number of elements (product of shape)
     size_t offset(const std::vector<int>& indices) const; // Converts multi-dimensional indices to 1D flat index
@@ -107,6 +108,13 @@ public:
     static void flash_attention_forward(const Tensor& Q, const Tensor& K, const Tensor& V, Tensor& O, Tensor& L, int B, int num_heads, int T, int head_dim);
     static void flash_attention_backward(const Tensor& Q, const Tensor& K, const Tensor& V, const Tensor& O, const Tensor& L, const Tensor& dO, Tensor& dQ, Tensor& dK, Tensor& dV, int B, int num_heads, int T, int head_dim);
     void transpose_into(int dim1, int dim2, Tensor& result) const;
+    void top_k_into(int k, int dim, Tensor& out_indices, Tensor& out_values) const;
+    void moe_histogram_into(int num_experts, Tensor& expert_counts) const;
+    void moe_gather_into(const Tensor& input_tokens, Tensor& current_offsets, Tensor& gathered_tokens, Tensor& sorted_token_ids) const;
+    static void moe_scatter_into(const Tensor& gathered_outputs, const Tensor& sorted_token_ids, const Tensor& top_probs, Tensor&
+  final_output);
+    static void moe_scatter_backward_into(const Tensor& dOutput, const Tensor& sorted_token_ids, const Tensor& top_probs, Tensor& dGathered_outputs);
+    static void moe_gather_backward_into(const Tensor& dGathered_inputs, const Tensor& sorted_token_ids, Tensor& dInput, int k);
     void softmax_into(int dim, Tensor& result) const;
     void add_broadcast_in_place(const Tensor& other);
     void mul_scalar_in_place(float scalar);

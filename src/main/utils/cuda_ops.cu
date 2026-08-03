@@ -1264,6 +1264,171 @@ namespace cuda_ops {
         }
     }
 
+__global__ void top_k_kernel(const float* input, float* out_values, float* out_indices, int num_tokens, int num_experts, int k) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_tokens) return;
+    
+    int in_offset = idx * num_experts;
+    int out_offset = idx * k;
+    
+    // Initialize the Top-K output slots in VRAM directly
+    for (int i = 0; i < k; i++) {
+        out_values[out_offset + i] = -1e9f;
+        out_indices[out_offset + i] = -1.0f;
+    }
+    
+    // Loop through ALL experts (Zero restrictions on num_experts)
+    for (int e = 0; e < num_experts; e++) {
+        float val = input[in_offset + e];
+        
+        // If this value is better than the worst value in our Top-K list
+        if (val > out_values[out_offset + k - 1]) {
+            
+            // Find its exact rank and shift all smaller values down
+            int pos = k - 1;
+            while (pos > 0 && val > out_values[out_offset + pos - 1]) {
+                out_values[out_offset + pos] = out_values[out_offset + pos - 1];
+                out_indices[out_offset + pos] = out_indices[out_offset + pos - 1];
+                pos--;
+            }
+            
+            // Insert the new champion
+            out_values[out_offset + pos] = val;
+            out_indices[out_offset + pos] = (float)e;
+        }
+    }
+}
+
+__global__ void moe_histogram_kernel(const float* top_indices, float* expert_counts, int total_elements, int num_experts) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (idx >= total_elements) return;
+    
+    // Thread reads its one assigned number
+    int expert_id = (int)top_indices[idx];
+    
+    if (expert_id >= 0 && expert_id < num_experts) {
+        atomicAdd(&expert_counts[expert_id], 1.0f);
+    }
+}
+
+__global__ void moe_gather_kernel(const float* input_tokens, const float* top_indices, float* current_offsets, float* gathered_tokens,
+  float* sorted_token_ids, int num_tokens, int k, int C) {
+        
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    
+        if (idx >= num_tokens * k) return;
+    
+        int original_token = idx / k;
+        
+        int expert_id = (int)top_indices[idx];
+
+        int slot = (int)atomicAdd(&current_offsets[expert_id], 1.0f);
+
+        sorted_token_ids[slot] = (float)idx;
+
+        for (int c = 0; c < C; c++) {
+            gathered_tokens[slot * C + c] = input_tokens[original_token * C + c];
+        }
+    }
+
+__global__ void moe_scatter_kernel(const float* gathered_outputs, const float* sorted_token_ids, const float* top_probs, float* final_output, int num_gathered_tokens, int k, int C) {
+    int slot = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (slot >= num_gathered_tokens) return;
+    
+    // Look up who this answer belongs to (the map stores the flat index!)
+    int original_idx = (int)sorted_token_ids[slot];
+    
+    // Original token is idx / k
+    int original_token = original_idx / k;
+    
+    // Get the exact probability this choice earned
+    float prob = top_probs[original_idx];
+    
+    // Add the scaled answer back into the final sequence
+    for (int c = 0; c < C; c++) {
+        float val = gathered_outputs[slot * C + c] * prob;
+        atomicAdd(&final_output[original_token * C + c], val);
+    }
+}
+
+__global__ void moe_scatter_backward_kernel(const float* dOutput, const float* sorted_token_ids, const float* top_probs, float* dGathered_outputs, int num_gathered_tokens, int k, int C) {
+    int slot = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (slot >= num_gathered_tokens) return;
+    
+    int original_idx = (int)sorted_token_ids[slot];
+    int original_token = original_idx / k;
+    float prob = top_probs[original_idx];
+    
+    for (int c = 0; c < C; c++) {
+        dGathered_outputs[slot * C + c] = dOutput[original_token * C + c] * prob;
+    }
+}
+
+__global__ void moe_gather_backward_kernel(const float* dGathered_inputs, const float* sorted_token_ids, float* dInput, int num_gathered_tokens, int k, int C) {
+    int slot = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (slot >= num_gathered_tokens) return;
+    
+    int original_idx = (int)sorted_token_ids[slot];
+    int original_token = original_idx / k;
+    
+    for (int c = 0; c < C; c++) {
+        atomicAdd(&dInput[original_token * C + c], dGathered_inputs[slot * C + c]);
+    }
+}
+
+    void top_k(const float* input, float* out_values, float* out_indices, int num_tokens, int num_experts, int k) {
+        int threads = 256;
+        int blocks = (num_tokens + threads - 1) / threads;
+        top_k_kernel<<<blocks, threads>>>(input, out_values, out_indices, num_tokens, num_experts, k);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+    void moe_histogram(const float* top_indices, float* expert_counts, int num_tokens, int k, int num_experts) {
+        int threads = 256;
+        int blocks = (num_tokens * k + threads - 1) / threads;
+        moe_histogram_kernel<<<blocks,threads>>>(top_indices, expert_counts, num_tokens * k, num_experts);
+        CHECK_CUDA(cudaGetLastError());
+    }
+    
+    void moe_gather(const float* input_tokens, const float* top_indices, float* current_offsets, float* gathered_tokens, float*
+  sorted_token_ids, int num_tokens, int k, int C) {
+            
+            int threads = 256; 
+            int total_threads_needed = num_tokens * k; 
+            
+            int blocks = (total_threads_needed + threads - 1) / threads;
+
+            moe_gather_kernel<<<blocks, threads>>>(input_tokens, top_indices, current_offsets, gathered_tokens, sorted_token_ids, num_tokens,
+  k, C);
+            
+            CHECK_CUDA(cudaGetLastError());
+        }
+    
+    void moe_scatter(const float* gathered_outputs, const float* sorted_token_ids, const float* top_probs, float* final_output, int num_gathered_tokens, int k, int C) {
+        int threads = 256;
+        int blocks = (num_gathered_tokens + threads - 1) / threads;
+        moe_scatter_kernel<<<blocks, threads>>>(gathered_outputs, sorted_token_ids, top_probs, final_output, num_gathered_tokens, k, C);
+        CHECK_CUDA(cudaGetLastError());
+    }
+    
+    void moe_scatter_backward(const float* dOutput, const float* sorted_token_ids, const float* top_probs, float* dGathered_outputs, int num_gathered_tokens, int k, int C) {
+        int threads = 256;
+        int blocks = (num_gathered_tokens + threads - 1) / threads;
+        moe_scatter_backward_kernel<<<blocks, threads>>>(dOutput, sorted_token_ids, top_probs, dGathered_outputs, num_gathered_tokens, k, C);
+        CHECK_CUDA(cudaGetLastError());
+    }
+    
+    void moe_gather_backward(const float* dGathered_inputs, const float* sorted_token_ids, float* dInput, int num_gathered_tokens, int k, int C) {
+        int threads = 256;
+        int blocks = (num_gathered_tokens + threads - 1) / threads;
+        moe_gather_backward_kernel<<<blocks, threads>>>(dGathered_inputs, sorted_token_ids, dInput, num_gathered_tokens, k, C);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
     void flash_attention_forward(const float* Q, const float* K, const float* V, float* O, float* L, int B, int num_heads, int T, int head_dim) {
         dim3 grid((T + FLASH_FWD_TILE - 1) / FLASH_FWD_TILE, B * num_heads);
         dim3 block(FLASH_FWD_TILE);
@@ -1486,6 +1651,51 @@ namespace cuda_ops {
 
 } // namespace cuda_ops
 
+
+__global__ void moe_histogram_kernel(const float* top_indices, float* expert_counts, int total_elements, int num_experts) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        
+        if (idx >= total_elements) return;
+        
+        int expert_id = (int)top_indices[idx];
+        
+        if (expert_id >= 0 && expert_id < num_experts) {
+            atomicAdd(&expert_counts[expert_id], 1.0f);
+        }
+    }
+
+__global__ void top_k_kernel(const float* input, float* out_values, float* out_indices, int num_tokens, int num_experts, int k) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_tokens) return;
+    
+    int in_offset = idx * num_experts;
+    int out_offset = idx * k;
+    
+    // Initialize the Top-K output slots in VRAM directly
+    for (int i = 0; i < k; i++) {
+        out_values[out_offset + i] = -1e9f;
+        out_indices[out_offset + i] = -1.0f;
+    }
+    
+    for (int e = 0; e < num_experts; e++) {
+        float val = input[in_offset + e];
+        
+        // If this value is better than the worst value in our Top-K list
+        if (val > out_values[out_offset + k - 1]) {
+            
+            // Find its exact rank and shift all smaller values down
+            int pos = k - 1;
+            while (pos > 0 && val > out_values[out_offset + pos - 1]) {
+                out_values[out_offset + pos] = out_values[out_offset + pos - 1];
+                out_indices[out_offset + pos] = out_indices[out_offset + pos - 1];
+                pos--;
+            }
+            
+            out_values[out_offset + pos] = val;
+            out_indices[out_offset + pos] = (float)e;
+        }
+    }
+}
 #else // !USE_CUDA
 
 namespace cuda_ops {

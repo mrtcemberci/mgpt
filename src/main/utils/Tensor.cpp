@@ -162,6 +162,15 @@ void Tensor::randomize(float mean, float stddev) {
     }
 }
 
+void Tensor::fill(float value) {
+    size_t sz = size();
+    if (device == Device::CUDA) {
+        std::vector<float> tmp(sz, value);
+        cuda_ops::copy_host_to_device(cuda_data, tmp.data(), sz);
+    } else {
+        std::fill(data.begin(), data.end(), value);
+    }
+}
 size_t Tensor::size() const {
     if (shape.empty()) return 0;
     size_t total_size = 1;
@@ -1282,6 +1291,167 @@ void Tensor::transpose_into(int dim1, int dim2, Tensor& result) const {
         return;
     }
     result = transpose(dim1, dim2);
+}
+
+void Tensor::top_k_into(int k, int dim, Tensor& out_indices, Tensor& out_values) const {
+    if (dim != -1 && dim != shape.size() - 1) {
+        throw std::runtime_error("top_k_into only implemented for dim = -1 (last dimension)");
+    }
+    
+    int num_experts = shape.back();
+    int num_tokens = size() / num_experts;
+    
+    if (device == Device::CUDA) {
+        cuda_ops::top_k(get_data_ptr(), out_values.get_data_ptr(), out_indices.get_data_ptr(), num_tokens, num_experts, k);
+    } else {
+        const float* ptr = get_data_ptr();
+        float* out_v = out_values.get_data_ptr();
+        float* out_i = out_indices.get_data_ptr();
+        for (int idx = 0; idx < num_tokens; idx++) {
+            int in_offset = idx * num_experts;
+            int out_offset = idx * k;
+            
+            for (int i = 0; i < k; i++) {
+                out_v[out_offset + i] = -1e9f;
+                out_i[out_offset + i] = -1.0f;
+            }
+            
+            for (int e = 0; e < num_experts; e++) {
+                float val = ptr[in_offset + e];
+                if (val > out_v[out_offset + k - 1]) {
+                    int pos = k - 1;
+                    while (pos > 0 && val > out_v[out_offset + pos - 1]) {
+                        out_v[out_offset + pos] = out_v[out_offset + pos - 1];
+                        out_i[out_offset + pos] = out_i[out_offset + pos - 1];
+                        pos--;
+                    }
+                    out_v[out_offset + pos] = val;
+                    out_i[out_offset + pos] = (float)e;
+                }
+            }
+        }
+    }
+}
+
+void Tensor::moe_histogram_into(int num_experts, Tensor& expert_counts) const {
+    int k = shape.back();
+    int num_tokens = size() / k;
+    
+    if (device == Device::CUDA) {
+        cuda_ops::moe_histogram(get_data_ptr(), expert_counts.get_data_ptr(), num_tokens, k, num_experts);
+    } else {
+        const float* top_indices = get_data_ptr();
+        float* counts = expert_counts.get_data_ptr();
+        for (int i = 0; i < size(); i++) {
+            int expert_id = (int)top_indices[i];
+            if (expert_id >= 0 && expert_id < num_experts) {
+                counts[expert_id] += 1.0f;
+            }
+        }
+    }
+}
+
+void Tensor::moe_gather_into(const Tensor& input_tokens, Tensor& current_offsets, Tensor& gathered_tokens, Tensor& sorted_token_ids) const {
+    int k = shape.back();
+    int num_tokens = size() / k;
+    int C = input_tokens.shape.back();
+    
+    if (device == Device::CUDA) {
+        cuda_ops::moe_gather(input_tokens.get_data_ptr(), get_data_ptr(), current_offsets.get_data_ptr(), gathered_tokens.get_data_ptr(), sorted_token_ids.get_data_ptr(), num_tokens, k, C);
+    } else {
+        const float* tokens = input_tokens.get_data_ptr();
+        const float* top_indices = get_data_ptr();
+        float* offsets = current_offsets.get_data_ptr();
+        float* gathered = gathered_tokens.get_data_ptr();
+        float* map = sorted_token_ids.get_data_ptr();
+        
+        for (int i = 0; i < size(); i++) {
+            int original_token = i / k;
+            int expert_id = (int)top_indices[i];
+            
+            if (expert_id >= 0) {
+                int slot = (int)offsets[expert_id];
+                offsets[expert_id] += 1.0f;
+                
+                map[slot] = (float)i;
+                for (int c = 0; c < C; c++) {
+                    gathered[slot * C + c] = tokens[original_token * C + c];
+                }
+            }
+        }
+    }
+}
+
+void Tensor::moe_scatter_into(const Tensor& gathered_outputs, const Tensor& sorted_token_ids, const Tensor& top_probs, Tensor& final_output) {
+    int num_gathered_tokens = sorted_token_ids.size();
+    int k = top_probs.shape.back();
+    int C = gathered_outputs.shape.back();
+    
+    if (gathered_outputs.device == Device::CUDA) {
+        cuda_ops::moe_scatter(gathered_outputs.get_data_ptr(), sorted_token_ids.get_data_ptr(), top_probs.get_data_ptr(), final_output.get_data_ptr(), num_gathered_tokens, k, C);
+    } else {
+        const float* gathered = gathered_outputs.get_data_ptr();
+        const float* map = sorted_token_ids.get_data_ptr();
+        const float* probs = top_probs.get_data_ptr();
+        float* final_out = final_output.get_data_ptr();
+        
+        for (int slot = 0; slot < num_gathered_tokens; slot++) {
+            int original_idx = (int)map[slot];
+            int original_token = original_idx / k;
+            float prob = probs[original_idx];
+            
+            for (int c = 0; c < C; c++) {
+                final_out[original_token * C + c] += gathered[slot * C + c] * prob;
+            }
+        }
+    }
+}
+
+void Tensor::moe_scatter_backward_into(const Tensor& dOutput, const Tensor& sorted_token_ids, const Tensor& top_probs, Tensor& dGathered_outputs) {
+    int num_gathered_tokens = sorted_token_ids.size();
+    int k = top_probs.shape.back();
+    int C = dOutput.shape.back();
+    
+    if (dOutput.device == Device::CUDA) {
+        cuda_ops::moe_scatter_backward(dOutput.get_data_ptr(), sorted_token_ids.get_data_ptr(), top_probs.get_data_ptr(), dGathered_outputs.get_data_ptr(), num_gathered_tokens, k, C);
+    } else {
+        const float* dout = dOutput.get_data_ptr();
+        const float* map = sorted_token_ids.get_data_ptr();
+        const float* probs = top_probs.get_data_ptr();
+        float* dgath = dGathered_outputs.get_data_ptr();
+        
+        for (int slot = 0; slot < num_gathered_tokens; slot++) {
+            int original_idx = (int)map[slot];
+            int original_token = original_idx / k;
+            float prob = probs[original_idx];
+            
+            for (int c = 0; c < C; c++) {
+                dgath[slot * C + c] = dout[original_token * C + c] * prob;
+            }
+        }
+    }
+}
+
+void Tensor::moe_gather_backward_into(const Tensor& dGathered_inputs, const Tensor& sorted_token_ids, Tensor& dInput, int k) {
+    int num_gathered_tokens = sorted_token_ids.size();
+    int C = dInput.shape.back();
+    
+    if (dInput.device == Device::CUDA) {
+        cuda_ops::moe_gather_backward(dGathered_inputs.get_data_ptr(), sorted_token_ids.get_data_ptr(), dInput.get_data_ptr(), num_gathered_tokens, k, C);
+    } else {
+        const float* dgath_in = dGathered_inputs.get_data_ptr();
+        const float* map = sorted_token_ids.get_data_ptr();
+        float* din = dInput.get_data_ptr();
+        
+        for (int slot = 0; slot < num_gathered_tokens; slot++) {
+            int original_idx = (int)map[slot];
+            int original_token = original_idx / k;
+            
+            for (int c = 0; c < C; c++) {
+                din[original_token * C + c] += dgath_in[slot * C + c];
+            }
+        }
+    }
 }
 
 void Tensor::softmax_into(int dim, Tensor& result) const {

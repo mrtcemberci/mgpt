@@ -48,6 +48,18 @@ namespace cuda_ops {
     void sgd_step(float* param, const float* grad, float lr, float weight_decay, size_t size);
     void adamw_step(float* param, const float* grad, float* m, float* v, float lr, float beta1, float beta2, float eps, float weight_decay, int t, size_t size);
     
+    // Top-K implementation
+    void top_k(const float* input, float* out_values, float* out_indices, int num_tokens, int num_experts, int k);
+    
+    // MoE Routing
+    void moe_histogram(const float* top_indices, float* expert_counts, int num_tokens, int k, int num_experts);
+    void moe_gather(const float* input_tokens, const float* top_indices, float* current_offsets, float* gathered_tokens, float* sorted_token_ids, int num_tokens, int k, int C);
+    void moe_scatter(const float* gathered_outputs, const float* sorted_token_ids, const float* top_probs, float* final_output, int num_gathered_tokens, int k, int C);
+    
+    // MoE Routing Backward
+    void moe_scatter_backward(const float* dOutput, const float* sorted_token_ids, const float* top_probs, float* dGathered_outputs, int num_gathered_tokens, int k, int C);
+    void moe_gather_backward(const float* dGathered_inputs, const float* sorted_token_ids, float* dInput, int num_gathered_tokens, int k, int C);
+    
     float cross_entropy_loss(const int* targets, const float* probs, int total_tokens, int vocab_size);
     void cross_entropy_backward(const int* targets, const float* probs, float* dL, int total_tokens, int vocab_size);
     float cross_entropy_loss_float(const float* targets, const float* probs, int total_tokens, int vocab_size);
