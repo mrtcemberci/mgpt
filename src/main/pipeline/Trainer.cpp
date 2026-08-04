@@ -207,6 +207,7 @@ int Trainer::run() {
         size_t H = gpt_cfg.num_heads;
         size_t Vocab = config.target_vocab_size;
         size_t top_k = gpt_cfg.top_k;
+        size_t num_experts = gpt_cfg.num_experts;
         
         // TransformerBlock Peak (Forward standing + Backward standing + MHA + Linear)
         // MHA Fwd standing: 4 * B*T*C
@@ -222,7 +223,10 @@ int Trainer::run() {
         size_t mha_bwd = 9 * B * T * C + 4 * B * H * T * T;
         size_t w_qkv_bwd = 3 * C + 3 * B * T * C + 6 * C * C;
         
-        size_t block_peak = block_fwd_standing + block_bwd_standing + mha_bwd + w_qkv_bwd;
+        // MoE Router Backward Scratchpad: d_top_probs + d_router_probs + lb_grads_tensor + d_router_logits + router_din
+        size_t moe_router_bwd = B * T * top_k + B * T * num_experts * 2 + num_experts + B * T * C;
+        
+        size_t block_peak = block_fwd_standing + block_bwd_standing + mha_bwd + w_qkv_bwd + moe_router_bwd;
 
         // LM Head Backward Peak
         size_t lm_head_peak = B * T * C + 2 * C * Vocab + Vocab;
@@ -423,6 +427,16 @@ int Trainer::run() {
                       << "Fwd:" << (int)total_fwd_ms << "ms Loss:" << (int)total_bwd_ms << "ms Opt:" << (int)opt_ms << "ms "
                       << "| Step:" << (int)step_ms << "ms | Loss: " 
                       << std::fixed << std::setprecision(4) << train_loss;
+                      
+            if (!model.blocks.empty() && gpt_cfg.num_experts > 0) {
+                std::cout << " | Experts: [";
+                auto counts = model.blocks[0]->mlp.get_expert_counts();
+                for (int e = 0; e < gpt_cfg.num_experts; e++) {
+                    std::cout << "E" << e << ":" << (int)counts[e] << (e == gpt_cfg.num_experts - 1 ? "" : " ");
+                }
+                std::cout << "]";
+            }
+
             if (val_loss > 0.0f) {
                 std::cout << " | Val: " << val_loss;
             }

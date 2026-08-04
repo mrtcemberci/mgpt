@@ -1353,7 +1353,7 @@ __global__ void moe_scatter_kernel(const float* gathered_outputs, const float* s
     }
 }
 
-__global__ void moe_scatter_backward_kernel(const float* dOutput, const float* sorted_token_ids, const float* top_probs, float* dGathered_outputs, int num_gathered_tokens, int k, int C) {
+__global__ void moe_scatter_backward_kernel(const float* dOutput, const float* gathered_outputs, const float* sorted_token_ids, const float* top_probs, float* dGathered_outputs, float* d_top_probs, int num_gathered_tokens, int k, int C) {
     int slot = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (slot >= num_gathered_tokens) return;
@@ -1362,9 +1362,12 @@ __global__ void moe_scatter_backward_kernel(const float* dOutput, const float* s
     int original_token = original_idx / k;
     float prob = top_probs[original_idx];
     
+    float dot = 0.0f;
     for (int c = 0; c < C; c++) {
         dGathered_outputs[slot * C + c] = dOutput[original_token * C + c] * prob;
+        dot += gathered_outputs[slot * C + c] * dOutput[original_token * C + c];
     }
+    d_top_probs[original_idx] = dot;
 }
 
 __global__ void moe_gather_backward_kernel(const float* dGathered_inputs, const float* sorted_token_ids, float* dInput, int num_gathered_tokens, int k, int C) {
@@ -1378,6 +1381,16 @@ __global__ void moe_gather_backward_kernel(const float* dGathered_inputs, const 
     for (int c = 0; c < C; c++) {
         atomicAdd(&dInput[original_token * C + c], dGathered_inputs[slot * C + c]);
     }
+}
+
+__global__ void scatter_indices_kernel(const float* src, const float* indices, float* dst, int num_elements, int E, int K) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_elements) return;
+    
+    int token_id = idx / K;
+    int expert_id = (int)indices[idx];
+    
+    dst[token_id * E + expert_id] = src[idx];
 }
 
     void top_k(const float* input, float* out_values, float* out_indices, int num_tokens, int num_experts, int k) {
@@ -1415,10 +1428,10 @@ __global__ void moe_gather_backward_kernel(const float* dGathered_inputs, const 
         CHECK_CUDA(cudaGetLastError());
     }
     
-    void moe_scatter_backward(const float* dOutput, const float* sorted_token_ids, const float* top_probs, float* dGathered_outputs, int num_gathered_tokens, int k, int C) {
+    void moe_scatter_backward(const float* dOutput, const float* gathered_outputs, const float* sorted_token_ids, const float* top_probs, float* dGathered_outputs, float* d_top_probs, int num_gathered_tokens, int k, int C) {
         int threads = 256;
         int blocks = (num_gathered_tokens + threads - 1) / threads;
-        moe_scatter_backward_kernel<<<blocks, threads>>>(dOutput, sorted_token_ids, top_probs, dGathered_outputs, num_gathered_tokens, k, C);
+        moe_scatter_backward_kernel<<<blocks, threads>>>(dOutput, gathered_outputs, sorted_token_ids, top_probs, dGathered_outputs, d_top_probs, num_gathered_tokens, k, C);
         CHECK_CUDA(cudaGetLastError());
     }
     
@@ -1426,6 +1439,13 @@ __global__ void moe_gather_backward_kernel(const float* dGathered_inputs, const 
         int threads = 256;
         int blocks = (num_gathered_tokens + threads - 1) / threads;
         moe_gather_backward_kernel<<<blocks, threads>>>(dGathered_inputs, sorted_token_ids, dInput, num_gathered_tokens, k, C);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+    void scatter_indices(const float* src, const float* indices, float* dst, int num_elements, int E, int K) {
+        int threads = 256;
+        int blocks = (num_elements + threads - 1) / threads;
+        scatter_indices_kernel<<<blocks, threads>>>(src, indices, dst, num_elements, E, K);
         CHECK_CUDA(cudaGetLastError());
     }
 

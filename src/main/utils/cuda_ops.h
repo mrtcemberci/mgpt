@@ -57,8 +57,9 @@ namespace cuda_ops {
     void moe_scatter(const float* gathered_outputs, const float* sorted_token_ids, const float* top_probs, float* final_output, int num_gathered_tokens, int k, int C);
     
     // MoE Routing Backward
-    void moe_scatter_backward(const float* dOutput, const float* sorted_token_ids, const float* top_probs, float* dGathered_outputs, int num_gathered_tokens, int k, int C);
+    void moe_scatter_backward(const float* dOutput, const float* gathered_outputs, const float* sorted_token_ids, const float* top_probs, float* dGathered_outputs, float* d_top_probs, int num_gathered_tokens, int k, int C);
     void moe_gather_backward(const float* dGathered_inputs, const float* sorted_token_ids, float* dInput, int num_gathered_tokens, int k, int C);
+    void scatter_indices(const float* src, const float* indices, float* dst, int num_elements, int E, int K);
     
     float cross_entropy_loss(const int* targets, const float* probs, int total_tokens, int vocab_size);
     void cross_entropy_backward(const int* targets, const float* probs, float* dL, int total_tokens, int vocab_size);

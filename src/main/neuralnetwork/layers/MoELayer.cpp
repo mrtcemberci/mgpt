@@ -83,7 +83,7 @@ void MoELayer::forward_into(const Tensor& input, Tensor& output) {
         fwd_savepoint = scratchpad->get_savepoint();
     }
     
-    Tensor gathered_outputs = (scratchpad && input.device == Device::CUDA)
+    cached_gathered_outputs = (scratchpad && input.device == Device::CUDA)
         ? Tensor::view({(int)B * (int)T * top_k, (int)C}, scratchpad->get_address(B*T*top_k*C), Device::CUDA)
         : Tensor({(int)B * (int)T * top_k, (int)C}, 0.0f, input.device);
         
@@ -98,7 +98,7 @@ void MoELayer::forward_into(const Tensor& input, Tensor& output) {
         // splice the expert inputs and pass their expert output result location
         if (input.device == Device::CUDA) {
             expert_input = Tensor::view({1, count, (int)C}, cached_gathered_tokens.get_data_ptr() + offset * C, Device::CUDA);
-            expert_output = Tensor::view({1, count, (int)C}, gathered_outputs.get_data_ptr() + offset * C, Device::CUDA);
+            expert_output = Tensor::view({1, count, (int)C}, cached_gathered_outputs.get_data_ptr() + offset * C, Device::CUDA);
         } else {
             expert_input = Tensor({1, count, (int)C}, 0.0f, Device::CPU);
             expert_output = Tensor({1, count, (int)C}, 0.0f, Device::CPU);
@@ -109,14 +109,14 @@ void MoELayer::forward_into(const Tensor& input, Tensor& output) {
         
         // copy the output if on CPU
         if (input.device != Device::CUDA) {
-            std::memcpy((void*)(gathered_outputs.get_data_ptr() + offset * C), expert_output.get_data_ptr(), count * C * sizeof(float));
+            std::memcpy((void*)(cached_gathered_outputs.get_data_ptr() + offset * C), expert_output.get_data_ptr(), count * C * sizeof(float));
         }
     }
     
-    // Scatter, return gathered values to original spots
+    // return gathered values to original spots
     if (output.shape.empty()) output = Tensor({(int)B, (int)T, (int)C}, 0.0f, input.device);
     output.fill(0.0f);
-    Tensor::moe_scatter_into(gathered_outputs, cached_sorted_token_ids, cached_top_probs, output);
+    Tensor::moe_scatter_into(cached_gathered_outputs, cached_sorted_token_ids, cached_top_probs, output);
     
     cached_out = output;
     
@@ -145,8 +145,11 @@ void MoELayer::backward_into(const Tensor& dout, Tensor& din) {
         ? Tensor::view({(int)B * (int)T * top_k, (int)C}, scratchpad->get_address(B*T*top_k*C), Device::CUDA)
         : Tensor({(int)B * (int)T * top_k, (int)C}, 0.0f, dout.device);
         
-    // Re-assemble dOutput into the expert bins
-    Tensor::moe_scatter_backward_into(dout, cached_sorted_token_ids, cached_top_probs, dGathered_outputs);
+    Tensor d_top_probs = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({(int)B, (int)T, top_k}, scratchpad->get_address(B*T*top_k), Device::CUDA)
+        : Tensor({(int)B, (int)T, top_k}, 0.0f, dout.device);
+        
+    Tensor::moe_scatter_backward_into(dout, cached_gathered_outputs, cached_sorted_token_ids, cached_top_probs, dGathered_outputs, d_top_probs);
     
     // Expert Backward
     for (int i = 0; i < num_experts; i++) {
@@ -178,8 +181,36 @@ void MoELayer::backward_into(const Tensor& dout, Tensor& din) {
     din.fill(0.0f);
     Tensor::moe_gather_backward_into(dGathered_inputs, cached_sorted_token_ids, din, top_k);
     
-    // add router loss
+    // Scatter top-k task gradients into full 8-expert probability array
+    Tensor d_router_probs = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({(int)B, (int)T, num_experts}, scratchpad->get_address(B*T*num_experts), Device::CUDA)
+        : Tensor({(int)B, (int)T, num_experts}, 0.0f, dout.device);
+    Tensor::scatter_indices_into(d_top_probs, cached_top_indices, d_router_probs, num_experts, top_k);
     
+    float alpha = 0.01f;
+    std::vector<float> lb_grads(num_experts, 0.0f);
+    for (int i = 0; i < num_experts; i++) {
+        float f_i = cached_cpu_counts[i] / (float)(B * T);
+        lb_grads[i] = (alpha * num_experts * f_i) / (float)(B * T);
+    }
+    Tensor lb_grads_tensor = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({1, num_experts}, scratchpad->get_address(num_experts), Device::CUDA)
+        : Tensor({1, num_experts}, 0.0f, dout.device);
+    lb_grads_tensor.copy_from_host(lb_grads.data());
+    d_router_probs.add_broadcast_in_place(lb_grads_tensor);
+    
+    Tensor d_router_logits = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({(int)B, (int)T, num_experts}, scratchpad->get_address(B*T*num_experts), Device::CUDA)
+        : Tensor({(int)B, (int)T, num_experts}, 0.0f, dout.device);
+        
+    cached_router_probs.softmax_backward_into(d_router_probs, d_router_logits);
+    
+    Tensor router_din = (scratchpad && dout.device == Device::CUDA)
+        ? Tensor::view({(int)B, (int)T, (int)C}, scratchpad->get_address(B*T*C), Device::CUDA)
+        : Tensor({(int)B, (int)T, (int)C}, 0.0f, dout.device);
+    router.backward_into(d_router_logits, router_din);
+    
+    Tensor::add_into(din, router_din, din);
     cached_dX = din;
     
     if (scratchpad && dout.device == Device::CUDA) {

@@ -22,6 +22,7 @@ private:
     Tensor cached_top_indices;
     Tensor cached_top_probs;
     Tensor cached_gathered_tokens;
+    Tensor cached_gathered_outputs;
     Tensor cached_sorted_token_ids;
     
     // Cached for backward pass
@@ -31,6 +32,8 @@ private:
 
 public:
     MoELayer(int embed_dim, int hidden_dim, int num_experts, int top_k);
+
+    const std::vector<float>& get_expert_counts() const { return cached_cpu_counts; }
 
     void set_scratchpad(Scratchpad* pad) override;
 

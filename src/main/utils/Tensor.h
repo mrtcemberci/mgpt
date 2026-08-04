@@ -113,8 +113,9 @@ public:
     void moe_gather_into(const Tensor& input_tokens, Tensor& current_offsets, Tensor& gathered_tokens, Tensor& sorted_token_ids) const;
     static void moe_scatter_into(const Tensor& gathered_outputs, const Tensor& sorted_token_ids, const Tensor& top_probs, Tensor&
   final_output);
-    static void moe_scatter_backward_into(const Tensor& dOutput, const Tensor& sorted_token_ids, const Tensor& top_probs, Tensor& dGathered_outputs);
+    static void moe_scatter_backward_into(const Tensor& dOutput, const Tensor& gathered_outputs, const Tensor& sorted_token_ids, const Tensor& top_probs, Tensor& dGathered_outputs, Tensor& d_top_probs);
     static void moe_gather_backward_into(const Tensor& dGathered_inputs, const Tensor& sorted_token_ids, Tensor& dInput, int k);
+    static void scatter_indices_into(const Tensor& src, const Tensor& indices, Tensor& dst, int num_experts, int k);
     void softmax_into(int dim, Tensor& result) const;
     void add_broadcast_in_place(const Tensor& other);
     void mul_scalar_in_place(float scalar);
