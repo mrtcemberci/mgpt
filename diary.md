@@ -134,6 +134,25 @@ Replace the rigid 3 GB Scratchpad memory arena with a dynamic memory allocator t
 - **Unified Memory Paging Tolerance:** By properly requesting massive allocations (e.g., 11.9 GB) from the NVIDIA driver rather than failing an internal C++ bounds check, the C++ execution engine successfully delegates overflow to the OS. The driver gracefully spills the excess VRAM over the PCIe bus into System RAM, avoiding an OOM crash entirely (albeit at the cost of significantly increased step times due to PCIe bottlenecking).
 - **Virtual Memory Profiler (`--virtual`):** Implemented a `--virtual` flag that executes the Mathematical VRAM Predictor and immediately exits. This allows users to test hyperparameter limits and view exact VRAM requirements without launching the training loop or loading weights.
 
+## Phase 10: Mixture of Experts (August 3, 2026)
+
+### Goal & Challenge
+Abstract the MLP layer in the transformer block into a mixture of experts with dynamic routing and load balancing
+
+### Key Engineering Insights
+- **Load Balancing** : Some experts were heavily biased and would take all the tokens, requiring a load balancer penalty for the logits
+- **Minimise CPU-GPU communication** : Rather than moving the entire tensor to the CPU in order to reorganise the tensors so that the tokens were consecutively grouped by their expert, only a vector<int> of size {experts} was moved from GPU to CPU, in order to calculate a running sum and allocate a tensor that will be used for grouping the original tensor, and provide a map to scatter tokens back to original location
+- **Smart Kernel management**: To avoid writing several kernels, we can reuse the gather and scatter kernels in the forward and backwarwd pass and reuse existing kernels like softmax derivative.
+
+## Phase 11: Decoupled Dynamic scratchpad allocation (August 5, 2026)
+
+### Goal & Challenge
+Decouple the memory footprint predictor so that Trainer file does not need to change when layers change / are added
+
+### Key Engineering Insights
+- **API design** : To hold a data per layer, a struct was used to hold the fwd standing, fwd temp and bwd temp, originally it was fwd peak (which was actually temp + standing) which led to error prone implementations, so a method was introduced in the struct to automatically addt he values and return them
+
+
 ## Todo
 - **Floating point memory footprint:** Implement FP16
 - **Interactive Chat Mode:** Implement an interactive mode with a Stop Token check for inference.
