@@ -137,6 +137,6 @@ Replace the rigid 3 GB Scratchpad memory arena with a dynamic memory allocator t
 ## Todo
 - **Floating point memory footprint:** Implement FP16
 - **Interactive Chat Mode:** Implement an interactive mode with a Stop Token check for inference.
-- **Object-Oriented Memory Profiling:** Add `virtual size_t get_scratchpad_peak(int B, int T)` to the `Layer` class, requiring developers to hand-calculate and return their layer's exact memory footprint
 - **Debug flag** Add debug flag that then prints data to terminal
 - **MoE flags** Add a flag for setting top-k and experts for mixture of experts
+- **Magic constants** Remove magic constants like channel broadcasting up and down in the self-attention

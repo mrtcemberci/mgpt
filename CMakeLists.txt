@@ -80,3 +80,6 @@ add_test(NAME attention_tests COMMAND attention_tests)
 add_test(NAME optimiser_tests COMMAND optimiser_tests)
 add_test(NAME gpt_tests COMMAND gpt_tests)
 add_test(NAME moe_tests COMMAND moe_tests)
+
+add_executable(oomp_tests src/test/networkTest/oompTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp src/main/neuralnetwork/layers/GELULayer.cpp src/main/neuralnetwork/layers/LayerNormLayer.cpp src/main/neuralnetwork/layers/RMSNormLayer.cpp src/main/neuralnetwork/layers/CrossEntropyLossLayer.cpp src/main/neuralnetwork/layers/EmbeddingLayer.cpp src/main/neuralnetwork/layers/SingleHeadAttentionLayer.cpp src/main/neuralnetwork/layers/MultiHeadAttentionLayer.cpp src/main/neuralnetwork/layers/TransformerBlock.cpp src/main/neuralnetwork/GPT.cpp src/main/neuralnetwork/layers/MoELayer.cpp src/main/neuralnetwork/layers/SwiGLU.cpp)
+add_test(NAME oomp_tests COMMAND oomp_tests)
