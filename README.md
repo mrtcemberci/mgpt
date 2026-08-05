@@ -2,11 +2,12 @@
 
 A autoregressive Transformer/GPT training and inference engine built from scratch in modern C++ and hardware-accelerated CUDA. Designed with zero external dependencies—pure linear algebra, custom autograd, memory scratchpad recycling, and modern LLM architectural features.
 
-> **📖 Systems Engineering Diary**: For a complete chronological log of architectural decisions, performance debugging, VRAM optimizations, and discoveries during the building of this engine, please read the [diary.md](diary.md).
+> **Systems Engineering Diary**: For a complete chronological log of architectural decisions, performance debugging, VRAM optimizations, and discoveries during the building of this engine, please read the [diary.md](diary.md).
 
 ## Features
 
 ### Architecture
+- **Mixture Of Experts**: Uses a hard-coded 8 experts and top-2 expert selection in a transformer block with dynamic routing and load balancing.
 - **SwiGLU Activation Network**: Implements modern gated SwiGLU (`Swish(Gate(X)) ⊙ Up(X) -> Down`) MLP layers for enhanced representational capacity and faster convergence.
 - **Root Mean Square Normalization (RMSNorm)**: Lean, stable pre-attention and pre-MLP normalization (`RMSNormLayer`) with learnable $\gamma$ scale parameter.
 - **Causal Multi-Head Self-Attention (MHA)**: Full multi-head causal attention with query/key/value projection slicing and multi-head concatenation kernels.
