@@ -41,3 +41,6 @@ Tensor LayerNormLayer::backward(const Tensor& dout) {
 std::vector<Tensor*> LayerNormLayer::get_parameters() {
     return { &scale, &shift };
 }
+
+// does not use the scratch pad
+ScratchpadFootprint LayerNormLayer::get_footprint(int B, int T) { return {0, 0, 0}; }

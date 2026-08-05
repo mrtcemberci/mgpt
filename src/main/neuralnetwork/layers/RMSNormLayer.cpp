@@ -40,3 +40,6 @@ Tensor RMSNormLayer::backward(const Tensor& dout) {
 std::vector<Tensor*> RMSNormLayer::get_parameters() {
     return { &scale };
 }
+
+// no scratch pad everything is in place
+ScratchpadFootprint RMSNormLayer::get_footprint(int B, int T) { return {0, 0, 0}; }

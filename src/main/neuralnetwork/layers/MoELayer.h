@@ -26,6 +26,7 @@ private:
     Tensor cached_sorted_token_ids;
     Tensor cached_expert_counts;
     Tensor cached_expert_offsets;
+    size_t cached_fwd_savepoint = 0;
     
     // Cached for backward pass
     std::vector<float> cached_cpu_counts;
@@ -46,6 +47,7 @@ public:
     void backward_into(const Tensor& dout, Tensor& din) override;
 
     std::vector<Tensor*> get_parameters() override;
+    ScratchpadFootprint get_footprint(int B, int T) override;
 };
 
 #endif // MOELAYER_H

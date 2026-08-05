@@ -110,3 +110,11 @@ std::vector<Tensor*> SwiGLU::get_parameters() {
     auto p_down = mlp_down.get_parameters(); params.insert(params.end(), p_down.begin(), p_down.end());
     return params;
 }
+
+#include <algorithm>
+ScratchpadFootprint SwiGLU::get_footprint(int B, int T) {
+    size_t C = mlp_gate.in_channels;
+    size_t fwd_temp = (size_t)(12 * B * T * C) + std::max<size_t>({mlp_gate.get_footprint(B,T).fwd_peak(), mlp_up.get_footprint(B,T).fwd_peak(), mlp_down.get_footprint(B,T).fwd_peak()});
+    size_t bwd_temp = (size_t)(18 * B * T * C) + std::max<size_t>({mlp_down.get_footprint(B,T).bwd_peak(), mlp_gate.get_footprint(B,T).bwd_peak(), mlp_up.get_footprint(B,T).bwd_peak()});
+    return {0, fwd_temp, bwd_temp};
+}

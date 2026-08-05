@@ -200,39 +200,12 @@ int Trainer::run() {
         std::cout << "Migrating GPT Model and Engine to CUDA GPU...\n";
         model.to(target_dev);
 
-        std::cout << "Running Mathematical VRAM Profiler...\n";
+        std::cout << "Running Object-Oriented VRAM Profiler...\n";
         size_t B = config.batch_size;
         size_t T = config.max_seq_len;
-        size_t C = config.embed_dim;
-        size_t H = gpt_cfg.num_heads;
-        size_t Vocab = config.target_vocab_size;
-        size_t top_k = gpt_cfg.top_k;
-        size_t num_experts = gpt_cfg.num_experts;
         
-        // TransformerBlock Peak (Forward standing + Backward standing + MHA + Linear)
-        // MHA Fwd standing: 4 * B*T*C
-        // MoE Fwd standing: 14 * top_k * B*T*C
-        size_t block_fwd_standing = (4 + 14 * top_k) * B * T * C;
-        if (!config.use_checkpointing) {
-            block_fwd_standing *= config.num_layers;
-        }
-
-        // MHA Bwd standing: 4 * B*T*C
-        // MoE Bwd standing: 20 * top_k * B*T*C
-        size_t block_bwd_standing = (4 + 20 * top_k) * B * T * C;
-        size_t mha_bwd = 9 * B * T * C + 4 * B * H * T * T;
-        size_t w_qkv_bwd = 3 * C + 3 * B * T * C + 6 * C * C;
-        
-        // MoE Router Backward Scratchpad: d_top_probs + d_router_probs + lb_grads_tensor + d_router_logits + router_din
-        size_t moe_router_bwd = B * T * top_k + B * T * num_experts * 2 + num_experts + B * T * C;
-        
-        size_t block_peak = block_fwd_standing + block_bwd_standing + mha_bwd + w_qkv_bwd + moe_router_bwd;
-
-        // LM Head Backward Peak
-        size_t lm_head_peak = B * T * C + 2 * C * Vocab + Vocab;
-
-        // Global peak is the max of the deep network branches
-        size_t peak_floats = std::max(block_peak, lm_head_peak);
+        ScratchpadFootprint fp = model.get_footprint((int)B, (int)T);
+        size_t peak_floats = std::max(fp.fwd_peak(), fp.bwd_peak());
         size_t peak_mb = (peak_floats * sizeof(float)) / (1024 * 1024);
 
         std::cout << "      -> Dynamic Scratchpad Peak: " << peak_floats << " floats (~" << peak_mb << " MB)\n";

@@ -37,3 +37,6 @@ Tensor EmbeddingLayer::backward(const Tensor& dout) {
 std::vector<Tensor*> EmbeddingLayer::get_parameters() {
     return { &lookup_table };
 }
+
+// does not use the scratch pad
+ScratchpadFootprint EmbeddingLayer::get_footprint(int B, int T) { return {0, 0, 0}; }

@@ -97,10 +97,6 @@ void MultiHeadAttentionLayer::forward_into(const Tensor& input, Tensor& output) 
     // Output projection W_O
     W_O->forward_into(cached_concat_ctx, output);
     cached_output = output;
-
-    if (scratchpad && input.device == Device::CUDA) {
-        scratchpad->restore_savepoint(savepoint);
-    }
 }
 
 Tensor MultiHeadAttentionLayer::forward(const Tensor& input) {
@@ -117,14 +113,20 @@ void MultiHeadAttentionLayer::backward_into(const Tensor& dout, Tensor& din) {
         savepoint = scratchpad->get_savepoint();
         cached_d_concat_ctx = Tensor::view({B, T, channels}, scratchpad->get_address(B * T * channels), Device::CUDA);
         cached_d_head_contexts = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
-        cached_probs_T = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
-        cached_dV = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
-        cached_V_T = Tensor::view({B * num_heads, head_dim, T}, scratchpad->get_address(B * num_heads * head_dim * T), Device::CUDA);
-        cached_dP = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
-        cached_dS = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
-        cached_dQ = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
-        cached_dS_scaled_T = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
-        cached_dK = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
+        if (!use_flash_attention) {
+            cached_probs_T = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
+            cached_dV = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
+            cached_V_T = Tensor::view({B * num_heads, head_dim, T}, scratchpad->get_address(B * num_heads * head_dim * T), Device::CUDA);
+            cached_dP = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
+            cached_dS = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
+            cached_dQ = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
+            cached_dS_scaled_T = Tensor::view({B * num_heads, T, T}, scratchpad->get_address(B * num_heads * T * T), Device::CUDA);
+            cached_dK = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
+        } else {
+            cached_dV = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
+            cached_dQ = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
+            cached_dK = Tensor::view({B * num_heads, T, head_dim}, scratchpad->get_address(B * num_heads * T * head_dim), Device::CUDA);
+        }
         cached_dQKV_all = Tensor::view({B, T, 3 * channels}, scratchpad->get_address(B * T * 3 * channels), Device::CUDA);
     }
 
@@ -192,4 +194,12 @@ void MultiHeadAttentionLayer::set_scratchpad(Scratchpad* pad) {
     this->scratchpad = pad;
     if (W_QKV) W_QKV->set_scratchpad(pad);
     if (W_O) W_O->set_scratchpad(pad);
+}
+
+ScratchpadFootprint MultiHeadAttentionLayer::get_footprint(int B, int T) { 
+    if (use_flash_attention) {
+        return {(size_t)(9 * B * T * channels), 0, 0}; 
+    }
+    size_t fwd_standing = (size_t)(9 * B * T * channels + 2 * B * num_heads * T * T);
+    return {fwd_standing, 0, (size_t)(2 * B * num_heads * T * T)}; 
 }

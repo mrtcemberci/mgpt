@@ -45,6 +45,7 @@ public:
     Tensor backward(const Tensor& dout) override;
     void backward_into(const Tensor& dout, Tensor& din) override;
     std::vector<Tensor*> get_parameters() override;
+    ScratchpadFootprint get_footprint(int B, int T) override;
     void set_scratchpad(Scratchpad* pad) override;
 };
 

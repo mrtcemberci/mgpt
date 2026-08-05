@@ -67,6 +67,7 @@ public:
     }
 
     std::vector<Tensor*> get_parameters() override;
+    ScratchpadFootprint get_footprint(int B, int T) override;
     Tensor backward(const Tensor& d_logits) override;
     void backward_into(const Tensor& d_logits, Tensor& din) override;
 

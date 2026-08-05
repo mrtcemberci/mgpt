@@ -225,3 +225,15 @@ void GPT::init_scratchpad(size_t capacity_floats) {
     owned_scratchpad = std::make_unique<Scratchpad>(capacity_floats, ScratchpadDevice::CUDA);
     set_scratchpad(owned_scratchpad.get());
 }
+
+ScratchpadFootprint GPT::get_footprint(int B, int T) {
+    size_t C = config.embed_dim;
+    size_t fwd_standing = (size_t)(B * T * C + 2 * B * T * config.vocab_size);
+    size_t block_fwd = 0, block_bwd = 0;
+    if (!blocks.empty()) {
+        block_fwd = blocks[0]->get_footprint(B, T).fwd_peak();
+        block_bwd = blocks[0]->get_footprint(B, T).bwd_peak();
+    }
+    size_t bwd_temp = (config.use_gradient_checkpointing ? block_bwd : (config.num_layers * (!blocks.empty() ? blocks[0]->get_footprint(B,T).fwd_standing : 0) + block_bwd));
+    return {fwd_standing, block_fwd, bwd_temp};
+}

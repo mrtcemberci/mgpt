@@ -110,3 +110,13 @@ std::vector<Tensor*> TransformerBlock::get_parameters() {
     auto p_mlp = mlp.get_parameters(); params.insert(params.end(), p_mlp.begin(), p_mlp.end());
     return params;
 }
+
+#include <algorithm>
+ScratchpadFootprint TransformerBlock::get_footprint(int B, int T) {
+    size_t C = channels;
+    size_t fwd_standing = (size_t)(4 * B * T * C) + ln1.get_footprint(B, T).fwd_standing + attn.get_footprint(B, T).fwd_standing + ln2.get_footprint(B, T).fwd_standing + mlp.get_footprint(B, T).fwd_standing;
+    size_t fwd_temp = std::max<size_t>({ln1.get_footprint(B, T).fwd_peak(), attn.get_footprint(B, T).fwd_peak(), ln2.get_footprint(B, T).fwd_peak(), mlp.get_footprint(B, T).fwd_peak()});
+    size_t bwd_standing = (size_t)(4 * B * T * C);
+    size_t child_bwd = std::max<size_t>({mlp.get_footprint(B, T).bwd_peak(), ln2.get_footprint(B, T).bwd_peak(), attn.get_footprint(B, T).bwd_peak(), ln1.get_footprint(B, T).bwd_peak()});
+    return {fwd_standing, fwd_temp, bwd_standing + child_bwd};
+}

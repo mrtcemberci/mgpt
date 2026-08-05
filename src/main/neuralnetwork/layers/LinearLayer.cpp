@@ -1,4 +1,3 @@
-
 #include "LinearLayer.h"
 #include "Scratchpad.h"
 #include <iostream>
@@ -88,3 +87,7 @@ Tensor LinearLayer::backward(const Tensor& dout) {
 std::vector<Tensor*> LinearLayer::get_parameters() {
     return { &weights, &biases };
 }
+
+// only the backward pass uses the scratch pad for the temporary tensors
+// we can remove this to update mat mul to take in a transpose flag so we do not have to transpose
+ScratchpadFootprint LinearLayer::get_footprint(int B, int T) { return {0, 0, (size_t)(out_channels + in_channels * B * T + 2 * in_channels * out_channels)}; }

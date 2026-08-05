@@ -3,7 +3,18 @@
 #include "Tensor.h"
 
 
+
+struct ScratchpadFootprint {
+    size_t fwd_standing;
+    size_t fwd_temp;
+    size_t bwd_temp;
+
+    size_t fwd_peak() const { return fwd_standing + fwd_temp; }
+    size_t bwd_peak() const { return fwd_standing + bwd_temp; }
+};
+
 class Scratchpad;
+
 
 class Layer {
 protected:
@@ -23,6 +34,7 @@ public:
 
     // Return pointers to all learnable weight/bias Tensors within this layer (used by Optimizers)
     virtual std::vector<Tensor*> get_parameters() { return {}; }
+    virtual ScratchpadFootprint get_footprint(int B, int T) { return {0, 0, 0}; }
     
     // Clear heavy cached activations to save memory when gradient checkpointing is enabled
     virtual void clear_activations() {}

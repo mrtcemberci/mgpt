@@ -65,3 +65,6 @@ Tensor CrossEntropyLossLayer::backward(const Tensor& dout) {
     backward_into(dout, cached_dX);
     return cached_dX;
 }
+
+// does not use the scratch pad
+ScratchpadFootprint CrossEntropyLossLayer::get_footprint(int B, int T) { return {0, 0, 0}; }

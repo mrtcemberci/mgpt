@@ -138,3 +138,5 @@ void SingleHeadAttentionLayer::set_scratchpad(Scratchpad* pad) {
     W_V.set_scratchpad(pad);
     W_O.set_scratchpad(pad);
 }
+
+ScratchpadFootprint SingleHeadAttentionLayer::get_footprint(int B, int T) { return {(size_t)(4 * B * T * channels + 2 * B * T * T), 0, (size_t)(4 * B * T * channels + 3 * B * T * T)}; }

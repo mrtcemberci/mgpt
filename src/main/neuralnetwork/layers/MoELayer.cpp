@@ -82,9 +82,9 @@ void MoELayer::forward_into(const Tensor& input, Tensor& output) {
     // Gather tokens into experts, populate tensor of gathered tokens and a map of current token to old spot
     cached_top_indices.moe_gather_into(input, cached_expert_offsets, cached_gathered_tokens, cached_sorted_token_ids);
     
-    size_t fwd_savepoint = 0;
+    cached_fwd_savepoint = 0;
     if (scratchpad && input.device == Device::CUDA) {
-        fwd_savepoint = scratchpad->get_savepoint();
+        cached_fwd_savepoint = scratchpad->get_savepoint();
     }
     
     cached_gathered_outputs = (scratchpad && input.device == Device::CUDA)
@@ -233,4 +233,19 @@ std::vector<Tensor*> MoELayer::get_parameters() {
     }
     
     return params;
+}
+
+ScratchpadFootprint MoELayer::get_footprint(int B, int T) {
+    size_t C = router.in_channels;
+    // Add 12 * B * T * top_k * C for SwiGLU expert activations left on scratchpad
+    size_t fwd_standing = (size_t)(B * T * num_experts * 2 + B * T * top_k * 2 + B * T * top_k * C + B * T * top_k + B * T * C) + (size_t)(12 * B * T * top_k * C);
+    size_t bwd_standing = (size_t)(B * T * top_k * C * 2 + B * T * num_experts * 2 + B * T * top_k);
+    size_t max_expert_fwd = 0;
+    size_t max_expert_bwd = 0;
+    for (auto& expert : experts) {
+        auto fp = expert.get_footprint(B * top_k, T);
+        if (fp.fwd_peak() > max_expert_fwd) max_expert_fwd = fp.fwd_peak();
+        if (fp.bwd_peak() > max_expert_bwd) max_expert_bwd = fp.bwd_peak();
+    }
+    return {fwd_standing, max_expert_fwd, bwd_standing + max_expert_bwd};
 }

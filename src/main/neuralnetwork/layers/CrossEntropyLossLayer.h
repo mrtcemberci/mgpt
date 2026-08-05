@@ -35,6 +35,7 @@ public:
 
     // No learnable weights or biases in CrossEntropyLossLayer
     std::vector<Tensor*> get_parameters() override { return {}; }
+    ScratchpadFootprint get_footprint(int B, int T) override;
 };
 
 #endif //CROSSENTROPYLOSSLAYER_H

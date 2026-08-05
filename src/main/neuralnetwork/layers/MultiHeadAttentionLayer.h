@@ -50,6 +50,7 @@ private: // Private cached states and pre-allocated workspaces for forward/backw
     Tensor cached_dQKV_all;
     Tensor cached_output;
     Tensor cached_dX;
+    size_t cached_fwd_savepoint = 0;
 
 public:
     MultiHeadAttentionLayer(int channels, int num_heads, bool use_flash = true);
@@ -59,6 +60,7 @@ public:
     Tensor backward(const Tensor& dout) override;
     void backward_into(const Tensor& dout, Tensor& din) override;
     std::vector<Tensor*> get_parameters() override;
+    ScratchpadFootprint get_footprint(int B, int T) override;
     void set_scratchpad(Scratchpad* pad) override;
 };
 
