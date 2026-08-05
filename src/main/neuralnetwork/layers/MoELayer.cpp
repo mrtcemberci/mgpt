@@ -58,12 +58,14 @@ void MoELayer::forward_into(const Tensor& input, Tensor& output) {
     cached_router_probs.top_k_into(top_k, -1, cached_top_indices, cached_top_probs);
     
     // form tensor of num_experts containing count of each expert
-    Tensor expert_counts({num_experts}, 0.0f, input.device);
-    cached_top_indices.moe_histogram_into(num_experts, expert_counts);
+    if (cached_expert_counts.shape.empty() || cached_expert_counts.device != input.device) {
+        cached_expert_counts = Tensor({num_experts}, 0.0f, input.device);
+    }
+    cached_expert_counts.fill(0.0f);
+    cached_top_indices.moe_histogram_into(num_experts, cached_expert_counts);
     
-    // Prefix sum on CPU
     cached_cpu_counts.resize(num_experts);
-    expert_counts.copy_to_host(cached_cpu_counts.data());
+    cached_expert_counts.copy_to_host(cached_cpu_counts.data());
     
     cached_cpu_offsets.resize(num_experts);
     float current_offset = 0;
@@ -72,11 +74,13 @@ void MoELayer::forward_into(const Tensor& input, Tensor& output) {
         current_offset += cached_cpu_counts[i];
     }
     
-    Tensor expert_offsets({num_experts}, 0.0f, input.device);
-    expert_offsets.copy_from_host(cached_cpu_offsets.data());
+    if (cached_expert_offsets.shape.empty() || cached_expert_offsets.device != input.device) {
+        cached_expert_offsets = Tensor({num_experts}, 0.0f, input.device);
+    }
+    cached_expert_offsets.copy_from_host(cached_cpu_offsets.data());
     
     // Gather tokens into experts, populate tensor of gathered tokens and a map of current token to old spot
-    cached_top_indices.moe_gather_into(input, expert_offsets, cached_gathered_tokens, cached_sorted_token_ids);
+    cached_top_indices.moe_gather_into(input, cached_expert_offsets, cached_gathered_tokens, cached_sorted_token_ids);
     
     size_t fwd_savepoint = 0;
     if (scratchpad && input.device == Device::CUDA) {

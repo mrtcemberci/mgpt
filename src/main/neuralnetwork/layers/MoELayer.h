@@ -24,6 +24,8 @@ private:
     Tensor cached_gathered_tokens;
     Tensor cached_gathered_outputs;
     Tensor cached_sorted_token_ids;
+    Tensor cached_expert_counts;
+    Tensor cached_expert_offsets;
     
     // Cached for backward pass
     std::vector<float> cached_cpu_counts;

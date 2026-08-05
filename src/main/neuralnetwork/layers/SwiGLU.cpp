@@ -61,6 +61,11 @@ void SwiGLU::backward_into(const Tensor& dout, Tensor& din) {
     int B = dout.shape[0];
     int T = dout.shape[1];
     int C = dout.shape[2];
+    
+    size_t bwd_savepoint = 0;
+    if (scratchpad && dout.device == Device::CUDA) {
+        bwd_savepoint = scratchpad->get_savepoint();
+    }
 
     // Allocate scratch views for backward intermediates
     Tensor tmp_d_down = (scratchpad && dout.device == Device::CUDA)
@@ -92,6 +97,10 @@ void SwiGLU::backward_into(const Tensor& dout, Tensor& din) {
     
     Tensor::add_into(tmp_d_gate_proj, tmp_d_up_proj, din);                         // merge gate + up gradients
     cached_dX = din;
+    
+    if (scratchpad && dout.device == Device::CUDA) {
+        scratchpad->restore_savepoint(bwd_savepoint);
+    }
 }
 
 std::vector<Tensor*> SwiGLU::get_parameters() {
