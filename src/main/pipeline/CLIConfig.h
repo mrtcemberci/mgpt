@@ -31,6 +31,8 @@ struct CLIConfig {
     int top_k = 15;
     float learning_rate = 3e-4f;
     int grad_accum_steps = 1;
+    int num_experts = 8;
+    int moe_top_k = 2;
 
     bool show_help = false;
 };
@@ -74,6 +76,8 @@ inline CLIConfig parse_arguments(int argc, char** argv) {
                       << "  -w, --window <int>        Context window / sequence length (default: 64)\n"
                       << "  -a, --accumulate <int>    Gradient accumulation steps (default: 1)\n"
                       << "  -e, -lr, --lr <float>     Initial/peak learning rate (default: 0.0003)\n"
+                      << "      --experts <int>       Number of MoE experts (default: 8, 0 to disable)\n"
+                      << "      --moe-topk <int>      Number of MoE experts to route to per token (default: 2)\n"
                       << "  -h, --help                Show this help message and exit\n\n"
                       << "Examples:\n"
                       << "  mgpt -t -g -v=256 -f=\"my_model.bin\" -s=2000 -l=6 -b=64 -w=128\n"
@@ -159,6 +163,12 @@ inline CLIConfig parse_arguments(int argc, char** argv) {
         if (arg.find("-lr=") == 0) { config.learning_rate = std::stof(arg.substr(4)); continue; }
         if (arg.find("--lr=") == 0) { config.learning_rate = std::stof(arg.substr(5)); continue; }
         if (arg.find("-e=") == 0) { config.learning_rate = std::stof(arg.substr(3)); continue; }
+
+        if (arg == "--experts") { if (i + 1 < argc) config.num_experts = std::stoi(argv[++i]); continue; }
+        if (arg.find("--experts=") == 0) { config.num_experts = std::stoi(arg.substr(10)); continue; }
+
+        if (arg == "--moe-topk") { if (i + 1 < argc) config.moe_top_k = std::stoi(argv[++i]); continue; }
+        if (arg.find("--moe-topk=") == 0) { config.moe_top_k = std::stoi(arg.substr(11)); continue; }
     }
 
     strip_quotes(config.weights_path);
