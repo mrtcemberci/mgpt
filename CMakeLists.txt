@@ -83,3 +83,7 @@ add_test(NAME moe_tests COMMAND moe_tests)
 
 add_executable(oomp_tests src/test/networkTest/oompTests.cpp ${TENSOR_SOURCES} src/main/neuralnetwork/layers/LinearLayer.cpp src/main/neuralnetwork/layers/GELULayer.cpp src/main/neuralnetwork/layers/LayerNormLayer.cpp src/main/neuralnetwork/layers/RMSNormLayer.cpp src/main/neuralnetwork/layers/CrossEntropyLossLayer.cpp src/main/neuralnetwork/layers/EmbeddingLayer.cpp src/main/neuralnetwork/layers/SingleHeadAttentionLayer.cpp src/main/neuralnetwork/layers/MultiHeadAttentionLayer.cpp src/main/neuralnetwork/layers/TransformerBlock.cpp src/main/neuralnetwork/GPT.cpp src/main/neuralnetwork/layers/MoELayer.cpp src/main/neuralnetwork/layers/SwiGLU.cpp)
 add_test(NAME oomp_tests COMMAND oomp_tests)
+
+add_executable(scratchpad_bench src/test/networkTest/scratchpad_bench.cpp)
+add_executable(check_sram check_sram.cu)
+set_target_properties(check_sram PROPERTIES CUDA_ARCHITECTURES "native")
