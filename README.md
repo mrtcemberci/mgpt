@@ -7,7 +7,7 @@ A autoregressive Transformer/GPT training and inference engine built from scratc
 ## Features
 
 ### Architecture
-- **Mixture Of Experts**: Uses a hard-coded 8 experts and top-2 expert selection in a transformer block with dynamic routing and load balancing.
+- **Mixture Of Experts**: Sparse architecture using configurable experts (`--experts`) and top-k routing (`--moe-topk`) in the transformer block, with dynamic routing and load balancing to scale parameter count without linear compute penalties.
 - **SwiGLU Activation Network**: Implements modern gated SwiGLU (`Swish(Gate(X)) ⊙ Up(X) -> Down`) MLP layers for enhanced representational capacity and faster convergence.
 - **Root Mean Square Normalization (RMSNorm)**: Lean, stable pre-attention and pre-MLP normalization (`RMSNormLayer`) with learnable $\gamma$ scale parameter.
 - **Causal Multi-Head Self-Attention (MHA)**: Full multi-head causal attention with query/key/value projection slicing and multi-head concatenation kernels.
@@ -59,6 +59,8 @@ A autoregressive Transformer/GPT training and inference engine built from scratc
 | `-w` | `--window <int>` | Context window / sequence length ($T$) | `64` |
 | `-a` | `--accumulate <int>` | Number of gradient accumulation steps | `1` |
 | `-e` | `--lr <float>` | Initial / peak learning rate for AdamW optimizer | `0.0003` |
+| | `--experts <int>` | Number of MoE experts (`0` to disable, `1` with topk=1 for dense baseline) | `8` |
+| | `--moe-topk <int>` | Number of experts to route to per token | `2` |
 | `-T` | `--temp <float>` | Sampling temperature for text generation | `0.8` |
 | `-K` | `--topk <int>` | Top-K nucleus filtering for generation | `15` |
 | `-h` | `--help` | Display usage summary and exit | |

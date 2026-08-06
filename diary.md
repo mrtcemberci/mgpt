@@ -152,10 +152,20 @@ Decouple the memory footprint predictor so that Trainer file does not need to ch
 ### Key Engineering Insights
 - **API design** : To hold a data per layer, a struct was used to hold the fwd standing, fwd temp and bwd temp, originally it was fwd peak (which was actually temp + standing) which led to error prone implementations, so a method was introduced in the struct to automatically addt he values and return them
 
+## Phase 12: Profiling (August 6, 2026)
+
+### Goal & Challenge
+Using `ncu` and `nsys` to profile the memory allocation bottleneck, and L1/L2 cache throughput and usage to compare the kernel for flash attention on and off and the scratchpad.
+**Test Architecture:** NVIDIA RTX 4080 Laptop GPU (CC 8.9), 8 Layers, 320 Channels, 512 Sequence Length, Batch Size 16 (Effective 32). Tested on a 13.1M parameter dense baseline and an 82.1M parameter MoE architecture (8 experts, top-2 routing).
+
+### Key Engineering Insights
+- **Flash Attention (`ncu`):** 98.3 KB dynamic shared memory per block. L1 cache throughput increased from 37.28% to 67.08%. L2 cache throughput reduced from 48.11% to 18.51%. Compute SM utilization increased 5.7x (from 2.05% to 11.78%). Total kernel duration: 14.12 ms.
+- **Scratchpad (`nsys`):** `cudaMalloc` duration over 10 steps: 369.06 ms. `cudaFree` synchronous WDDM CPU block time avoided: 20.36 seconds per run. Average overhead eliminated: 98.94 ms per step.
+- **Gradient Checkpointing (`nsys`):** Peak VRAM reduced by 3.0 GB. Eliminated 2.2 GB of Device-to-Host (PCIe) thrashing that occurs when checkpointing is disabled.
+- **MoE Sparsity (`nsys`):** 13.1M parameter dense model (1 expert) executed at ~1.69s/step (372ms Fwd). 82.1M parameter MoE model (8 experts, top-k 2) executed at ~1.83s/step (384ms Fwd). 6.2x parameter scaling at only 8% step latency cost.
 
 ## Todo
 - **Floating point memory footprint:** Implement FP16
 - **Interactive Chat Mode:** Implement an interactive mode with a Stop Token check for inference.
 - **Debug flag** Add debug flag that then prints data to terminal
-- **MoE flags** Add a flag for setting top-k and experts for mixture of experts
 - **Magic constants** Remove magic constants like channel broadcasting up and down in the self-attention
