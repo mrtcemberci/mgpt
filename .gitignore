@@ -24,3 +24,7 @@ instructions.md
 *.bin
 *.ps1
 build_msvc/
+
+*.ncu-rep
+*.nsys-rep
+*.sqlite
