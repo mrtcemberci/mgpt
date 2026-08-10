@@ -1,6 +1,6 @@
 # C++ & CUDA Transformer Engine
 
-A autoregressive Transformer/GPT training and inference engine built from scratch in modern C++ and hardware-accelerated CUDA. Designed with zero external dependencies—pure linear algebra, custom autograd, memory scratchpad recycling, and modern LLM architectural features.
+A autoregressive Transformer/GPT training and inference engine built from scratch in modern C++ and hardware-accelerated CUDA. Designed with zero external dependencies.
 
 > **Systems Engineering Diary**: For a complete chronological log of architectural decisions, performance debugging, VRAM optimizations, and discoveries during the building of this engine, please read the [diary.md](diary.md).
 
@@ -8,10 +8,11 @@ A autoregressive Transformer/GPT training and inference engine built from scratc
 
 ### Architecture
 - **Mixture Of Experts**: Sparse architecture using configurable experts (`--experts`) and top-k routing (`--moe-topk`) in the transformer block, with dynamic routing and load balancing to scale parameter count without linear compute penalties.
-- **SwiGLU Activation Network**: Implements modern gated SwiGLU (`Swish(Gate(X)) ⊙ Up(X) -> Down`) MLP layers for enhanced representational capacity and faster convergence.
+- **SwiGLU Activation Network**: Implements modern gated SwiGLU MLP layers.
 - **Root Mean Square Normalization (RMSNorm)**: Lean, stable pre-attention and pre-MLP normalization (`RMSNormLayer`) with learnable $\gamma$ scale parameter.
 - **Causal Multi-Head Self-Attention (MHA)**: Full multi-head causal attention with query/key/value projection slicing and multi-head concatenation kernels.
 - **Byte Pair Encoding (BPE) & Character Tokenizers**: Built-in BPE tokenizer (`BytePairEncodingTokenizer`) with configurable vocabulary size (`--vocab`), alongside a polymorphic `Tokenizer` interface supporting raw character-level tokenization.
+- **Sharding**: Can be provided with a long-term step goal and shards of training data to train sequentially, saving optimizer and weight states.
 
 ### Memory & Hardware Acceleration
 - **Custom Flash Attention**: Native CUDA implementations of Flash Attention kernels (`flash_attention_forward` and `flash_attention_backward`)
