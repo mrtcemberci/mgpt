@@ -173,4 +173,3 @@ Clean up the repository, improving old kernels to use tiling and cleaning magic 
 - **Floating point memory footprint:** Implement FP16
 - **Interactive Chat Mode:** Implement an interactive mode with a Stop Token check for inference.
 - **Debug flag** Add debug flag that then prints data to terminal
-- **Magic constants** Remove magic constants like channel broadcasting up and down in the self-attention
