@@ -164,6 +164,11 @@ Using `ncu` and `nsys` to profile the memory allocation bottleneck, and L1/L2 ca
 - **Gradient Checkpointing (`nsys`):** Peak VRAM reduced by 3.0 GB. Eliminated 2.2 GB of Device-to-Host (PCIe) thrashing that occurs when checkpointing is disabled.
 - **MoE Sparsity (`nsys`):** 13.1M parameter dense model (1 expert) executed at ~1.69s/step (372ms Fwd). 82.1M parameter MoE model (8 experts, top-k 2) executed at ~1.83s/step (384ms Fwd). 6.2x parameter scaling at only 8% step latency cost.
 
+## Phase 13: Cleaning (August 10, 2026)
+
+### Goal & Challenge
+Clean up the repository, improving old kernels to use tiling and cleaning magic numbers to use config values passed in at runtime
+
 ## Todo
 - **Floating point memory footprint:** Implement FP16
 - **Interactive Chat Mode:** Implement an interactive mode with a Stop Token check for inference.
