@@ -346,93 +346,175 @@ namespace cuda_ops {
     }
 
     __global__ void softmax_kernel(const float* A, float* C, int total_rows, int cols) {
-        int r = blockIdx.x * blockDim.x + threadIdx.x;
-        if (r < total_rows) {
-            const float* row_in = A + r * cols;
-            float* row_out = C + r * cols;
-            float max_val = -1e20f;
-            for (int c = 0; c < cols; ++c) {
-                if (row_in[c] > max_val) max_val = row_in[c];
+        // 1 Block = 1 Row
+        int r = blockIdx.x;
+        if (r >= total_rows) return;
+
+        const float* row_in = A + r * cols;
+        float* row_out = C + r * cols;
+
+        // Online Softmax variables
+        float m_val = -1e20f;
+        float d_val = 0.0f;
+
+        // Local thread reduction
+        for (int c = threadIdx.x; c < cols; c += blockDim.x) {
+            float x = row_in[c];
+            if (x > m_val) {
+                float e = expf(m_val - x);
+                d_val = d_val * e + 1.0f;
+                m_val = x;
+            } else {
+                d_val += expf(x - m_val);
             }
-            float sum_exp = 0.0f;
-            for (int c = 0; c < cols; ++c) {
-                float e = expf(row_in[c] - max_val);
-                row_out[c] = e;
-                sum_exp += e;
+        }
+
+        // Shared Memory Reduction across the block
+        extern __shared__ float smem[];
+        float* s_m = smem;
+        float* s_d = smem + blockDim.x;
+
+        s_m[threadIdx.x] = m_val;
+        s_d[threadIdx.x] = d_val;
+        __syncthreads();
+
+        for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+            if (threadIdx.x < stride) {
+                float m1 = s_m[threadIdx.x];
+                float d1 = s_d[threadIdx.x];
+                float m2 = s_m[threadIdx.x + stride];
+                float d2 = s_d[threadIdx.x + stride];
+
+                float m_new = fmaxf(m1, m2);
+                float d_new = d1 * expf(m1 - m_new) + d2 * expf(m2 - m_new);
+                
+                s_m[threadIdx.x] = m_new;
+                s_d[threadIdx.x] = d_new;
             }
-            float inv_sum = 1.0f / fmaxf(sum_exp, 1e-9f);
-            for (int c = 0; c < cols; ++c) {
-                row_out[c] = fminf(fmaxf(row_out[c] * inv_sum, 1e-7f), 1.0f);
-            }
+            __syncthreads();
+        }
+
+        float global_m = s_m[0];
+        float global_d = s_d[0];
+        float inv_sum = 1.0f / fmaxf(global_d, 1e-9f);
+
+        // Final write pass (coalesced)
+        for (int c = threadIdx.x; c < cols; c += blockDim.x) {
+            float x = row_in[c];
+            float val = expf(x - global_m) * inv_sum;
+            row_out[c] = fminf(fmaxf(val, 1e-7f), 1.0f);
         }
     }
 
     void softmax(const float* A, float* C, int total_rows, int cols) {
         if (total_rows == 0 || cols == 0) return;
         int threads = 256;
-        int blocks = (total_rows + threads - 1) / threads;
-        softmax_kernel<<<blocks, threads>>>(A, C, total_rows, cols);
+        int blocks = total_rows;
+        size_t shared_mem_bytes = 2 * threads * sizeof(float);
+        softmax_kernel<<<blocks, threads, shared_mem_bytes>>>(A, C, total_rows, cols);
         CHECK_CUDA(cudaGetLastError());
     }
 
     __global__ void softmax_backward_kernel(const float* dout, const float* probs, float* dS, int total_rows, int cols) {
-        int r = blockIdx.x * blockDim.x + threadIdx.x;
-        if (r < total_rows) {
-            const float* dout_row = dout + r * cols;
-            const float* probs_row = probs + r * cols;
-            float* ds_row = dS + r * cols;
-            float dot = 0.0f;
-            for (int c = 0; c < cols; ++c) {
-                dot += dout_row[c] * probs_row[c];
+        int r = blockIdx.x;
+        if (r >= total_rows) return;
+
+        const float* dout_row = dout + r * cols;
+        const float* probs_row = probs + r * cols;
+        float* ds_row = dS + r * cols;
+
+        float local_dot = 0.0f;
+        for (int c = threadIdx.x; c < cols; c += blockDim.x) {
+            local_dot += dout_row[c] * probs_row[c];
+        }
+
+        extern __shared__ float s_dot[];
+        s_dot[threadIdx.x] = local_dot;
+        __syncthreads();
+
+        for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+            if (threadIdx.x < stride) {
+                s_dot[threadIdx.x] += s_dot[threadIdx.x + stride];
             }
-            for (int c = 0; c < cols; ++c) {
-                ds_row[c] = probs_row[c] * (dout_row[c] - dot);
-            }
+            __syncthreads();
+        }
+
+        float global_dot = s_dot[0];
+
+        for (int c = threadIdx.x; c < cols; c += blockDim.x) {
+            ds_row[c] = probs_row[c] * (dout_row[c] - global_dot);
         }
     }
 
     void softmax_backward(const float* dout, const float* probs, float* dS, int total_rows, int cols) {
         if (total_rows == 0 || cols == 0) return;
         int threads = 256;
-        int blocks = (total_rows + threads - 1) / threads;
-        softmax_backward_kernel<<<blocks, threads>>>(dout, probs, dS, total_rows, cols);
+        int blocks = total_rows;
+        size_t shared_mem_bytes = threads * sizeof(float);
+        softmax_backward_kernel<<<blocks, threads, shared_mem_bytes>>>(dout, probs, dS, total_rows, cols);
         CHECK_CUDA(cudaGetLastError());
     }
 
     __global__ void layer_norm_kernel(const float* x, const float* scale, const float* shift, float eps, float* out, float* mean, float* var, float* x_hat, int total_tokens, int channels) {
-        int tok = blockIdx.x * blockDim.x + threadIdx.x;
-        if (tok < total_tokens) {
-            const float* x_tok = x + tok * channels;
-            float* out_tok = out + tok * channels;
-            float* x_hat_tok = x_hat + tok * channels;
+        int tok = blockIdx.x;
+        if (tok >= total_tokens) return;
 
-            float sum = 0.0f;
-            for (int c = 0; c < channels; ++c) sum += x_tok[c];
-            float m = sum / channels;
-            mean[tok] = m;
+        const float* x_tok = x + tok * channels;
+        float* out_tok = out + tok * channels;
+        float* x_hat_tok = x_hat + tok * channels;
 
-            float var_sum = 0.0f;
-            for (int c = 0; c < channels; ++c) {
-                float diff = x_tok[c] - m;
-                var_sum += diff * diff;
+        extern __shared__ float s_mem[];
+
+        float local_sum = 0.0f;
+        for (int c = threadIdx.x; c < channels; c += blockDim.x) {
+            local_sum += x_tok[c];
+        }
+        s_mem[threadIdx.x] = local_sum;
+        __syncthreads();
+
+        for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+            if (threadIdx.x < stride) {
+                s_mem[threadIdx.x] += s_mem[threadIdx.x + stride];
             }
-            float v = var_sum / channels;
-            var[tok] = v;
+            __syncthreads();
+        }
 
-            float inv_std = 1.0f / sqrtf(v + eps);
-            for (int c = 0; c < channels; ++c) {
-                float norm = (x_tok[c] - m) * inv_std;
-                x_hat_tok[c] = norm;
-                out_tok[c] = norm * scale[c] + shift[c];
+        float global_m = s_mem[0] / channels;
+        if (threadIdx.x == 0) mean[tok] = global_m;
+        __syncthreads();
+
+        float local_var_sum = 0.0f;
+        for (int c = threadIdx.x; c < channels; c += blockDim.x) {
+            float diff = x_tok[c] - global_m;
+            local_var_sum += diff * diff;
+        }
+        s_mem[threadIdx.x] = local_var_sum;
+        __syncthreads();
+
+        for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+            if (threadIdx.x < stride) {
+                s_mem[threadIdx.x] += s_mem[threadIdx.x + stride];
             }
+            __syncthreads();
+        }
+
+        float global_v = s_mem[0] / channels;
+        if (threadIdx.x == 0) var[tok] = global_v;
+        float inv_std = 1.0f / sqrtf(global_v + eps);
+
+        for (int c = threadIdx.x; c < channels; c += blockDim.x) {
+            float norm = (x_tok[c] - global_m) * inv_std;
+            x_hat_tok[c] = norm;
+            out_tok[c] = norm * scale[c] + shift[c];
         }
     }
 
     void layer_norm(const float* x, const float* scale, const float* shift, float eps, float* out, float* mean, float* var, float* x_hat, int total_tokens, int channels) {
         if (total_tokens == 0 || channels == 0) return;
         int threads = 256;
-        int blocks = (total_tokens + threads - 1) / threads;
-        layer_norm_kernel<<<blocks, threads>>>(x, scale, shift, eps, out, mean, var, x_hat, total_tokens, channels);
+        int blocks = total_tokens;
+        size_t shared_mem_bytes = threads * sizeof(float);
+        layer_norm_kernel<<<blocks, threads, shared_mem_bytes>>>(x, scale, shift, eps, out, mean, var, x_hat, total_tokens, channels);
         CHECK_CUDA(cudaGetLastError());
     }
 
@@ -485,34 +567,52 @@ namespace cuda_ops {
     }
 
     __global__ void rms_norm_kernel(const float* x, const float* scale, float eps, float* out, float* rsqrt, float* x_hat, int total_tokens, int channels) {
-        int tok = blockIdx.x * blockDim.x + threadIdx.x;
-        if (tok < total_tokens) {
-            const float* x_tok = x + tok * channels;
-            float* out_tok = out + tok * channels;
-            float* x_hat_tok = x_hat + tok * channels;
+        int tok = blockIdx.x;
+        if (tok >= total_tokens) return;
 
-            float ms_sum = 0.0f;
-            for (int c = 0; c < channels; ++c) {
-                float val = x_tok[c];
-                ms_sum += val * val;
+        const float* x_tok = x + tok * channels;
+        float* out_tok = out + tok * channels;
+        float* x_hat_tok = x_hat + tok * channels;
+
+        float ms_sum = 0.0f;
+        
+        for (int c = threadIdx.x; c < channels; c += blockDim.x) {
+            float val = x_tok[c];
+            ms_sum += val * val;
+        }
+
+        extern __shared__ float s_sum[];
+        s_sum[threadIdx.x] = ms_sum;
+        __syncthreads();
+
+        for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+            if (threadIdx.x < stride) {
+                s_sum[threadIdx.x] += s_sum[threadIdx.x + stride];
             }
-            float ms = ms_sum / channels;
-            float r = 1.0f / sqrtf(ms + eps);
+            __syncthreads();
+        }
+
+        float global_sum = s_sum[0];
+        float ms = global_sum / channels;
+        float r = 1.0f / sqrtf(ms + eps);
+        
+        if (threadIdx.x == 0) {
             rsqrt[tok] = r;
+        }
 
-            for (int c = 0; c < channels; ++c) {
-                float norm = x_tok[c] * r;
-                x_hat_tok[c] = norm;
-                out_tok[c] = norm * scale[c];
-            }
+        for (int c = threadIdx.x; c < channels; c += blockDim.x) {
+            float norm = x_tok[c] * r;
+            x_hat_tok[c] = norm;
+            out_tok[c] = norm * scale[c];
         }
     }
 
     void rms_norm(const float* x, const float* scale, float eps, float* out, float* rsqrt, float* x_hat, int total_tokens, int channels) {
         if (total_tokens == 0 || channels == 0) return;
         int threads = 256;
-        int blocks = (total_tokens + threads - 1) / threads;
-        rms_norm_kernel<<<blocks, threads>>>(x, scale, eps, out, rsqrt, x_hat, total_tokens, channels);
+        int blocks = total_tokens;
+        size_t shared_mem_bytes = threads * sizeof(float);
+        rms_norm_kernel<<<blocks, threads, shared_mem_bytes>>>(x, scale, eps, out, rsqrt, x_hat, total_tokens, channels);
         CHECK_CUDA(cudaGetLastError());
     }
 
