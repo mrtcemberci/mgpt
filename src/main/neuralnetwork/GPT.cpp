@@ -7,7 +7,8 @@ GPT::GPT(const GPTConfig& config)
       ln_f(config.embed_dim),
       lm_head(config.embed_dim, config.vocab_size) {
     for (int i = 0; i < config.num_layers; ++i) {
-        blocks.push_back(std::make_unique<TransformerBlock>(config.embed_dim, config.num_heads, config.num_experts, config.top_k, config.use_flash_attention));
+        int hidden_dim = config.hidden_dim > 0 ? config.hidden_dim : config.default_hidden_scale * config.embed_dim;
+        blocks.push_back(std::make_unique<TransformerBlock>(config.embed_dim, hidden_dim, config.num_heads, config.num_experts, config.top_k, config.use_flash_attention));
     }
 }
 
@@ -60,7 +61,6 @@ Tensor GPT::forward(const Tensor& input_ids) {
     return cached_logits;
 }
 
-// LOSS EVALUATION: Computes Cross-Entropy loss and triggers backprop
 float GPT::compute_loss(const Tensor& logits, const Tensor& target_ids) {
     float loss = loss_layer.forward_loss(logits, target_ids);
     loss_layer.backward_into(Tensor(), cached_d_logits); // Generates initial (P - 1) / (B * T) grad
@@ -68,15 +68,11 @@ float GPT::compute_loss(const Tensor& logits, const Tensor& target_ids) {
     return loss;
 }
 
-// BACKWARD PASS: Chain rule backwards through LM Head, LayerNorm, Blocks, and Embeddings
 void GPT::backward_into(const Tensor& d_logits, Tensor& din) {
-    // Backprop through LM Head
     lm_head.backward_into(d_logits, cached_d_ln_f);
 
-    // Backprop through Final LayerNorm
     ln_f.backward_into(cached_d_ln_f, cached_d_curr);
 
-    // Backprop through Transformer Blocks in reverse order
     if (cached_d_blocks.size() != blocks.size()) {
         cached_d_blocks.resize(blocks.size());
     }
@@ -129,7 +125,6 @@ std::vector<Tensor*> GPT::get_parameters() {
     return params;
 }
 
-// Save & Load raw float weights to standard .bin format with step progress header
 void GPT::save_weights_bin(const std::string& filepath, int completed_steps) {
     std::ofstream out(filepath, std::ios::binary);
     if (!out.is_open()) {

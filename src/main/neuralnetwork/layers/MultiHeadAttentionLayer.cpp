@@ -9,11 +9,9 @@
 MultiHeadAttentionLayer::MultiHeadAttentionLayer(int channels, int num_heads_requested, bool use_flash)
     : channels(channels), use_flash_attention(use_flash) {
     num_heads = num_heads_requested;
-    // fallback if channels don't divide evenly
     if (channels % num_heads != 0) {
-        while (num_heads > 1 && channels % num_heads != 0) {
-            num_heads--;
-        }
+        std::cerr << "Error: channels (" << channels << ") must be perfectly divisible by num_heads (" << num_heads << ")!" << std::endl;
+        exit(-1);
     }
     head_dim = channels / num_heads;
 

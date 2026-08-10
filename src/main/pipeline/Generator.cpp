@@ -117,6 +117,8 @@ int Generator::run() {
     gpt_cfg.max_seq_len = config.max_seq_len;
     gpt_cfg.embed_dim = config.embed_dim;
     gpt_cfg.num_layers = config.num_layers;
+    gpt_cfg.num_heads = config.num_heads;
+    gpt_cfg.hidden_dim = config.hidden_dim;
     gpt_cfg.num_experts = config.num_experts;
     gpt_cfg.top_k = config.moe_top_k;
     gpt_cfg.use_gradient_checkpointing = config.use_checkpointing;

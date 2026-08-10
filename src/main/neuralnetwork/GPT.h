@@ -21,6 +21,8 @@ struct GPTConfig {
     int embed_dim = 384;
     int num_layers = 6;
     int num_heads = 6;
+    int hidden_dim = -1;
+    int default_hidden_scale = 4;
     int num_experts = 8;
     int top_k = 2;
     bool use_gradient_checkpointing = true; 

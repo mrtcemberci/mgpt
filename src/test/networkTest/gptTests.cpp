@@ -25,7 +25,7 @@ bool check_grad_close(float analytic, float numerical, float tol = 5e-2f) {
 void test_transformer_block() {
     std::cout << "Running Test 1: TransformerBlock Forward & Backward Verification..." << std::endl;
     int channels = 4;
-    TransformerBlock block(channels, 1, 1, 1, false);
+    TransformerBlock block(channels, 4 * channels, 1, 1, 1, false);
 
     Tensor input({2, 3, channels}, 0.1f);
     Tensor out = block.forward(input);
@@ -77,6 +77,7 @@ void test_gpt_binary_serialization() {
     config.max_seq_len = 8;
     config.embed_dim = 4;
     config.num_layers = 1;
+    config.num_heads = 2;
 
     GPT model1(config);
 
