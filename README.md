@@ -55,6 +55,8 @@ A autoregressive Transformer/GPT training and inference engine built from scratc
 | | `--total-steps <int>` | Global total steps across all shards for continuous Cosine LR decay | `0` |
 | `-l` | `--layers <int>` | Number of Transformer blocks ($L$) | `4` |
 | `-c` | `--channels <int>` | Embedding channel dimension / hidden size ($C$) | `128` |
+| | `--heads <int>` | Number of parallel attention heads | `6` |
+| | `--hidden-dim <int>` | MLP hidden layer dimension | `default_hidden_scale * C` |
 | `-b` | `--batch <int>` | Micro-batch size per forward/backward pass ($B$) | `16` |
 | `-w` | `--window <int>` | Context window / sequence length ($T$) | `64` |
 | `-a` | `--accumulate <int>` | Number of gradient accumulation steps | `1` |
