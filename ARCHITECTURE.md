@@ -40,4 +40,22 @@ between the connections.
 
 The optimiser is instanstiated in the trainer file, using a smart pointer, an optimiser has to adhere to the Optimiser abstract class.
 
+# Mathematical Formulation
 
+The engine executes the following formal matrix operations during a single forward pass of the `TransformerBlock`. Let $\mathbf{X} \in \mathbb{R}^{B \times T \times C}$ denote the input tensor.
+
+**1. Pre-Norm & Causal Multi-Head Attention:**
+$$ \mathbf{\bar{X}} = \text{RMSNorm}(\mathbf{X}) $$
+$$ \mathbf{Q} = \mathbf{\bar{X}}\mathbf{W}_Q, \quad \mathbf{K} = \mathbf{\bar{X}}\mathbf{W}_K, \quad \mathbf{V} = \mathbf{\bar{X}}\mathbf{W}_V $$
+$$ \mathbf{Q}', \mathbf{K}' = \text{RoPE}(\mathbf{Q}), \text{RoPE}(\mathbf{K}) $$
+$$ \text{Attention}(\mathbf{Q}', \mathbf{K}', \mathbf{V}) = \text{Softmax}\left(\frac{\mathbf{Q}' (\mathbf{K}')^T}{\sqrt{d_k}} \odot \mathbf{M}\right) \mathbf{V} $$
+$$ \mathbf{X}_{att} = \text{Attention}(\mathbf{Q}', \mathbf{K}', \mathbf{V}) \mathbf{W}_O $$
+$$ \mathbf{X}_1 = \mathbf{X} + \mathbf{X}_{att} \quad \text{(Residual 1)} $$
+*(Note: $\mathbf{M}$ is the lower-triangular causal mask).*
+
+**2. Pre-Norm & Mixture of Experts (SwiGLU):**
+$$ \mathbf{\bar{X}}_1 = \text{RMSNorm}(\mathbf{X}_1) $$
+For each token $\mathbf{x} \in \mathbf{\bar{X}}_1$, the MoE router selects the top-$k$ experts. For a given expert $E_i$, the SwiGLU activation is computed as:
+$$ E_i(\mathbf{x}) = \left( \text{Swish}(\mathbf{x}\mathbf{W}_{1,i}) \odot (\mathbf{x}\mathbf{W}_{V,i}) \right) \mathbf{W}_{2,i} $$
+$$ \mathbf{X}_{moe} = \sum_{j=1}^{k} g_j E_j(\mathbf{x}) $$
+$$ \mathbf{X}_{out} = \mathbf{X}_1 + \mathbf{X}_{moe} \quad \text{(Residual 2)} $$
