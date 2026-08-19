@@ -21,6 +21,9 @@ protected:
     Scratchpad* scratchpad = nullptr;
 public:
     virtual ~Layer() = default;
+    
+    Layer(const Layer&) = delete;
+    Layer& operator=(const Layer&) = delete;
 
     virtual void set_scratchpad(Scratchpad* pad) { scratchpad = pad; }
 
