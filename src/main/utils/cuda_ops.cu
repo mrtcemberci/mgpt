@@ -1280,48 +1280,55 @@ namespace cuda_ops {
         CHECK_CUDA(cudaGetLastError());
     }
 
-    #define FLASH_FWD_TILE 128
+    #define FLASH_FWD_TILE 64
+    template <int HEAD_DIM>
     __global__ void flash_attention_forward_kernel(
         const float* Q, const float* K, const float* V, float* O, float* L_out, 
-        int B, int num_heads, int T, int head_dim) 
+        int B, int num_heads, int T) 
     {
         int tx = threadIdx.x; 
         int batch_head_id = blockIdx.y;
         int q_tile_id = blockIdx.x;
         int q_idx = q_tile_id * FLASH_FWD_TILE + tx;
 
+        // Pad by 1 to eliminate the 32-way Bank Conflict on s_Q
         extern __shared__ float s_mem[];
         float* s_Q = s_mem;
-        float* s_K = &s_mem[FLASH_FWD_TILE * head_dim];
-        float* s_V = &s_mem[2 * FLASH_FWD_TILE * head_dim];
+        float* s_K = &s_mem[FLASH_FWD_TILE * (HEAD_DIM + 1)];
+        float* s_V = &s_mem[2 * FLASH_FWD_TILE * (HEAD_DIM + 1)];
 
         float m_i = -INFINITY;
         float l_i = 0.0f;
-        float O_i[128]; // Max head_dim supported is 128
-        for(int d=0; d<head_dim; d++) O_i[d] = 0.0f;
+        
+        float O_i[HEAD_DIM]; 
+        for(int d=0; d<HEAD_DIM; d++) O_i[d] = 0.0f;
 
-        int batch_head_offset = batch_head_id * (T * head_dim);
+        int batch_head_offset = batch_head_id * (T * HEAD_DIM);
         int q_tile_start = q_tile_id * FLASH_FWD_TILE;
         
-        for (int i = tx; i < FLASH_FWD_TILE * head_dim; i += blockDim.x) {
-            int row = i / head_dim;
+        #pragma unroll
+        for (int i = tx; i < FLASH_FWD_TILE * HEAD_DIM; i += FLASH_FWD_TILE) {
+            int row = i / HEAD_DIM;
+            int col = i % HEAD_DIM;
             if (q_tile_start + row < T) {
-                s_Q[i] = Q[batch_head_offset + q_tile_start * head_dim + i];
+                s_Q[row * (HEAD_DIM + 1) + col] = Q[batch_head_offset + q_tile_start * HEAD_DIM + i];
             }
         }
         __syncthreads();
 
-        float scale = 1.0f / sqrtf((float)head_dim);
+        float scale = 1.0f / sqrtf((float)HEAD_DIM);
         int num_k_tiles = (T + FLASH_FWD_TILE - 1) / FLASH_FWD_TILE;
         
         for (int k_tile = 0; k_tile < num_k_tiles; k_tile++) {
             int k_tile_start = k_tile * FLASH_FWD_TILE;
             
-            for (int i = tx; i < FLASH_FWD_TILE * head_dim; i += blockDim.x) {
-                int row = i / head_dim;
+            #pragma unroll
+            for (int i = tx; i < FLASH_FWD_TILE * HEAD_DIM; i += FLASH_FWD_TILE) {
+                int row = i / HEAD_DIM;
+                int col = i % HEAD_DIM;
                 if (k_tile_start + row < T) {
-                    s_K[i] = K[batch_head_offset + k_tile_start * head_dim + i];
-                    s_V[i] = V[batch_head_offset + k_tile_start * head_dim + i];
+                    s_K[row * (HEAD_DIM + 1) + col] = K[batch_head_offset + k_tile_start * HEAD_DIM + i];
+                    s_V[row * (HEAD_DIM + 1) + col] = V[batch_head_offset + k_tile_start * HEAD_DIM + i];
                 }
             }
             __syncthreads();
@@ -1333,8 +1340,8 @@ namespace cuda_ops {
                     if (global_k_idx > q_idx) continue;
 
                     float score = 0.0f;
-                    for (int d = 0; d < head_dim; d++) {
-                        score += s_Q[tx * head_dim + d] * s_K[k * head_dim + d];
+                    for (int d = 0; d < HEAD_DIM; d++) {
+                        score += s_Q[tx * (HEAD_DIM + 1) + d] * s_K[k * (HEAD_DIM + 1) + d];
                     }
                     score *= scale;
 
@@ -1345,8 +1352,8 @@ namespace cuda_ops {
                     
                     l_i = l_i * correction + exp_score;
                     
-                    for (int d = 0; d < head_dim; d++) {
-                        O_i[d] = O_i[d] * correction + exp_score * s_V[k * head_dim + d];
+                    for (int d = 0; d < HEAD_DIM; d++) {
+                        O_i[d] = O_i[d] * correction + exp_score * s_V[k * (HEAD_DIM + 1) + d];
                     }
                 }
             }
@@ -1355,8 +1362,8 @@ namespace cuda_ops {
 
         if (q_idx < T) {
             float inv_l = 1.0f / l_i;
-            for (int d = 0; d < head_dim; d++) {
-                O[batch_head_offset + q_idx * head_dim + d] = O_i[d] * inv_l;
+            for (int d = 0; d < HEAD_DIM; d++) {
+                O[batch_head_offset + q_idx * HEAD_DIM + d] = O_i[d] * inv_l;
             }
             if (L_out) {
                 L_out[batch_head_id * T + q_idx] = m_i + logf(l_i);
@@ -1549,13 +1556,35 @@ __global__ void scatter_indices_kernel(const float* src, const float* indices, f
         CHECK_CUDA(cudaGetLastError());
     }
 
-    void flash_attention_forward(const float* Q, const float* K, const float* V, float* O, float* L, int B, int num_heads, int T, int head_dim) {
+    template <int HEAD_DIM>
+    void launch_flash_fwd(const float* Q, const float* K, const float* V, float* O, float* L, int B, int num_heads, int T) {
         dim3 grid((T + FLASH_FWD_TILE - 1) / FLASH_FWD_TILE, B * num_heads);
         dim3 block(FLASH_FWD_TILE);
-        size_t shared_mem_size = 3 * FLASH_FWD_TILE * head_dim * sizeof(float);
-        cudaFuncSetAttribute(flash_attention_forward_kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_mem_size);
-        flash_attention_forward_kernel<<<grid, block, shared_mem_size>>>(Q, K, V, O, L, B, num_heads, T, head_dim);
+        size_t shared_mem_size = 3 * FLASH_FWD_TILE * (HEAD_DIM + 1) * sizeof(float);
+        
+        // Safety Assertion: Ensure the hardware can physically handle the shared memory request
+        int max_shared_mem;
+        cudaDeviceGetAttribute(&max_shared_mem, cudaDevAttrMaxSharedMemoryPerBlockOptin, 0);
+        if (shared_mem_size > max_shared_mem) {
+            printf("\n[FATAL ERROR] Flash Attention requested %llu bytes of shared memory, but GPU only supports %d bytes!\n", shared_mem_size, max_shared_mem);
+            printf("Please increase --heads or decrease --channels to reduce head_dim.\n\n");
+            exit(EXIT_FAILURE);
+        }
+
+        cudaFuncSetAttribute(flash_attention_forward_kernel<HEAD_DIM>, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_mem_size);
+        flash_attention_forward_kernel<HEAD_DIM><<<grid, block, shared_mem_size>>>(Q, K, V, O, L, B, num_heads, T);
         CHECK_CUDA(cudaGetLastError());
+    }
+
+    void flash_attention_forward(const float* Q, const float* K, const float* V, float* O, float* L, int B, int num_heads, int T, int head_dim) {
+        if (head_dim == 64) {
+            launch_flash_fwd<64>(Q, K, V, O, L, B, num_heads, T);
+        } else if (head_dim == 128) {
+            launch_flash_fwd<128>(Q, K, V, O, L, B, num_heads, T);
+        } else {
+            printf("\n[FATAL ERROR] Unsupported head_dim %d for Flash Attention! Must be exactly 64 or 128.\n", head_dim);
+            exit(EXIT_FAILURE);
+        }
     }
 
     #define FLASH_BWD_TILE 64

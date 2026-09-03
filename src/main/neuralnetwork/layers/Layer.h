@@ -22,8 +22,11 @@ protected:
 public:
     virtual ~Layer() = default;
     
+    Layer() = default;
     Layer(const Layer&) = delete;
     Layer& operator=(const Layer&) = delete;
+    Layer(Layer&&) = default; // Need this for std::vector reallocation!
+    Layer& operator=(Layer&&) = default;
 
     virtual void set_scratchpad(Scratchpad* pad) { scratchpad = pad; }
 
