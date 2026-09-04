@@ -175,3 +175,6 @@ Clean up the repository, improving old kernels to use tiling and cleaning magic 
 - **Debug flag** Add debug flag that then prints data to terminal
 - **C++ conventions** Mark the rule of 5 methods as = delete if it does not use them
 - **Data size constants** Remove 1024 * 1024 and add a MB helper 
+- **Fix tile size bug with channels 320 head 2**
+- **Better dynamic head dimension** : Only supports 128 or 64 at runtime
+- **H2D data copy** : reduce copy during MoE
