@@ -91,6 +91,9 @@ namespace cuda_ops {
                                    bool forward);
     
     void pairwise_mult_into(const float* a, const float* b, float* result, int N);
+
+    void swiglu_forward(const float* gate, const float* up, float* swiglu_tmp, int N);
+    void swiglu_backward(const float* d_down, const float* up, const float* gate, float* d_up, float* d_gate, int N);
     void swish_inplace(float* a, int N);
     void swish_into(const float* x, float* result, int N);
     void swish_backward_into(const float* x, const float* dout, float* result, int N);

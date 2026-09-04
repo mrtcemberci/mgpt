@@ -125,19 +125,19 @@ namespace cuda_ops {
     }
 
     __global__ void add_broadcast_kernel(const float* A, const float* bias, float* C, int total_rows, int cols) {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        int total = total_rows * cols;
-        if (idx < total) {
-            int col = idx % cols;
+        int col = blockIdx.x * blockDim.x + threadIdx.x;
+        int row = blockIdx.y;
+        
+        if (row < total_rows && col < cols) {
+            int idx = row * cols + col;
             C[idx] = A[idx] + bias[col];
         }
     }
 
     void add_broadcast(const float* A, const float* bias, float* C, int total_rows, int cols) {
-        int total = total_rows * cols;
-        if (total == 0) return;
-        int threads = 256;
-        int blocks = (total + threads - 1) / threads;
+        if (total_rows == 0 || cols == 0) return;
+        dim3 threads(256);
+        dim3 blocks((cols + threads.x - 1) / threads.x, total_rows);
         add_broadcast_kernel<<<blocks, threads>>>(A, bias, C, total_rows, cols);
         CHECK_CUDA(cudaGetLastError());
     }
@@ -1144,19 +1144,38 @@ namespace cuda_ops {
 
     __global__ void pairwise_mult_into_kernel(const float* a, const float* b, float* result, int N) {
         int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-        if (idx >= N) return;
-
-        result[idx] = a[idx] * b[idx];
+        
+        if (idx < N / 4) {
+            const float4* a4 = reinterpret_cast<const float4*>(a);
+            const float4* b4 = reinterpret_cast<const float4*>(b);
+            float4* r4 = reinterpret_cast<float4*>(result);
+            
+            float4 va = a4[idx];
+            float4 vb = b4[idx];
+            float4 vr;
+            vr.x = va.x * vb.x;
+            vr.y = va.y * vb.y;
+            vr.z = va.z * vb.z;
+            vr.w = va.w * vb.w;
+            r4[idx] = vr;
+        } else {
+            int r_idx = idx * 4;
+            if (r_idx >= N) return;
+            
+            int limit = min(r_idx + 4, N);
+            for (int i = r_idx; i < limit; i++) {
+                result[i] = a[i] * b[i];
+            }
+        }
     } 
 
     void pairwise_mult_into(const float* a, const float* b, float* result, int N) {
-
+        if (N == 0) return;
         int threads = 256; 
-        int blocks = (N + threads - 1) / threads;
+        int num_vectors = (N + 3) / 4; 
+        int blocks = (num_vectors + threads - 1) / threads;
 
         pairwise_mult_into_kernel<<<blocks,threads>>>(a,b,result,N);
-
         CHECK_CUDA(cudaGetLastError());
     }
 
@@ -1888,6 +1907,105 @@ __global__ void top_k_kernel(const float* input, float* out_values, float* out_i
         }
     }
 }
+
+namespace cuda_ops {
+
+__global__ void swiglu_forward_kernel(const float* gate, const float* up, float* swiglu_tmp, int N) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < N / 4) {
+            const float4* g4 = reinterpret_cast<const float4*>(gate);
+            const float4* u4 = reinterpret_cast<const float4*>(up);
+            float4* r4 = reinterpret_cast<float4*>(swiglu_tmp);
+            
+            float4 vg = g4[idx];
+            float4 vu = u4[idx];
+            float4 vr;
+            
+            vr.x = (vg.x / (1.0f + expf(-vg.x))) * vu.x;
+            vr.y = (vg.y / (1.0f + expf(-vg.y))) * vu.y;
+            vr.z = (vg.z / (1.0f + expf(-vg.z))) * vu.z;
+            vr.w = (vg.w / (1.0f + expf(-vg.w))) * vu.w;
+            
+            r4[idx] = vr;
+        } else {
+            int r_idx = idx * 4;
+            if (r_idx >= N) return;
+            int limit = min(r_idx + 4, N);
+            for (int i = r_idx; i < limit; i++) {
+                float g = gate[i];
+                float u = up[i];
+                swiglu_tmp[i] = (g / (1.0f + expf(-g))) * u;
+            }
+        }
+    }
+    
+    void swiglu_forward(const float* gate, const float* up, float* swiglu_tmp, int N) {
+        if (N == 0) return;
+        int threads = 256;
+        int num_vectors = (N + 3) / 4;
+        int blocks = (num_vectors + threads - 1) / threads;
+        swiglu_forward_kernel<<<blocks, threads>>>(gate, up, swiglu_tmp, N);
+        CHECK_CUDA(cudaGetLastError());
+    }
+
+__global__ void swiglu_backward_kernel(const float* d_down, const float* up, const float* gate, float* d_up, float* d_gate, int N) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < N / 4) {
+            const float4* dd4 = reinterpret_cast<const float4*>(d_down);
+            const float4* u4 = reinterpret_cast<const float4*>(up);
+            const float4* g4 = reinterpret_cast<const float4*>(gate);
+            float4* du4 = reinterpret_cast<float4*>(d_up);
+            float4* dg4 = reinterpret_cast<float4*>(d_gate);
+            
+            float4 dd = dd4[idx];
+            float4 u = u4[idx];
+            float4 g = g4[idx];
+            
+            float4 du;
+            float4 dg;
+            
+            float sig_x = 1.0f / (1.0f + expf(-g.x));
+            du.x = dd.x * (g.x * sig_x);
+            dg.x = (dd.x * u.x) * (sig_x * (1.0f + g.x * (1.0f - sig_x)));
+            
+            float sig_y = 1.0f / (1.0f + expf(-g.y));
+            du.y = dd.y * (g.y * sig_y);
+            dg.y = (dd.y * u.y) * (sig_y * (1.0f + g.y * (1.0f - sig_y)));
+            
+            float sig_z = 1.0f / (1.0f + expf(-g.z));
+            du.z = dd.z * (g.z * sig_z);
+            dg.z = (dd.z * u.z) * (sig_z * (1.0f + g.z * (1.0f - sig_z)));
+            
+            float sig_w = 1.0f / (1.0f + expf(-g.w));
+            du.w = dd.w * (g.w * sig_w);
+            dg.w = (dd.w * u.w) * (sig_w * (1.0f + g.w * (1.0f - sig_w)));
+            
+            du4[idx] = du;
+            dg4[idx] = dg;
+        } else {
+            int r_idx = idx * 4;
+            if (r_idx >= N) return;
+            int limit = min(r_idx + 4, N);
+            for (int i = r_idx; i < limit; i++) {
+                float dd = d_down[i];
+                float u = up[i];
+                float g = gate[i];
+                float sig = 1.0f / (1.0f + expf(-g));
+                d_up[i] = dd * (g * sig);
+                d_gate[i] = (dd * u) * (sig * (1.0f + g * (1.0f - sig)));
+            }
+        }
+    }
+    
+    void swiglu_backward(const float* d_down, const float* up, const float* gate, float* d_up, float* d_gate, int N) {
+        if (N == 0) return;
+        int threads = 256;
+        int num_vectors = (N + 3) / 4;
+        int blocks = (num_vectors + threads - 1) / threads;
+        swiglu_backward_kernel<<<blocks, threads>>>(d_down, up, gate, d_up, d_gate, N);
+        CHECK_CUDA(cudaGetLastError());
+    }
+}
 #else // !USE_CUDA
 
 namespace cuda_ops {
@@ -1942,6 +2060,10 @@ namespace cuda_ops {
                                    int B, int num_heads, int T, int head_dim, 
                                    bool forward) {}
     void pairwise_mult_into(const float* a, const float* b, float* result, int N) {}
+
+    void swiglu_forward(const float* gate, const float* up, float* swiglu_tmp, int N) {}
+    void swiglu_backward(const float* d_down, const float* up, const float* gate, float* d_up, float* d_gate, int N) {}
+
     void swish_inplace(float* a, int N) {}
     void swish_into(const float* x, float* result, int N) {}
     void swish_backward_into(const float* x, const float* dout, float* result, int N) {}

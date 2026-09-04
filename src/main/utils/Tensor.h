@@ -101,6 +101,9 @@ public:
     // Workspace pre-allocation and zero-overhead execution helpers
     void matmul_into(const Tensor& other, Tensor& result) const;
     void pairwise_mult_into(const Tensor& b, Tensor& result) const;
+
+    static void swiglu_forward(const Tensor& gate, const Tensor& up, Tensor& swiglu_tmp);
+    static void swiglu_backward(const Tensor& d_down, const Tensor& up, const Tensor& gate, Tensor& d_up, Tensor& d_gate);
     void swish_inplace();
     void swish_into(Tensor& result) const;
     static void swish_backward_into(const Tensor& x, const Tensor& dout, Tensor& result);

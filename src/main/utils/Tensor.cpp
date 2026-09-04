@@ -1982,3 +1982,48 @@ void Tensor::flash_attention_backward(const Tensor& Q, const Tensor& K, const Te
 
     cuda_ops::flash_attention_backward(Q.cuda_data, K.cuda_data, V.cuda_data, O.cuda_data, L.cuda_data, dO.cuda_data, dQ.cuda_data, dK.cuda_data, dV.cuda_data, B, num_heads, T, head_dim);
 }
+
+void Tensor::swiglu_forward(const Tensor& gate, const Tensor& up, Tensor& swiglu_tmp) {
+    if (swiglu_tmp.shape != gate.shape || swiglu_tmp.device != gate.device || (!swiglu_tmp.cuda_data && gate.device == Device::CUDA)) {
+        swiglu_tmp = Tensor(gate.shape, 0.0f, gate.device);
+    }
+    assert(gate.shape == up.shape && gate.shape == swiglu_tmp.shape);
+    assert(gate.device == up.device && gate.device == swiglu_tmp.device);
+    size_t N = gate.size();
+    
+    if (gate.device == Device::CUDA) {
+        cuda_ops::swiglu_forward(gate.cuda_data, up.cuda_data, swiglu_tmp.cuda_data, N);
+    } else {
+        for (size_t i = 0; i < N; i++) {
+            float g = gate.data[i];
+            float u = up.data[i];
+            float gs = g / (1.0f + std::exp(-g));
+            swiglu_tmp.data[i] = gs * u;
+        }
+    }
+}
+
+void Tensor::swiglu_backward(const Tensor& d_down, const Tensor& up, const Tensor& gate, Tensor& d_up, Tensor& d_gate) {
+    if (d_up.shape != d_down.shape || d_up.device != d_down.device || (!d_up.cuda_data && d_down.device == Device::CUDA)) {
+        d_up = Tensor(d_down.shape, 0.0f, d_down.device);
+    }
+    if (d_gate.shape != d_down.shape || d_gate.device != d_down.device || (!d_gate.cuda_data && d_down.device == Device::CUDA)) {
+        d_gate = Tensor(d_down.shape, 0.0f, d_down.device);
+    }
+    assert(d_down.shape == up.shape && d_down.shape == gate.shape && d_down.shape == d_up.shape && d_down.shape == d_gate.shape);
+    assert(d_down.device == up.device && d_down.device == gate.device && d_down.device == d_up.device && d_down.device == d_gate.device);
+    size_t N = d_down.size();
+    
+    if (d_down.device == Device::CUDA) {
+        cuda_ops::swiglu_backward(d_down.cuda_data, up.cuda_data, gate.cuda_data, d_up.cuda_data, d_gate.cuda_data, N);
+    } else {
+        for (size_t i = 0; i < N; i++) {
+            float dd = d_down.data[i];
+            float u = up.data[i];
+            float g = gate.data[i];
+            float sig = 1.0f / (1.0f + std::exp(-g));
+            d_up.data[i] = dd * (g * sig);
+            d_gate.data[i] = (dd * u) * (sig * (1.0f + g * (1.0f - sig)));
+        }
+    }
+}

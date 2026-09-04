@@ -13,7 +13,6 @@ private:
 
     // Cached tensors for the backward pass
     Tensor cached_gate_out;
-    Tensor cached_gate_swished;
     Tensor cached_up_out;
     Tensor cached_swiglu_tmp;
     Tensor cached_out;
@@ -22,12 +21,10 @@ private:
     Tensor cached_d_down;
     Tensor cached_d_gate;
     Tensor cached_d_up;
-    Tensor cached_d_swish;
     Tensor cached_d_gate_proj;
     Tensor cached_d_up_proj;
 
 public:
-    // If hidden_dim isn't provided, it defaults to embed_dim * 4 (standard GPT scaling)
     SwiGLU(int embed_dim, int hidden_dim = -1);
 
     void set_scratchpad(Scratchpad* pad) override;
